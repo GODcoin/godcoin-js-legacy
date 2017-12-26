@@ -1,6 +1,11 @@
+# Output
 node_modules/
 .nyc_output/
 coverage/
 out/
 
+# VSCode
+.vscode/launch.json
+
+# System generated
 .DS_Store
