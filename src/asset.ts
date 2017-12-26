@@ -46,6 +46,12 @@ export class Asset {
     return new Asset(t.divide(o), decimals, this.symbol);
   }
 
+  setDecimals(decimals: number) {
+    assert(decimals >= 0, 'decimals must be 0 or greater');
+    const num = setDecimals(this.amount, this.decimals, decimals);
+    return new Asset(num, decimals, this.symbol);
+  }
+
   toString(): string {
     const amount = this.amount.toString();
     const full = amount.substring(0, amount.length - this.decimals);
@@ -87,8 +93,8 @@ function setDecimals(old: BigInteger,
                       newDecimals: number): BigInteger {
   if (newDecimals > oldDecimals) {
     return old.multiply('1' + '0'.repeat(newDecimals - oldDecimals));
-  } else if (oldDecimals < newDecimals) {
-    return old.divide('1' + '0'.repeat(newDecimals - oldDecimals));
+  } else if (newDecimals < oldDecimals) {
+    return old.divide('1' + '0'.repeat(oldDecimals - newDecimals));
   }
   return old;
 }

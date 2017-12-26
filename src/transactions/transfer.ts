@@ -23,7 +23,7 @@ export class TransferTx extends Tx {
     assert.equal(this.tx.amount.symbol, this.tx.fee.symbol, 'fee must be paid with the same asset');
     const buf = this.serialize();
     const sig = Buffer.from(this.tx.signatures[0], 'hex');
-    assert(this.tx.from.verify(sig, buf.toBuffer()), 'signature is invalid');
+    assert(this.tx.from.verify(sig, buf.toBuffer()), 'invalid signature');
   }
 
   protected _serialize(): ByteBuffer {
@@ -32,6 +32,7 @@ export class TransferTx extends Tx {
       ['from', TS.publicKey],
       ['to', TS.publicKey],
       ['amount', TS.asset],
+      ['fee', TS.asset],
       ['memo', TS.string]
     ])(buf, this.tx);
     return buf;

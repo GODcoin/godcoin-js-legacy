@@ -1,4 +1,6 @@
-out/
 node_modules/
+.nyc_output/
+coverage/
+out/
 
 .DS_Store

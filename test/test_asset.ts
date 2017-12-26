@@ -1,4 +1,8 @@
-import { AssetSymbol, Asset } from '../src/asset';
+import {
+  ArithmeticError,
+  AssetSymbol,
+  Asset
+} from '../src/asset';
 import { AssertionError } from 'assert';
 import { expect } from 'chai';
 
@@ -40,6 +44,29 @@ it('should throw to parse invalid input', () => {
   check('1.0 gold', 'asset type must be GOLD or SILVER');
 });
 
+it('should correctly set precision of numbers', () => {
+  let a = Asset.fromString('1.5678 GOLD');
+  expect(a.decimals).to.eq(4);
+  expect(a.amount.toString()).to.eq('15678');
+
+  a = a.setDecimals(2);
+  expect(a.decimals).to.eq(2);
+  expect(a.amount.toString()).to.eq('156');
+
+  a = a.setDecimals(0);
+  expect(a.decimals).to.eq(0);
+  expect(a.amount.toString()).to.eq('1');
+  expect(a.toString()).to.eq('1 GOLD');
+
+  a = a.setDecimals(4);
+  expect(a.decimals).to.eq(4);
+  expect(a.amount.toString()).to.eq('10000');
+
+  expect(() => {
+    a.setDecimals(-1);
+  }).to.throw(AssertionError, 'decimals must be 0 or greater');
+});
+
 it('should correctly perform arithmetic and format', () => {
   function check(asset: Asset, amount: string) {
     const internAmt = amount.split(' ')[0].replace('.', '');
@@ -55,6 +82,10 @@ it('should correctly perform arithmetic and format', () => {
   check(a.mul(Asset.fromString('-100000.11111111 GOLD')), '-12345613.7173331961600000 GOLD');
   check(a.div(Asset.fromString('23 GOLD')), '5.367 GOLD');
   check(a.div(Asset.fromString('-23 GOLD'), 8), '-5.36765217 GOLD');
+
+  expect(() => {
+    a.div(Asset.fromString('0 GOLD'));
+  }).to.throw(ArithmeticError, 'divide by zero');
 });
 
 it('should throw to perform arithmetic on different asset types', () => {

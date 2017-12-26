@@ -6,14 +6,15 @@
   "author": "Samuel Grenier <samrg472@gmail.com>",
   "license": "MIT",
   "scripts": {
-    "test": "npx mocha -r ts-node/register test/index.ts"
+    "test": "npx nyc mocha -r ts-node/register test/index.ts"
   },
   "dependencies": {
     "big-integer": "^1.6.26",
     "bs58": "^4.0.1",
     "bytebuffer": "^5.0.1",
     "debug": "^3.1.0",
-    "libsodium-wrappers": "^0.7.2"
+    "libsodium-wrappers": "^0.7.2",
+    "long": "^3.2.0"
   },
   "devDependencies": {
     "@types/bs58": "^3.0.30",
@@ -28,6 +29,7 @@
     "gulp-sourcemaps": "^2.6.1",
     "gulp-typescript": "^3.2.3",
     "mocha": "^4.0.1",
+    "nyc": "^11.4.1",
     "ts-node": "^4.0.1",
     "typescript": "^2.6.2"
   }

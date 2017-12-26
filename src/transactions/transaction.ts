@@ -13,7 +13,7 @@ export enum TxType {
 export interface TxData {
   type: TxType;
   timestamp: Date;
-  expiration: Date;
+  expiration?: Date;
   signatures: string[];
 }
 
@@ -22,7 +22,7 @@ export abstract class Tx {
   constructor(readonly tx: TxData) {
   }
 
-  abstract validate();
+  abstract validate(): void;
 
   sign(key: PrivateKey) {
     const buf = this.serialize();
@@ -33,7 +33,8 @@ export abstract class Tx {
   }
 
   checkExpiry() {
-    assert(this.tx.expiration.getTime() > Date.now(), 'tx expired');
+    const exp = this.tx.expiration;
+    assert(exp && exp.getTime() > Date.now(), 'tx expired or missing');
   }
 
   serialize(): ByteBuffer {
@@ -45,8 +46,7 @@ export abstract class Tx {
                                     ByteBuffer.BIG_ENDIAN);
     TS.object([
       ['type', TS.uint8],
-      ['timestamp', TS.date],
-      ['expiration', TS.date]
+      ['timestamp', TS.date]
     ])(buf, this.tx);
     return buf;
   }

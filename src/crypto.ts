@@ -5,8 +5,11 @@ import * as bs58 from 'bs58';
 export const PUB_ADDRESS_PREFIX = 'GOD';
 const BUF_PREFIX = 0x80;
 
-export function sha256(val: Buffer|string): Buffer {
-  return crypto.createHash('sha256').update(val).digest();
+export function doubleSha256(val: Buffer|string): Buffer {
+  function sha256(val: Buffer|string): Buffer {
+    return crypto.createHash('sha256').update(val).digest();
+  }
+  return sha256(sha256(val));
 }
 
 export class InvalidWif extends Error {
@@ -29,7 +32,7 @@ class Key {
 
   toWif(): string {
     const buf = Buffer.concat([Buffer.from([BUF_PREFIX]), this.buffer]);
-    const checksum = sha256(sha256(buf)).slice(0, 4);
+    const checksum = doubleSha256(buf).slice(0, 4);
     const wif = Buffer.concat([buf, checksum]);
     return bs58.encode(wif);
   }
@@ -48,7 +51,7 @@ class Key {
     }
     const checksum = raw.slice(-4);
     const key = raw.slice(0, -4);
-    if (!sha256(sha256(key)).slice(0, 4).equals(checksum)) {
+    if (!doubleSha256(key).slice(0, 4).equals(checksum)) {
       throw new InvalidWif('invalid checksum');
     }
     return key.slice(1);
@@ -65,8 +68,16 @@ export class PrivateKey extends Key {
     return Buffer.from(sodium.crypto_sign_detached(buf, this.buffer));
   }
 
-  static fromWif(wif: string): PrivateKey {
-    return new PrivateKey(Key.keyFromWif(wif));
+  toPub(): PublicKey {
+    return new PublicKey(this.buffer.slice(sodium.crypto_sign_SEEDBYTES));
+  }
+
+  static fromWif(wif: string): KeyPair {
+    const priv = new PrivateKey(Key.keyFromWif(wif));
+    return {
+      privateKey: priv,
+      publicKey: priv.toPub()
+    };
   }
 }
 
@@ -82,7 +93,7 @@ export class PublicKey extends Key {
   }
 
   verify(signature: Buffer|ArrayBuffer, msg: Buffer|ArrayBuffer): boolean {
-    return sodium.crypto_sign_verify_detached(signature, msg, this.buffer);
+    return sodium.crypto_sign_verify_detached(signature, msg, this.buffer) === true;
   }
 
   static fromWif(wif: string): PublicKey {

@@ -25,6 +25,10 @@ export class TypeSerializer {
     buf.writeUint8(value);
   }
 
+  static uint64(buf: ByteBuffer, value: Long) {
+    buf.writeUint64(value);
+  }
+
   static date(buf: ByteBuffer, value: Date|string) {
     if (typeof(value) === 'string') {
       value = new Date(value);
