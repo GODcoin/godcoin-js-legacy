@@ -5,7 +5,8 @@ coverage/
 out/
 
 # VSCode
-.vscode/launch.json
+.vscode/*
+!.vscode/settings.json
 
 # System generated
 .DS_Store
