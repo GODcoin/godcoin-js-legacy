@@ -20,14 +20,8 @@ export class InvalidWif extends Error {
 }
 
 class Key {
-  readonly buffer: Buffer;
 
-  constructor(buffer: Buffer|Uint8Array) {
-    if (buffer instanceof Uint8Array) {
-      this.buffer = Buffer.from(buffer as any);
-    } else {
-      this.buffer = buffer;
-    }
+  constructor(readonly buffer: Buffer) {
   }
 
   toWif(): string {
@@ -35,6 +29,10 @@ class Key {
     const checksum = doubleSha256(buf).slice(0, 4);
     const wif = Buffer.concat([buf, checksum]);
     return bs58.encode(wif);
+  }
+
+  equals(other: Key): boolean {
+    return this.buffer.equals(other.buffer);
   }
 
   toString(): string {
@@ -60,12 +58,12 @@ class Key {
 
 export class PrivateKey extends Key {
 
-  constructor(buffer: Buffer|Uint8Array) {
+  constructor(buffer: Buffer) {
     super(buffer);
   }
 
   sign(buf: Buffer|ArrayBuffer): Buffer {
-    return Buffer.from(sodium.crypto_sign_detached(buf, this.buffer));
+    return sodium.crypto_sign_detached(buf, this.buffer);
   }
 
   toPub(): PublicKey {
@@ -83,7 +81,7 @@ export class PrivateKey extends Key {
 
 export class PublicKey extends Key {
 
-  constructor(buffer: Buffer|Uint8Array) {
+  constructor(buffer: Buffer) {
     super(buffer);
   }
 
@@ -113,7 +111,7 @@ export interface KeyPair {
 export function generateKeyPair(): KeyPair {
   const keys = sodium.crypto_sign_keypair();
   return {
-    privateKey: new PrivateKey(keys.privateKey),
-    publicKey: new PublicKey(keys.publicKey)
+    privateKey: new PrivateKey(Buffer.from(keys.privateKey)),
+    publicKey: new PublicKey(Buffer.from(keys.publicKey))
   };
 }

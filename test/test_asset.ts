@@ -2,7 +2,7 @@ import {
   ArithmeticError,
   AssetSymbol,
   Asset
-} from '../src/asset';
+} from '../src/lib/asset';
 import { AssertionError } from 'assert';
 import { expect } from 'chai';
 
@@ -82,6 +82,7 @@ it('should correctly perform arithmetic and format', () => {
   check(a.mul(Asset.fromString('-100000.11111111 GOLD')), '-12345613.7173331961600000 GOLD');
   check(a.div(Asset.fromString('23 GOLD')), '5.367 GOLD');
   check(a.div(Asset.fromString('-23 GOLD'), 8), '-5.36765217 GOLD');
+  check(a, '123.456 GOLD');
 
   expect(() => {
     a.div(Asset.fromString('0 GOLD'));

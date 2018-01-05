@@ -1,8 +1,9 @@
-# Output
+# Output and runtime
 node_modules/
 .nyc_output/
 coverage/
 out/
+run/
 
 # VSCode
 .vscode/*

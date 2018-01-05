@@ -4,7 +4,7 @@ import {
   PublicKey,
   PrivateKey,
   generateKeyPair
-} from '../src/crypto';
+} from '../src/lib/crypto';
 import { expect } from 'chai';
 import * as bs58 from 'bs58';
 
@@ -31,7 +31,9 @@ it('should recreate keys from WIF', () => {
   const recKeys = PrivateKey.fromWif(privateWif);
 
   expect(pubKey.buffer.equals(keys.publicKey.buffer)).is.true;
+  expect(pubKey.equals(keys.publicKey)).is.true;
   expect(recKeys.privateKey.buffer.equals(keys.privateKey.buffer)).is.true;
+  expect(recKeys.privateKey.equals(keys.privateKey)).is.true;
 
   expect(pubKey.toWif()).is.eq(publicWif);
   expect(recKeys.publicKey.toWif()).is.eq(publicWif);
