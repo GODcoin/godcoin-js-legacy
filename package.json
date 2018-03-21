@@ -13,8 +13,9 @@
   "files": [
     "tsconfig.json",
     "gulpfile.js",
+    "bin",
     "src",
-    "lib"
+    "out"
   ],
   "types": "./out/index.d.ts",
   "bin": "./bin/godcoin.js",
