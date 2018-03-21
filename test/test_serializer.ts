@@ -34,7 +34,7 @@ it('should serialize primitives', () => {
   buf.clear();
   const asset = '2 GOLD';
   TS.asset(buf, asset);
-  expect(TD.asset(buf).toString()).to.eq(asset);
+  expect(TD.asset(buf.flip()).toString()).to.eq(asset);
 });
 
 it('should serialize transfer transactions', () => {
