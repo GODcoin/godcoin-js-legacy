@@ -19,7 +19,7 @@ export class InvalidWif extends Error {
   }
 }
 
-class Key {
+export class Key {
 
   constructor(readonly buffer: Buffer) {
   }

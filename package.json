@@ -6,38 +6,55 @@
   "author": "Samuel Grenier <samrg472@gmail.com>",
   "license": "MIT",
   "scripts": {
-    "test": "npx nyc mocha -r ts-node/register test/index.ts",
-    "postinstall": "npx gulp build"
+    "prepare": "npm run build",
+    "build": "gulp build",
+    "test": "npx nyc mocha -r ts-node/register test/index.ts"
   },
+  "files": [
+    "tsconfig.json",
+    "gulpfile.js",
+    "src",
+    "lib"
+  ],
+  "types": "./out/index.d.ts",
   "bin": "./bin/godcoin.js",
+  "engines": {
+    "node": ">=9.0.0"
+  },
+  "yargs": {
+    "camel-case-expansion": false
+  },
   "dependencies": {
-    "big-integer": "^1.6.26",
+    "big-integer": "^1.6.27",
     "bs58": "^4.0.1",
     "bytebuffer": "^5.0.1",
     "debug": "^3.1.0",
-    "koa": "^2.4.1",
-    "level": "^2.1.1",
+    "koa": "^2.5.0",
+    "level": "^3.0.0",
     "libsodium-wrappers": "^0.7.3",
     "long": "^3.2.0",
-    "yargs": "^10.0.3"
+    "mkdirp": "^0.5.1",
+    "yargs": "^10.1.2"
   },
   "devDependencies": {
     "@types/bs58": "^3.0.30",
-    "@types/bytebuffer": "^5.0.34",
-    "@types/chai": "^4.0.10",
+    "@types/bytebuffer": "^5.0.36",
+    "@types/chai": "^4.1.2",
     "@types/debug": "0.0.30",
-    "@types/koa": "^2.0.43",
-    "@types/mocha": "^2.2.45",
-    "@types/node": "^8.5.2",
-    "@types/yargs": "^10.0.0",
+    "@types/koa": "^2.0.44",
+    "@types/mkdirp": "^0.5.2",
+    "@types/mocha": "^2.2.48",
+    "@types/node": "^8.9.5",
+    "@types/yargs": "^10.0.2",
     "chai": "^4.1.2",
     "del": "^3.0.0",
     "gulp": "^3.9.1",
-    "gulp-sourcemaps": "^2.6.2",
-    "gulp-typescript": "^3.2.3",
+    "gulp-sourcemaps": "^2.6.4",
+    "gulp-typescript": "^3.2.4",
+    "merge2": "^1.2.1",
     "mocha": "^4.1.0",
-    "nyc": "^11.4.1",
+    "nyc": "^11.6.0",
     "ts-node": "^4.1.0",
-    "typescript": "^2.6.2"
+    "typescript": "^2.7.2"
   }
 }

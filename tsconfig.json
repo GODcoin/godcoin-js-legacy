@@ -4,6 +4,7 @@
     "outDir": "out",
     "module": "commonjs",
     "strict": true,
+    "declaration": true,
     "noImplicitAny": false,
     "experimentalDecorators": true,
     "lib": [

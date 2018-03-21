@@ -1,5 +1,6 @@
 const sourceMaps = require('gulp-sourcemaps');
 const ts = require('gulp-typescript');
+const merge = require('merge2');
 const gulp = require('gulp');
 const path = require('path');
 const del = require('del');
@@ -11,10 +12,12 @@ gulp.task('build', () => {
                     .pipe(sourceMaps.init())
                     .pipe(ts.createProject('tsconfig.json')());
 
-  return res.js.pipe(sourceMaps.write('.', {
+  const js = res.js.pipe(sourceMaps.write('.', {
     includeContent: false,
     sourceRoot: ""
   })).pipe(gulp.dest(outDir));
+  const dts = res.dts.pipe(gulp.dest(outDir));
+  return merge(js, dts);
 });
 
 gulp.task('watch', ['build'], () => {
@@ -24,3 +27,5 @@ gulp.task('watch', ['build'], () => {
 gulp.task('clean', () => {
   return del(`${outDir}/**`);
 });
+
+gulp.task('default', ['build']);
