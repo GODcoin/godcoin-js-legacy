@@ -1,8 +1,5 @@
 {
   "all": true,
-  "require": [
-    "ts-node/register"
-  ],
   "extension": [
     ".ts"
   ],
