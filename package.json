@@ -2,7 +2,7 @@
   "name": "godcoin",
   "version": "0.0.1",
   "description": "",
-  "main": "index.js",
+  "main": "out/lib/index.js",
   "author": "Samuel Grenier <samrg472@gmail.com>",
   "license": "MIT",
   "scripts": {
