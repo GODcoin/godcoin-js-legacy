@@ -4,6 +4,7 @@ import {
   ObjectType
 } from '../serializer';
 import { Tx, TxData, TxType } from './transaction';
+import * as ByteBuffer from 'bytebuffer';
 import { PublicKey } from '../crypto';
 import { Asset } from '../asset';
 import * as assert from 'assert';

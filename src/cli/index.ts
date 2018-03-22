@@ -1,5 +1,6 @@
-import { generateKeyPair } from '../lib/crypto';
+import { generateKeyPair, PrivateKey } from '../lib/crypto';
 import * as sodium from 'libsodium-wrappers';
+import * as nodeUtil from '../lib/node-util';
 import { Daemon } from '../lib/daemon';
 import * as yargs from 'yargs';
 
@@ -7,19 +8,40 @@ function startDaemon(argv: any): void {
   if (argv.listen) {
     console.log(`starting up the daemon on ${argv.bind}:${argv.port}`);
   }
-  const genesisKeys = generateKeyPair();
-  console.log('Genesis minter private WIF: ' + genesisKeys.privateKey.toWif());
-  console.log('Genesis minter public WIF: ' + genesisKeys.publicKey.toWif());
 
+  const wif = argv['minter-wif'];
   const daemon = new Daemon({
-    signingKeys: genesisKeys,
-    regtest: false
+    signingKeys: wif ? PrivateKey.fromWif(wif) : undefined,
+    regtest: argv.regtest
   });
-  daemon.start();
+  nodeUtil.hookSigInt(() => {
+    console.log();
+    console.log('Shutting down daemon...');
+    daemon.stop().catch(e => {
+      console.log('Failed to stop daemon properly', e);
+    });
+  });
+
+  daemon.start().catch(e => {
+    console.log('Failed to start daemon', e);
+  }).then(() => {
+    daemon.stop().catch(e => {
+      console.log('Failed to stop daemon', e);
+    });
+  });
 }
 
 function startWallet(argv: any): void {
 
+}
+
+function keygen(): void {
+  const keys = generateKeyPair();
+  console.log('Your keys have been generated');
+  console.log('Private key WIF: ' + keys.privateKey.toWif());
+  console.log('Public key WIF: ' + keys.publicKey.toWif());
+  console.log('- YOUR COINS CANNOT BE RECOVERED IF YOU LOSE YOUR PRIVATE KEY!');
+  console.log('- NEVER GIVE YOUR PRIVATE KEY TO ANYONE!')
 }
 
 (async () => {
@@ -40,6 +62,19 @@ function startWallet(argv: any): void {
       default: 7777,
       requiresArg: true,
       desc: 'Port for peer-to-peer network connectivity'
+    }).option('regtest', {
+      boolean: true,
+      default: false,
+      desc: 'Runs the network in regtest mode allowing blocks to be minted instantly'
+    }).option('minter-wif', {
+      string: true,
+      requiresArg: true,
+      desc: 'Private WIF key for minting new blocks, required for minting'
+    }).option('create-genesis-block', {
+      boolean: true,
+      default: false,
+      implies: ['minter-wif'],
+      desc: 'Creates a genesis block'
     });
   }, startDaemon).command(['wallet'], '', () => {
     return yargs.option('server', {
@@ -48,7 +83,9 @@ function startWallet(argv: any): void {
       requiresArg: true,
       desc: 'Node to connect to for interacting with the blockchain'
     });
-  }, startWallet).demandCommand(1, 'No command provided')
+  }, startWallet).command(['keygen'], 'Standalone keypair generator', () => {
+    return undefined as any;
+  }, keygen).demandCommand(1, 'No command provided')
     .usage('godcoin <command>')
     .version(false)
     .strict()

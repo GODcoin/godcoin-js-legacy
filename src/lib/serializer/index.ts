@@ -28,7 +28,7 @@ export class TypeSerializer {
     buf.writeUint8(value);
   }
 
-  static uint64(buf: ByteBuffer, value: Long) {
+  static uint64(buf: ByteBuffer, value: number|Long) {
     buf.writeUint64(value);
   }
 

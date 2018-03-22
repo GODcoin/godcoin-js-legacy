@@ -17,7 +17,7 @@
     "src",
     "out"
   ],
-  "types": "./out/index.d.ts",
+  "types": "./out/lib/index.d.ts",
   "bin": "./bin/godcoin.js",
   "engines": {
     "node": ">=9.0.0"
