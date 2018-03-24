@@ -1,8 +1,8 @@
 import { ChainIndex, IndexProp } from './chain_index';
 import { TypeSerializer as TS } from '../serializer';
-import { doubleSha256 } from '../crypto';
 import * as ByteBuffer from 'bytebuffer';
 import { SignedBlock } from './block';
+import * as crypto from 'crypto';
 import * as mkdirp from 'mkdirp';
 import * as assert from 'assert';
 import * as path from 'path';
@@ -52,7 +52,7 @@ export class ChainStore {
       const serBlock = block.fullySerialize(true);
       serBlock.mark().flip();
       let dataBuf = Buffer.from(serBlock.toBuffer());
-      const checksum = doubleSha256(dataBuf).slice(0, 8);
+      const checksum = sha256(dataBuf).slice(0, 8);
       serBlock.reset().append(checksum).flip();
       dataBuf = Buffer.from(serBlock.toBuffer());
 
@@ -89,21 +89,21 @@ export class ChainStore {
                                 ByteBuffer.BIG_ENDIAN);
     {
       // Read the length of the block
-      let tmp = Buffer.alloc(4);
+      let tmp = Buffer.allocUnsafe(4);
       let read = await fsRead(dbFd, tmp, blockPos, blockPos + 4, null);
       assert.equal(read.bytesRead, 4, 'unexpected EOF');
       buf.append(tmp);
 
       // Read the block
       const len = buf.readUint32();
-      tmp = Buffer.alloc(len);
+      tmp = Buffer.allocUnsafe(len);
       read = await fsRead(dbFd, tmp, blockPos + 4, blockPos + len, null);
       assert.equal(read.bytesRead, len, 'unexpected EOF');
 
       // Verify the checksum of the stored block
       const checksum = tmp.slice(-8);
       tmp = tmp.slice(0, -8);
-      assert(doubleSha256(tmp).slice(0, 8).equals(checksum), 'invalid checksum');
+      assert(sha256(tmp).slice(0, 8).equals(checksum), 'invalid checksum');
       buf.clear().append(tmp).flip();
     }
 
@@ -142,4 +142,8 @@ export class ChainStore {
 
 function getBlockPosString(blockNum: number|Long) {
   return 'block_pos_' + blockNum.toString();
+}
+
+function sha256(val: Buffer) {
+  return crypto.createHash('sha256').update(val).digest();
 }
