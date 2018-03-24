@@ -53,6 +53,12 @@ it('should throw on invalid key', () => {
   }).to.throw(InvalidWif, 'invalid prefix');
 
   expect(() => {
+    // Private key and public key has a different prefix
+    const buf = bs58.decode(keys.privateKey.toWif());
+    PublicKey.fromWif('GOD' + bs58.encode(buf));
+  }).to.throw(InvalidWif, 'invalid prefix');
+
+  expect(() => {
     const buf = bs58.decode(keys.privateKey.toWif());
     buf[buf.length - 1] = 0;
     PrivateKey.fromWif(bs58.encode(buf));
@@ -62,6 +68,12 @@ it('should throw on invalid key', () => {
     const wif = keys.publicKey.toWif().slice(PUB_ADDRESS_PREFIX.length);
     PublicKey.fromWif(wif);
   }).to.throw(InvalidWif, 'wif must start with ' + PUB_ADDRESS_PREFIX);
+
+  const wif = (keys.privateKey as any).seed = undefined;
+  expect(keys.privateKey.seed).to.be.undefined;
+  expect(() => {
+    keys.privateKey.toWif();
+  }).to.throw(InvalidWif, 'cannot created compressed wif without seed');
 });
 
 it('should properly sign and validate', () => {
