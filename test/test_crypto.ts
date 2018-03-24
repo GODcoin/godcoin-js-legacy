@@ -69,6 +69,7 @@ it('should throw on invalid key', () => {
     PublicKey.fromWif(wif);
   }).to.throw(InvalidWif, 'wif must start with ' + PUB_ADDRESS_PREFIX);
 
+  expect(keys.privateKey).to.have.property('seed');
   const wif = (keys.privateKey as any).seed = undefined;
   expect(keys.privateKey.seed).to.be.undefined;
   expect(() => {
