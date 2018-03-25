@@ -35,10 +35,10 @@ function startWallet(argv: any): void {
 
 }
 
-function keygen(): void {
+function keygen(argv: any): void {
   const keys = generateKeyPair();
   console.log('Your keys have been generated');
-  console.log('Private key WIF: ' + keys.privateKey.toWif());
+  console.log('Private key WIF: ' + keys.privateKey.toWif(argv.extended));
   console.log('Public key WIF: ' + keys.publicKey.toWif());
   console.log('- YOUR COINS CANNOT BE RECOVERED IF YOU LOSE YOUR PRIVATE KEY!');
   console.log('- NEVER GIVE YOUR PRIVATE KEY TO ANYONE!')
@@ -84,7 +84,11 @@ function keygen(): void {
       desc: 'Node to connect to for interacting with the blockchain'
     });
   }, startWallet).command(['keygen'], 'Standalone keypair generator', () => {
-    return undefined as any;
+    return yargs.option('extended', {
+      boolean: true,
+      default: false,
+      desc: 'Whether to generate an extended private key'
+    });
   }, keygen).demandCommand(1, 'No command provided')
     .usage('godcoin <command>')
     .version(false)
