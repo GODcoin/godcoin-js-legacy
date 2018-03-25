@@ -88,7 +88,7 @@ export class TypeDeserializer {
   static string(buf: ByteBuffer): string|undefined {
     const len = buf.readUint32();
     if (len === 0) return;
-    return buf.readUTF8String(len);
+    return buf.readUTF8String(len) as string;
   }
 
   static uint8(buf: ByteBuffer): number {
