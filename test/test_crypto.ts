@@ -40,6 +40,11 @@ it('should recreate keys from WIF', () => {
   expect(recKeys.privateKey.toWif()).is.eq(privateWif);
 });
 
+it('should import keys from WIF', () => {
+  const { publicKey } = PrivateKey.fromWif('3MFjoc3Czmy4zednmK2JdJLRTm6rXHMzBroTHD67guSJycuXJ9');
+  expect(publicKey.toWif()).to.eq('GOD6o5rLKP4jrJ527spZg1CSQXTbcGTdHYHpxp3CWDR4cdA666Rkx');
+});
+
 it('should throw on invalid key', () => {
   expect(() => {
     PrivateKey.fromWif('');
