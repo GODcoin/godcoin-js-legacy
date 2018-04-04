@@ -1,6 +1,6 @@
 import {
   TypeDeserializer as TD,
-  TypeSerializer as TS,
+  TypeSerializer as TS
 } from '../serializer';
 import { TransferTx, TransferTxData } from './transfer';
 import { RewardTx, RewardTxData } from './reward';

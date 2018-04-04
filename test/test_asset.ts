@@ -26,7 +26,7 @@ it('should parse valid input', () => {
   check(Asset.fromString('-1.0 SILVER'), '-10', 1, AssetSymbol.SILVER);
 });
 
-it('should throw to parse invalid input', () => {
+it('should throw parsing invalid input', () => {
   function check(asset: string, error: string) {
     expect(() => {
       Asset.fromString(asset);
@@ -89,7 +89,7 @@ it('should correctly perform arithmetic and format', () => {
   }).to.throw(ArithmeticError, 'divide by zero');
 });
 
-it('should throw to perform arithmetic on different asset types', () => {
+it('should throw performing arithmetic on different asset types', () => {
   const a = Asset.fromString('0 GOLD');
   const b = Asset.fromString('0 SILVER');
 
