@@ -1,35 +1,39 @@
-import { Tx, TxPool, TransferTx, RewardTx } from '../transactions';
+import { Tx, TransferTx, RewardTx } from '../transactions';
 import { PrivateKey, KeyPair, PublicKey } from '../crypto';
 import { Block, SignedBlock } from './block';
 import { Asset, AssetSymbol } from '../asset';
-import { ChainIndex } from './chain_index';
 import { ChainStore } from './chain_store';
 import { BigInteger } from 'big-integer';
 import * as bigInt from 'big-integer';
+import * as mkdirp from 'mkdirp';
 import * as assert from 'assert';
 import * as Long from 'long';
+import { Indexer } from '../indexer';
 export * from './block';
 
 export class Blockchain {
 
   private readonly store: ChainStore;
-  private readonly index: ChainIndex;
+  private readonly indexer: Indexer;
 
-  constructor(store: ChainStore, index: ChainIndex) {
+  constructor(store: ChainStore, indexer: Indexer) {
     this.store = store;
-    this.index = index;
+    this.indexer = indexer;
   }
 
   async start(): Promise<void> {
-    await this.store.lock();
     await this.store.init();
   }
 
   async stop(): Promise<void> {
-    await this.store.unlock();
+    await this.indexer.close();
   }
 
   async addBlock(block: SignedBlock): Promise<void> {
+    if (!this.store.blockHeight) {
+      // Write the genesis block directly
+      return await this.store.write(block);
+    }
     assert(this.store.blockHeight.add(1).eq(block.height), 'unexpected height');
     assert(this.isBondValid(block.signing_key), 'invalid bond');
     block.validate(await this.getLatestBlock());
@@ -68,15 +72,15 @@ export class Blockchain {
     let i = Long.fromNumber(0, true);
     for (; i.lt(this.store.blockHeight); i = i.add(1)) {
       const block = await this.store.read(i);
-      const bal = Blockchain.getBalanceTxs(key, block!.transactions, symbol);
+      const bal = Blockchain.getBlockBalance(key, block!.transactions, symbol);
       balance = balance.add(bal);
     }
     return balance;
   }
 
-  private static getBalanceTxs(key: PublicKey,
-                                txs: Tx[],
-                                symbol: AssetSymbol): Asset {
+  private static getBlockBalance(key: PublicKey,
+                                  txs: Tx[],
+                                  symbol: AssetSymbol): Asset {
     let balance: Asset = new Asset(bigInt(0), 0, symbol);
     for (const tx of txs) {
       if (tx instanceof TransferTx) {

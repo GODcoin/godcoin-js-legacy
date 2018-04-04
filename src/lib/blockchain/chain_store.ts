@@ -1,10 +1,10 @@
-import { ChainIndex, IndexProp } from './chain_index';
 import { TypeSerializer as TS } from '../serializer';
+import { Indexer, IndexProp } from '../indexer';
 import * as ByteBuffer from 'bytebuffer';
 import { SignedBlock } from './block';
 import * as crypto from 'crypto';
-import * as mkdirp from 'mkdirp';
 import * as assert from 'assert';
+import { Lock } from '../lock';
 import * as path from 'path';
 import * as util from 'util';
 import * as Long from 'long';
@@ -18,8 +18,6 @@ const fsWrite = util.promisify(fs.write);
 const fsRead = util.promisify(fs.read);
 const fsStat = util.promisify(fs.stat);
 
-const LOCK_FILE = 'LOCK';
-
 export class ChainStore {
 
   private _blockHeight!: Long;
@@ -27,56 +25,55 @@ export class ChainStore {
     return this._blockHeight;
   }
 
-  readonly index: ChainIndex;
-  readonly dir: string;
-  readonly globalLock: string;
-  readonly dbLock: string;
+  private lock = new Lock();
+  private initialized = false;
+
+  readonly index: Indexer;
   readonly dbFile: string;
 
-  constructor(dir: string, index: ChainIndex) {
-    dir = path.join(dir, 'data');
-    this.dir = dir;
-    this.globalLock = path.join(dir, 'GLOBAL_LOCK');
-    this.dbLock = path.join(dir, 'LOCK');
-    this.dbFile = path.join(dir, 'blkdata');
+  constructor(dbFile: string, index: Indexer) {
+    this.dbFile = dbFile;
     this.index = index;
   }
 
   async write(block: SignedBlock): Promise<void> {
-    if (!this._blockHeight) {
-      assert(block.height.eq(0), 'New db must start with genesis block');
-      this._blockHeight = block.height;
-    }
-    const lockFd = await fsOpen(this.dbLock, 'wx');
-    {
-      const serBlock = block.fullySerialize(true);
-      serBlock.mark().flip();
-      let dataBuf = Buffer.from(serBlock.toBuffer());
-      const checksum = sha256(dataBuf).slice(0, 8);
-      serBlock.reset().append(checksum).flip();
-      dataBuf = Buffer.from(serBlock.toBuffer());
+    await this.lock.lock();
+    try {
+      if (!this._blockHeight) {
+        assert(block.height.eq(0), 'New db must start with genesis block');
+        this._blockHeight = block.height;
+      }
+
+      const serBlock = block.fullySerialize(true).reset();
+      const checksum = sha256(Buffer.from(serBlock.toBuffer())).slice(0, 8);
+      serBlock.offset = serBlock.limit;
+      serBlock.append(checksum).flip();
 
       const blockPos = (await fsStat(this.dbFile)).size;
       const dbFd = await fsOpen(this.dbFile, 'a');
-      const bufLen = new ByteBuffer(4, ByteBuffer.BIG_ENDIAN);
-      bufLen.writeUint32(serBlock.limit).flip();
-      await fsWrite(dbFd, Buffer.from(bufLen.toBuffer()));
-      await fsWrite(dbFd, dataBuf);
+      {
+        // Write the block length
+        const bufLen = Buffer.allocUnsafe(4);
+        bufLen.writeUInt32BE(serBlock.limit, 0);
+        await fsWrite(dbFd, bufLen);
+      }
+
+      await fsWrite(dbFd, Buffer.from(serBlock.toBuffer()));
       await fsClose(dbFd);
 
       const key = getBlockPosString(block.height);
       const val = Long.fromNumber(blockPos, true).toString();
       await this.index.setProp(key, val);
+    } finally {
+      this.lock.unlock();
     }
-    await fsClose(lockFd);
-    await fsUnlink(this.dbLock);
   }
 
   async read(blockHeight: number|Long): Promise<SignedBlock|undefined> {
-    let blockPos;
+    let blockPos: number;
     try {
       blockPos = await this.index.getProp(getBlockPosString(blockHeight));
-      blockPos = Long.fromString(blockPos, true);
+      blockPos = Long.fromString(blockPos as any, true).toNumber();
     } catch (e) {
       if (e.notFound) {
         return;
@@ -85,37 +82,39 @@ export class ChainStore {
     }
 
     const dbFd = await fsOpen(this.dbFile, 'r');
-    const buf = new ByteBuffer(ByteBuffer.DEFAULT_CAPACITY,
-                                ByteBuffer.BIG_ENDIAN);
-    {
+    try {
       // Read the length of the block
-      let tmp = Buffer.allocUnsafe(4);
-      let read = await fsRead(dbFd, tmp, blockPos, blockPos + 4, null);
-      assert.equal(read.bytesRead, 4, 'unexpected EOF');
-      buf.append(tmp);
+      let len: number;
+      {
+        const tmp = Buffer.allocUnsafe(4);
+        const read = await fsRead(dbFd, tmp, blockPos, blockPos + 4, null);
+        assert.equal(read.bytesRead, 4, 'unexpected EOF');
+        len = tmp.readUInt32BE(0);
+      }
 
       // Read the block
-      const len = buf.readUint32();
-      tmp = Buffer.allocUnsafe(len);
-      read = await fsRead(dbFd, tmp, blockPos + 4, blockPos + len, null);
+      let buf = Buffer.allocUnsafe(len);
+      const read = await fsRead(dbFd, buf, 0, len, null);
       assert.equal(read.bytesRead, len, 'unexpected EOF');
 
       // Verify the checksum of the stored block
-      const checksum = tmp.slice(-8);
-      tmp = tmp.slice(0, -8);
-      assert(sha256(tmp).slice(0, 8).equals(checksum), 'invalid checksum');
-      buf.clear().append(tmp).flip();
-    }
+      const checksum = buf.slice(-8);
+      buf = buf.slice(0, -8);
+      assert(sha256(buf).slice(0, 8).equals(checksum), 'invalid checksum');
 
-    return SignedBlock.fullyDeserialize(buf);
+      // Deserialize and return
+      const block = SignedBlock.fullyDeserialize(ByteBuffer.wrap(buf));
+      assert(block.height.eq(blockHeight));
+      return block;
+    } catch (e) {
+      throw e;
+    } finally {
+      await fsClose(dbFd);
+    }
   }
 
   async init(): Promise<void> {
-    mkdirp.sync(this.dir);
-    if (await fsExists(this.dbLock)) {
-      throw new Error('DB lock file exists - possibly running more than 1 instance or abruptly shutdown');
-    }
-
+    assert(!this.initialized, 'already initialized');
     try {
       const height = await this.index.getProp(IndexProp.CURRENT_BLOCK_HEIGHT);
       this._blockHeight = Long.fromString(height, true);
@@ -127,16 +126,7 @@ export class ChainStore {
     if (!(await fsExists(this.dbFile))) {
       fs.closeSync(fs.openSync(this.dbFile, 'w'));
     }
-  }
-
-  async lock(): Promise<void> {
-    const exists = await fsExists(this.globalLock);
-    assert(!exists, 'global lock file exists: possibly running more than 1 instance');
-    await fsClose(await fsOpen(this.globalLock, 'wx'));
-  }
-
-  async unlock(): Promise<void> {
-    await fsUnlink(this.globalLock);
+    this.initialized = true;
   }
 }
 

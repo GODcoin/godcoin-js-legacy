@@ -1,8 +1,10 @@
 import { generateKeyPair, PrivateKey } from '../lib/crypto';
+import { Daemon, getAppDir } from '../lib/daemon';
 import * as sodium from 'libsodium-wrappers';
 import * as nodeUtil from '../lib/node-util';
-import { Daemon } from '../lib/daemon';
 import * as yargs from 'yargs';
+import * as path from 'path';
+import * as fs from 'fs';
 
 function startDaemon(argv: any): void {
   if (argv.listen) {
@@ -41,13 +43,31 @@ function keygen(argv: any): void {
   console.log('Private key WIF: ' + keys.privateKey.toWif(argv.extended));
   console.log('Public key WIF: ' + keys.publicKey.toWif());
   console.log('- YOUR COINS CANNOT BE RECOVERED IF YOU LOSE YOUR PRIVATE KEY!');
-  console.log('- NEVER GIVE YOUR PRIVATE KEY TO ANYONE!')
+  console.log('- NEVER GIVE YOUR PRIVATE KEY TO ANYONE!');
 }
 
 (async () => {
   await sodium.ready;
 
-  yargs.command(['daemon', '$0'], 'Start the full node server', () => {
+  const appDir = getAppDir();
+  try {
+    fs.accessSync(appDir);
+  } catch (e) {
+    if (e.code !== 'ENOENT') {
+      throw e;
+    }
+    fs.mkdirSync(appDir);
+  }
+
+  const confPath = process.env.GODCOINRC || path.join(appDir, 'godcoinrc');
+  let conf: any = {};
+  if (fs.existsSync(confPath)) {
+    conf = JSON.parse(fs.readFileSync(confPath, 'utf8'));
+  }
+  const cmd: string|undefined = conf.$0;
+  delete conf.$0;
+
+  yargs.command(cmd === 'daemon' ? ['daemon', '$0'] : ['daemon'], 'Start the full node server', () => {
     return yargs.option('listen', {
       boolean: true,
       default: true,
@@ -76,14 +96,14 @@ function keygen(argv: any): void {
       implies: ['minter-wif'],
       desc: 'Creates a genesis block'
     });
-  }, startDaemon).command(['wallet'], '', () => {
+  }, startDaemon).command(cmd === 'wallet' ? ['wallet', '$0'] : ['wallet'], '', () => {
     return yargs.option('server', {
       string: true,
       default: '127.0.0.1:7777',
       requiresArg: true,
       desc: 'Node to connect to for interacting with the blockchain'
     });
-  }, startWallet).command(['keygen'], 'Standalone keypair generator', () => {
+  }, startWallet).command(cmd === 'keygen' ? ['keygen', '$0'] : ['keygen'], 'Standalone keypair generator', () => {
     return yargs.option('extended', {
       boolean: true,
       default: false,
@@ -92,6 +112,7 @@ function keygen(argv: any): void {
   }, keygen).demandCommand(1, 'No command provided')
     .usage('godcoin <command>')
     .version(false)
+    .config(conf)
     .strict()
     .parse();
 })().catch(e => {

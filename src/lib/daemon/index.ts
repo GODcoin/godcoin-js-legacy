@@ -1,11 +1,14 @@
-import { Blockchain, Block, ChainIndex, ChainStore } from '../blockchain';
+import { Blockchain, Block, ChainStore } from '../blockchain';
 import { RewardTx, TxType } from '../transactions';
 import { KeyPair, PrivateKey } from '../crypto';
+import { Indexer } from '../indexer';
 import { getAppDir } from './util';
 import { Asset } from '../asset';
 import * as assert from 'assert';
 import * as Long from 'long';
 import * as path from 'path';
+
+export * from './util';
 
 export interface DaemonOpts {
   signingKeys?: KeyPair;
@@ -19,8 +22,9 @@ export class Daemon {
 
   constructor(readonly opts: DaemonOpts) {
     this.opts = opts;
-    const index = new ChainIndex(path.join(getAppDir(), 'blkindex'));
-    const store = new ChainStore(getAppDir(), index);
+    const dir = path.join(getAppDir(), 'blockchain', 'data');
+    const index = new Indexer(path.join(dir, 'index'));
+    const store = new ChainStore(path.join(dir, 'blklog'), index);
     this.blockchain = new Blockchain(store, index);
   }
 
@@ -45,7 +49,7 @@ export class Daemon {
             })
           ]
         }).sign(this.opts.signingKeys!);
-        this.blockchain.addBlock(genesisBlock);
+        await this.blockchain.addBlock(genesisBlock);
       }
       // TODO: synchronize with another peer
       throw new Error('Missing genesis block');

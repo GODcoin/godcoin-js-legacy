@@ -2,6 +2,7 @@ import * as ByteBuffer from 'bytebuffer';
 import { PublicKey } from '../crypto';
 import * as newDebug from 'debug';
 import { Asset } from '../asset';
+import * as Long from 'long';
 
 const debug = newDebug('godcoin:serializer');
 
@@ -96,7 +97,7 @@ export class TypeDeserializer {
   }
 
   static uint64(buf: ByteBuffer): Long {
-    return buf.readUint64().toUnsigned();
+    return buf.readUint64();
   }
 
   static date(buf: ByteBuffer): Date {

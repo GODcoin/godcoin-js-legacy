@@ -133,7 +133,7 @@ export class SignedBlock extends Block implements SignedBlockOpts {
     {
       const prevSerialized = Buffer.from(prevBlock.fullySerialize().toBuffer());
       const prevHash = doubleSha256(prevSerialized);
-      const curHash = Buffer.from(this.previous_hash, 'hex');
+      const curHash = Buffer.from(bs58.decode(this.previous_hash));
       assert(prevHash.equals(curHash), 'previous hash does not match');
     }
     {
@@ -157,7 +157,7 @@ export class SignedBlock extends Block implements SignedBlockOpts {
 
   getHash(): string {
     const serialized = Buffer.from(this.fullySerialize().toBuffer());
-    return doubleSha256(serialized).toString('hex');
+    return bs58.encode(doubleSha256(serialized));
   }
 
   toString(): string {

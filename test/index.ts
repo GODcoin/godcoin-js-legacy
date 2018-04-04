@@ -1,4 +1,8 @@
+import * as chaiAsPromised from 'chai-as-promised';
 import * as sodium from 'libsodium-wrappers';
+import * as chai from 'chai';
+
+chai.use(chaiAsPromised);
 
 before(async () => {
   await sodium.ready;
@@ -14,4 +18,12 @@ describe('Crypto', () => {
 
 describe('Serialization', () => {
   require('./test_serializer');
+});
+
+describe('Blockchain', () => {
+  require('./test_blockchain');
+});
+
+describe('Lock', () => {
+  require('./test_lock');
 });
