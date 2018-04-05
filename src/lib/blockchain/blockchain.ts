@@ -1,20 +1,19 @@
 import { Tx, TransferTx, RewardTx } from '../transactions';
 import { PrivateKey, KeyPair, PublicKey } from '../crypto';
-import { Block, SignedBlock } from './block';
+import { Indexer, IndexProp } from '../indexer';
 import { Asset, AssetSymbol } from '../asset';
+import { Block, SignedBlock } from './block';
 import { ChainStore } from './chain_store';
 import { BigInteger } from 'big-integer';
 import * as bigInt from 'big-integer';
-import * as mkdirp from 'mkdirp';
 import * as assert from 'assert';
 import * as Long from 'long';
-import { Indexer } from '../indexer';
 export * from './block';
 
 export class Blockchain {
 
-  private readonly store: ChainStore;
-  private readonly indexer: Indexer;
+  readonly store: ChainStore;
+  readonly indexer: Indexer;
 
   constructor(store: ChainStore, indexer: Indexer) {
     this.store = store;
@@ -32,7 +31,7 @@ export class Blockchain {
   async addBlock(block: SignedBlock): Promise<void> {
     if (!this.store.blockHeight) {
       // Write the genesis block directly
-      return await this.store.write(block);
+      return this.store.write(block);
     }
     assert(this.store.blockHeight.add(1).eq(block.height), 'unexpected height');
     assert(this.isBondValid(block.signing_key), 'invalid bond');

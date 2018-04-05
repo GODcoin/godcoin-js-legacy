@@ -7,14 +7,13 @@ import * as path from 'path';
 import * as fs from 'fs';
 
 function startDaemon(argv: any): void {
-  if (argv.listen) {
-    console.log(`starting up the daemon on ${argv.bind}:${argv.port}`);
-  }
-
   const wif = argv['minter-wif'];
   const daemon = new Daemon({
-    signingKeys: wif ? PrivateKey.fromWif(wif) : undefined,
-    regtest: argv.regtest
+    signingKeys: wif ? PrivateKey.fromWif(wif) : undefined as any,
+    regtest: argv.regtest,
+    bind: argv.bind,
+    listen: argv.listen,
+    port: argv.port
   });
   nodeUtil.hookSigInt(() => {
     console.log();
@@ -90,11 +89,6 @@ function keygen(argv: any): void {
       string: true,
       requiresArg: true,
       desc: 'Private WIF key for minting new blocks, required for minting'
-    }).option('create-genesis-block', {
-      boolean: true,
-      default: false,
-      implies: ['minter-wif'],
-      desc: 'Creates a genesis block'
     });
   }, startDaemon).command(cmd === 'wallet' ? ['wallet', '$0'] : ['wallet'], '', () => {
     return yargs.option('server', {

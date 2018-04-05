@@ -64,6 +64,7 @@ export class ChainStore {
       const key = getBlockPosString(block.height);
       const val = Long.fromNumber(blockPos, true).toString();
       await this.index.setProp(key, val);
+      await this.index.setProp(IndexProp.CURRENT_BLOCK_HEIGHT, block.height.toString());
     } finally {
       this.lock.unlock();
     }

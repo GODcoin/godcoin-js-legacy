@@ -8,7 +8,9 @@ export class Indexer {
   private readonly db: any;
 
   constructor(dbPath) {
-    this.db = level(dbPath);
+    this.db = level(dbPath, function (err, db) {
+      if (err) throw err;
+    });
   }
 
   getProp(prop: IndexProp|string): Promise<any> {
