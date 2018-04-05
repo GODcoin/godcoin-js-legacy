@@ -30,12 +30,14 @@
     "bytebuffer/long": "^4.0.0"
   },
   "dependencies": {
+    "@types/koa-websocket": "^2.1.2",
     "big-integer": "^1.6.27",
     "bs58": "^4.0.1",
     "bytebuffer": "^5.0.1",
     "debug": "^3.1.0",
     "del": "^3.0.0",
     "koa": "^2.5.0",
+    "koa-websocket": "^4.1.0",
     "level": "^3.0.0",
     "libsodium-wrappers": "^0.7.3",
     "long": "^4.0.0",
