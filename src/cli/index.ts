@@ -25,10 +25,6 @@ function startDaemon(argv: any): void {
 
   daemon.start().catch(e => {
     console.log('Failed to start daemon', e);
-  }).then(() => {
-    daemon.stop().catch(e => {
-      console.log('Failed to stop daemon', e);
-    });
   });
 }
 
