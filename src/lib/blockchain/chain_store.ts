@@ -44,73 +44,79 @@ export class ChainStore {
         this._blockHeight = block.height;
       }
 
-      const serBlock = block.fullySerialize(true).reset();
-      const checksum = sha256(Buffer.from(serBlock.toBuffer())).slice(0, 8);
-      serBlock.offset = serBlock.limit;
-      serBlock.append(checksum).flip();
-
+      const serBlock = Buffer.from(block.fullySerialize(true).toBuffer());
       const blockPos = (await fsStat(this.dbFile)).size;
       const dbFd = await fsOpen(this.dbFile, 'a');
       {
         // Write the block length
         const bufLen = Buffer.allocUnsafe(4);
-        bufLen.writeUInt32BE(serBlock.limit, 0);
+        bufLen.writeUInt32BE(serBlock.byteLength, 0);
         await fsWrite(dbFd, bufLen);
       }
+      await fsWrite(dbFd, serBlock);
 
-      await fsWrite(dbFd, Buffer.from(serBlock.toBuffer()));
+      const checksum = sha256(serBlock).slice(0, 8);
+      await fsWrite(dbFd, checksum);
+
       await fsClose(dbFd);
 
       const key = getBlockPosString(block.height);
       const val = Long.fromNumber(blockPos, true).toString();
       await this.index.setProp(key, val);
       await this.index.setProp(IndexProp.CURRENT_BLOCK_HEIGHT, block.height.toString());
+      this._blockHeight = block.height;
     } finally {
       this.lock.unlock();
     }
   }
 
   async read(blockHeight: number|Long): Promise<SignedBlock|undefined> {
-    let blockPos: number;
+    await this.lock.lock();
     try {
-      blockPos = await this.index.getProp(getBlockPosString(blockHeight));
-      blockPos = Long.fromString(blockPos as any, true).toNumber();
-    } catch (e) {
-      if (e.notFound) {
-        return;
-      }
-      throw e;
-    }
-
-    const dbFd = await fsOpen(this.dbFile, 'r');
-    try {
-      // Read the length of the block
-      let len: number;
-      {
-        const tmp = Buffer.allocUnsafe(4);
-        const read = await fsRead(dbFd, tmp, blockPos, blockPos + 4, null);
-        assert.equal(read.bytesRead, 4, 'unexpected EOF');
-        len = tmp.readUInt32BE(0);
+      let blockPos: number;
+      try {
+        blockPos = await this.index.getProp(getBlockPosString(blockHeight));
+        blockPos = Long.fromString(blockPos as any, true).toNumber();
+      } catch (e) {
+        if (e.notFound) return;
+        throw e;
       }
 
-      // Read the block
-      let buf = Buffer.allocUnsafe(len);
-      const read = await fsRead(dbFd, buf, 0, len, null);
-      assert.equal(read.bytesRead, len, 'unexpected EOF');
+      const dbFd = await fsOpen(this.dbFile, 'r');
+      try {
+        // Read the length of the block
+        let len: number;
+        {
+          const tmp = Buffer.allocUnsafe(4);
+          const read = await fsRead(dbFd, tmp, 0, 4, blockPos);
+          assert.equal(read.bytesRead, 4, 'unexpected EOF');
+          len = tmp.readUInt32BE(0);
+        }
 
-      // Verify the checksum of the stored block
-      const checksum = buf.slice(-8);
-      buf = buf.slice(0, -8);
-      assert(sha256(buf).slice(0, 8).equals(checksum), 'invalid checksum');
+        // Read the block
+        const buf = Buffer.allocUnsafe(len);
+        let read = await fsRead(dbFd, buf, 0, len, blockPos + 4);
+        assert.equal(read.bytesRead, len, 'unexpected EOF');
 
-      // Deserialize and return
-      const block = SignedBlock.fullyDeserialize(ByteBuffer.wrap(buf));
-      assert(block.height.eq(blockHeight));
-      return block;
-    } catch (e) {
-      throw e;
+        // Verify the checksum of the stored block
+        {
+          const checksum = Buffer.allocUnsafe(8);
+          read = await fsRead(dbFd, checksum, 0, 8, blockPos + len + 4);
+          assert.equal(read.bytesRead, 8, 'unexpected EOF');
+          assert(sha256(buf).slice(0, 8).equals(checksum), 'invalid checksum');
+        }
+
+        // Deserialize and return
+        const block = SignedBlock.fullyDeserialize(ByteBuffer.wrap(buf));
+        assert(block.height.eq(blockHeight));
+        return block;
+      } catch (e) {
+        throw e;
+      } finally {
+        await fsClose(dbFd);
+      }
     } finally {
-      await fsClose(dbFd);
+      this.lock.unlock();
     }
   }
 
