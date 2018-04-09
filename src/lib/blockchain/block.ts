@@ -12,14 +12,14 @@ import * as bs58 from 'bs58';
 
 export interface BlockOpts {
   height: Long;
-  previous_hash: string;
+  previous_hash: Buffer;
   timestamp: Date;
   transactions: Tx[];
-  tx_merkle_root?: string;
+  tx_merkle_root?: Buffer;
 }
 
 export interface SignedBlockOpts extends BlockOpts {
-  signature: string;
+  signature: Buffer;
   signing_key: PublicKey;
 }
 
@@ -27,18 +27,18 @@ export class Block implements BlockOpts {
 
   static readonly SERIALIZER_FIELDS: ObjectType[] = [
     ['height', TS.uint64],
-    ['previous_hash', TS.string],
+    ['previous_hash', TS.buffer],
     ['timestamp', TS.date],
-    ['tx_merkle_root', TS.string]
+    ['tx_merkle_root', TS.buffer]
   ];
   static readonly SERIALIZER = TS.object(Block.SERIALIZER_FIELDS);
   static readonly DESERIALIZER = TD.object(Block.SERIALIZER_FIELDS);
 
   readonly height: Long;
-  readonly previous_hash: string;
+  readonly previous_hash: Buffer;
   readonly timestamp: Date;
   readonly transactions: Tx[];
-  readonly tx_merkle_root: string;
+  readonly tx_merkle_root: Buffer;
 
   constructor(data: BlockOpts) {
     assert(data.height.unsigned);
@@ -61,7 +61,7 @@ export class Block implements BlockOpts {
       timestamp: this.timestamp,
       transactions: this.transactions,
       tx_merkle_root: this.tx_merkle_root,
-      signature: bs58.encode(keys.privateKey.sign(serialized)),
+      signature: keys.privateKey.sign(serialized),
       signing_key: keys.publicKey
     });
   }
@@ -73,7 +73,7 @@ export class Block implements BlockOpts {
     {
       const thisRoot = this.tx_merkle_root;
       const expectedRoot = this.getMerkleRoot();
-      assert.strictEqual(thisRoot, expectedRoot, 'unexpected merkle root');
+      assert(expectedRoot.equals(thisRoot), 'unexpected merkle root');
     }
   }
 
@@ -88,16 +88,15 @@ export class Block implements BlockOpts {
     return buf;
   }
 
-  private getMerkleRoot(): string {
+  private getMerkleRoot(): Buffer {
     const buf = ByteBuffer.allocate(ByteBuffer.DEFAULT_CAPACITY,
                                     ByteBuffer.BIG_ENDIAN);
     for (const tx of this.transactions) {
-      const txb = tx.serialize();
+      const txb = tx.serialize(true);
       buf.writeUint32(txb.limit);
       buf.append(txb);
     }
-    const hash = doubleSha256(Buffer.from(buf.flip().toBuffer()));
-    return hash.toString('hex');
+    return doubleSha256(Buffer.from(buf.flip().toBuffer()));
   }
 
   static create(prevBlock: SignedBlock, tx: Tx[]): Block {
@@ -114,12 +113,12 @@ export class SignedBlock extends Block implements SignedBlockOpts {
 
   static readonly SERIALIZER_FIELDS: ObjectType[] = [
     ['signing_key', TS.publicKey],
-    ['signature', TS.string]
+    ['signature', TS.buffer]
   ];
   static readonly SERIALIZER = TS.object(SignedBlock.SERIALIZER_FIELDS);
   static readonly DESERIALIZER = TD.object(SignedBlock.SERIALIZER_FIELDS);
 
-  readonly signature: string;
+  readonly signature: Buffer;
   readonly signing_key: PublicKey;
 
   constructor(data: SignedBlockOpts) {
@@ -131,15 +130,13 @@ export class SignedBlock extends Block implements SignedBlockOpts {
   validate(prevBlock: SignedBlock) {
     super.validate(prevBlock);
     {
-      const prevSerialized = Buffer.from(prevBlock.fullySerialize(false).toBuffer());
-      const prevHash = doubleSha256(prevSerialized);
-      const curHash = Buffer.from(bs58.decode(this.previous_hash));
+      const prevHash = prevBlock.getHash();
+      const curHash = this.previous_hash;
       assert(prevHash.equals(curHash), 'previous hash does not match');
     }
     {
       const serialized = this.serialize();
-      const sig = Buffer.from(bs58.decode(this.signature));
-      assert(this.signing_key.verify(sig, serialized), 'invalid signature');
+      assert(this.signing_key.verify(this.signature, serialized), 'invalid signature');
     }
   }
 
@@ -155,27 +152,28 @@ export class SignedBlock extends Block implements SignedBlockOpts {
     return buf.flip();
   }
 
-  getHash(): string {
+  getHash(): Buffer {
     const serialized = Buffer.from(this.fullySerialize(false).toBuffer());
-    return bs58.encode(doubleSha256(serialized));
+    return doubleSha256(serialized);
   }
 
   toString(): string {
     return JSON.stringify({
       height: this.height.toString(),
-      previous_hash: this.previous_hash,
+      previous_hash: this.previous_hash ? this.previous_hash.toString('hex') : undefined,
       timestamp: this.timestamp.toString(),
       transactions: this.transactions.map(val => {
         const data: any = {};
         Object.getOwnPropertyNames(val.data).forEach(name => {
           if (typeof(val.data[name]) !== 'function') {
-            data[name] = val.data[name].toString();
+            const prop = val.data[name];
+            data[name] = prop !== undefined ? prop.toString() : undefined;
           }
         });
         return data;
       }),
-      tx_merkle_root: this.tx_merkle_root,
-      signature: this.signature,
+      tx_merkle_root: this.tx_merkle_root.toString('hex'),
+      signature: this.signature.toString('hex'),
       signingKey: this.signing_key.toWif()
     }, undefined, 2);
   }

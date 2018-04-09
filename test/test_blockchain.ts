@@ -107,7 +107,7 @@ it('should fail previous hash validation', async () => {
   {
     const block = new Block({
       height: Long.fromNumber(1, true),
-      previous_hash: '',
+      previous_hash: Buffer.alloc(0),
       timestamp: new Date(),
       transactions: []
     }).sign(genesisKeys);
@@ -129,7 +129,7 @@ it('should fail with incorrect height', async () => {
   {
     const block = new Block({
       height: Long.fromNumber(2, true),
-      previous_hash: '',
+      previous_hash: Buffer.alloc(0),
       timestamp: new Date(),
       transactions: []
     }).sign(genesisKeys);

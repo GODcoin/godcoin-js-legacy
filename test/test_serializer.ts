@@ -45,7 +45,7 @@ it('should serialize transfer transactions', () => {
     from: from.publicKey,
     to: generateKeyPair().publicKey,
     amount: Asset.fromString('10 GOLD'),
-    fee: Asset.fromString('1 GOLD'),
+    fee: Asset.fromString('0.00000001 GOLD'),
     memo: 'test 123',
     signatures: []
   }).appendSign(from.privateKey);
@@ -106,7 +106,7 @@ it('should serialize blocks', () => {
     ]
   }).sign(keys);
 
-  const serialized = genesisBlock.fullySerialize(true);
+  const serialized = genesisBlock.fullySerialize();
   const recBlock = SignedBlock.fullyDeserialize(serialized);
   expect(recBlock).to.eql(genesisBlock);
 });

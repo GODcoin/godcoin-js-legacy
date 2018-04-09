@@ -33,6 +33,18 @@ export class TypeSerializer {
     buf.writeUint64(value);
   }
 
+  static buffer(buf: ByteBuffer, value: Buffer|ByteBuffer) {
+    let len = 0;
+    if (value instanceof Buffer) {
+      len = value.byteLength;
+    } else if (value instanceof ByteBuffer) {
+      len = value.limit;
+    }
+    if (!len) return buf.writeUint32(0);
+    else buf.writeUint32(len);
+    buf.append(value);
+  }
+
   static date(buf: ByteBuffer, value: Date|string) {
     if (typeof(value) === 'string') {
       value = new Date(value);
@@ -44,15 +56,14 @@ export class TypeSerializer {
     if (typeof(value) === 'string') {
       value = PublicKey.fromWif(value);
     }
-    TypeSerializer.string(buf, value.toWif());
+    TypeSerializer.buffer(buf, value.buffer);
   }
 
   static asset(buf: ByteBuffer, value: Asset|string) {
     if (typeof(value) === 'string') {
       value = Asset.fromString(value);
     }
-    TypeSerializer.string(buf, value.amount.toString());
-    TypeSerializer.string(buf, value.symbol.toString());
+    TypeSerializer.string(buf, value.toString());
   }
 
   static object(fields: ObjectType[]): Serializer {
@@ -100,19 +111,24 @@ export class TypeDeserializer {
     return buf.readUint64();
   }
 
+  static buffer(buf: ByteBuffer): Buffer|undefined {
+    const len = buf.readUint32();
+    if (len === 0) return;
+    return Buffer.from(buf.readBytes(len).toBuffer());
+  }
+
   static date(buf: ByteBuffer): Date {
     return new Date(buf.readUint32() * 1000);
   }
 
   static publicKey(buf: ByteBuffer): PublicKey {
-    const wif = TypeDeserializer.string(buf) as string;
-    return PublicKey.fromWif(wif);
+    const wif = TypeDeserializer.buffer(buf) as Buffer;
+    return new PublicKey(wif);
   }
 
   static asset(buf: ByteBuffer): Asset {
-    const asset = TypeDeserializer.string(buf);
-    const symbol = TypeDeserializer.string(buf);
-    return Asset.fromString(asset + ' ' + symbol);
+    const asset = TypeDeserializer.string(buf) as string;
+    return Asset.fromString(asset);
   }
 
   static object(fields: ObjectType[]): Deserializer {

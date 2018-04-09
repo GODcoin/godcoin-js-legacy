@@ -64,7 +64,7 @@ export class PrivateKey extends Key {
   }
 
   sign(buf: Buffer|ArrayBuffer): Buffer {
-    return sodium.crypto_sign_detached(buf, this.buffer);
+    return Buffer.from(sodium.crypto_sign_detached(buf, this.buffer));
   }
 
   toWif(extended = false): string {
