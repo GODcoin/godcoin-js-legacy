@@ -24,4 +24,8 @@ export class Indexer {
   async close(): Promise<void> {
     await this.db.close();
   }
+
+  batch() {
+    return this.db.batch();
+  }
 }

@@ -1,14 +1,15 @@
 # Output and runtime
+yarn-error.log
 node_modules/
 .nyc_output/
-yarn-error.log
 coverage/
 out/
 run/
 
-# VSCode
-.vscode/*
+# IDEs and editors
 !.vscode/settings.json
+.vscode/*
+.idea
 
 # System generated
 .DS_Store

@@ -1,8 +1,9 @@
-import { Blockchain, Block, ChainStore } from '../blockchain';
+import { Blockchain, Block, ChainStore, Minter } from '../blockchain';
 import { RewardTx, TxType } from '../transactions';
 import { KeyPair, PrivateKey } from '../crypto';
 import { Indexer } from '../indexer';
 import { getAppDir } from './util';
+import { Server } from './server';
 import { Asset } from '../asset';
 import * as assert from 'assert';
 import * as mkdirp from 'mkdirp';
@@ -21,6 +22,8 @@ export interface DaemonOpts {
 export class Daemon {
 
   readonly blockchain: Blockchain;
+  private server?: Server;
+  private minter?: Minter;
 
   constructor(readonly opts: DaemonOpts) {
     this.opts = opts;
@@ -35,8 +38,8 @@ export class Daemon {
 
   async start(): Promise<void> {
     await this.blockchain.start();
-    if (this.blockchain.store.blockHeight) {
-      const height = this.blockchain.store.blockHeight.toString();
+    if (this.blockchain.store.blockHead) {
+      const height = this.blockchain.store.blockHead.height.toString();
       console.log(`Using existing blockchain at height ${height}`);
     } else {
       // TODO: synchronize p2p network
@@ -62,11 +65,25 @@ export class Daemon {
     }
 
     if (this.opts.listen) {
-      console.log(`Starting up the server on ${this.opts.bind}:${this.opts.port}`);
+      this.server = new Server(this.opts.bind, this.opts.port);
+      this.server.start();
+    }
+
+    if (this.opts.signingKeys) {
+      this.minter = new Minter(this.blockchain, this.opts.signingKeys);
+      this.minter.start();
     }
   }
 
   async stop(): Promise<void> {
     await this.blockchain.stop();
+    if (this.server) {
+      this.server.stop();
+      this.server = undefined;
+    }
+    if (this.minter) {
+      this.minter.stop();
+      this.minter = undefined;
+    }
   }
 }

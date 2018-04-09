@@ -30,18 +30,17 @@
     "bytebuffer/long": "^4.0.0"
   },
   "dependencies": {
-    "@types/koa-websocket": "^2.1.2",
     "big-integer": "^1.6.27",
     "bs58": "^4.0.1",
     "bytebuffer": "^5.0.1",
     "debug": "^3.1.0",
     "del": "^3.0.0",
     "koa": "^2.5.0",
-    "koa-websocket": "^4.1.0",
     "level": "^3.0.0",
     "libsodium-wrappers": "^0.7.3",
     "long": "^4.0.0",
     "mkdirp": "^0.5.1",
+    "ws": "^5.1.1",
     "yargs": "^11.0.0"
   },
   "devDependencies": {
@@ -55,6 +54,7 @@
     "@types/mkdirp": "^0.5.2",
     "@types/mocha": "^5.0.0",
     "@types/node": "^9.6.2",
+    "@types/ws": "^4.0.2",
     "@types/yargs": "^11.0.0",
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
@@ -66,5 +66,9 @@
     "nyc": "^11.6.0",
     "ts-node": "^5.0.1",
     "typescript": "^2.8.1"
+  },
+  "optionalDependencies": {
+    "bufferutil": "^3.0.3",
+    "utf-8-validate": "^4.0.0"
   }
 }

@@ -94,7 +94,7 @@ export class Block implements BlockOpts {
     for (const tx of this.transactions) {
       const txb = tx.serialize();
       buf.writeUint32(txb.limit);
-      buf.append(tx.serialize());
+      buf.append(txb);
     }
     const hash = doubleSha256(Buffer.from(buf.flip().toBuffer()));
     return hash.toString('hex');
@@ -131,7 +131,7 @@ export class SignedBlock extends Block implements SignedBlockOpts {
   validate(prevBlock: SignedBlock) {
     super.validate(prevBlock);
     {
-      const prevSerialized = Buffer.from(prevBlock.fullySerialize().toBuffer());
+      const prevSerialized = Buffer.from(prevBlock.fullySerialize(false).toBuffer());
       const prevHash = doubleSha256(prevSerialized);
       const curHash = Buffer.from(bs58.decode(this.previous_hash));
       assert(prevHash.equals(curHash), 'previous hash does not match');
@@ -143,7 +143,7 @@ export class SignedBlock extends Block implements SignedBlockOpts {
     }
   }
 
-  fullySerialize(includeTx = false): ByteBuffer {
+  fullySerialize(includeTx = true): ByteBuffer {
     const buf = super.rawSerialize();
     SignedBlock.SERIALIZER(buf, this);
     if (includeTx) {
@@ -156,7 +156,7 @@ export class SignedBlock extends Block implements SignedBlockOpts {
   }
 
   getHash(): string {
-    const serialized = Buffer.from(this.fullySerialize().toBuffer());
+    const serialized = Buffer.from(this.fullySerialize(false).toBuffer());
     return bs58.encode(doubleSha256(serialized));
   }
 

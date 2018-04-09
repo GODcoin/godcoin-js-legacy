@@ -11,8 +11,8 @@ function startDaemon(argv: any): void {
   const daemon = new Daemon({
     signingKeys: wif ? PrivateKey.fromWif(wif) : undefined as any,
     regtest: argv.regtest,
-    bind: argv.bind,
     listen: argv.listen,
+    bind: argv.bind,
     port: argv.port
   });
   nodeUtil.hookSigInt(() => {

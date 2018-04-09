@@ -1,7 +1,8 @@
 import {
+  SignedBlock,
   Blockchain,
   ChainStore,
-  Block
+  Block,
 } from '../src/lib/blockchain';
 import { TxType, RewardTx, TransferTx } from '../src/lib/transactions';
 import { generateKeyPair, KeyPair } from '../src/lib/crypto';
@@ -57,6 +58,40 @@ it('should read and write the genesis block', async () => {
   await chain.addBlock(genesisBlock);
   const block = await chain.getBlock(0);
   expect(block).to.eql(genesisBlock);
+});
+
+it('should read the latest block', async () => {
+  let block!: SignedBlock;
+  let prevBlock!: SignedBlock;
+  for (let i = 0; i <= 10; ++i) {
+    const hash = prevBlock ? prevBlock.getHash() : undefined;
+    block = new Block({
+      height: Long.fromNumber(i, true),
+      previous_hash: hash as any,
+      timestamp: new Date(),
+      transactions: []
+    }).sign(genesisKeys);
+    await chain.addBlock(block);
+    prevBlock = block;
+  }
+  expect(chain.getLatestBlock()).to.eql(block);
+});
+
+it('should read any previous block', async () => {
+  let block!: SignedBlock;
+  for (let i = 0; i <= 10; ++i) {
+    const hash = i === 0 ? undefined : chain.getLatestBlock().getHash();
+    const b = new Block({
+      height: Long.fromNumber(i, true),
+      previous_hash: hash as any,
+      timestamp: new Date(),
+      transactions: []
+    }).sign(genesisKeys);
+    if (i === 5) block = b;
+    await chain.addBlock(b);
+  }
+  const b = await chain.getBlock(5);
+  expect(b).to.eql(block);
 });
 
 it('should fail previous hash validation', async () => {

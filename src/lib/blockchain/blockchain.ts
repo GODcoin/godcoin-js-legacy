@@ -12,6 +12,8 @@ export * from './block';
 
 export class Blockchain {
 
+  private genesisBlock!: SignedBlock;
+
   readonly store: ChainStore;
   readonly indexer: Indexer;
 
@@ -22,25 +24,28 @@ export class Blockchain {
 
   async start(): Promise<void> {
     await this.store.init();
+    this.genesisBlock = (await this.store.read(0))!;
   }
 
   async stop(): Promise<void> {
     await this.indexer.close();
+    await this.store.close();
   }
 
   async addBlock(block: SignedBlock): Promise<void> {
-    if (!this.store.blockHeight) {
+    if (!this.store.blockHead && block.height.eq(0)) {
       // Write the genesis block directly
+      this.genesisBlock = block;
       return this.store.write(block);
     }
-    assert(this.store.blockHeight.add(1).eq(block.height), 'unexpected height');
+    assert(this.store.blockHead.height.add(1).eq(block.height), 'unexpected height');
     assert(this.isBondValid(block.signing_key), 'invalid bond');
-    block.validate(await this.getLatestBlock());
+    block.validate(this.getLatestBlock());
     await this.store.write(block);
   }
 
-  async getLatestBlock(): Promise<SignedBlock> {
-    return (await this.store.read(this.store.blockHeight))!;
+  getLatestBlock(): SignedBlock {
+    return this.store.blockHead;
   }
 
   async getBlock(num: number): Promise<SignedBlock|undefined> {
@@ -51,7 +56,7 @@ export class Blockchain {
     if (typeof(key) === 'string') {
       key = PublicKey.fromWif(key);
     }
-    return (await this.getBlock(0))!.signing_key.equals(key);
+    return this.genesisBlock.signing_key.equals(key);
   }
 
   async getGoldBalance(key: string|PublicKey): Promise<Asset> {
@@ -69,7 +74,7 @@ export class Blockchain {
     }
     let balance: Asset = new Asset(bigInt(0), 0, symbol);
     let i = Long.fromNumber(0, true);
-    for (; i.lt(this.store.blockHeight); i = i.add(1)) {
+    for (; i.lt(this.store.blockHead.height); i = i.add(1)) {
       const block = await this.store.read(i);
       const bal = Blockchain.getBlockBalance(key, block!.transactions, symbol);
       balance = balance.add(bal);
