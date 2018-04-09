@@ -1,6 +1,7 @@
-import { Blockchain, Block, ChainStore, Minter } from '../blockchain';
+import { Blockchain, Block, ChainStore } from '../blockchain';
 import { RewardTx, TxType } from '../transactions';
 import { KeyPair, PrivateKey } from '../crypto';
+import { Minter } from '../producer';
 import { Indexer } from '../indexer';
 import { getAppDir } from './util';
 import { Server } from './server';

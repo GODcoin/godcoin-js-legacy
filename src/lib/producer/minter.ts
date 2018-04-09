@@ -1,10 +1,8 @@
-import { Blockchain } from './blockchain';
+import { Blockchain, SignedBlock, Block } from '../blockchain';
 import { KeyPair } from '../crypto';
-import { Block, SignedBlock } from './block';
 import * as Long from 'long';
 
 export class Minter {
-
 
   private readonly blockchain: Blockchain;
   private readonly keys: KeyPair;

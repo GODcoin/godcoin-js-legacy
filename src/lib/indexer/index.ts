@@ -9,6 +9,7 @@ export class Indexer {
 
   constructor(dbPath) {
     this.db = level(dbPath, function (err, db) {
+      /* istanbul ignore next */
       if (err) throw err;
     });
   }
@@ -23,9 +24,5 @@ export class Indexer {
 
   async close(): Promise<void> {
     await this.db.close();
-  }
-
-  batch() {
-    return this.db.batch();
   }
 }
