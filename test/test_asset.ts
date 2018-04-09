@@ -24,6 +24,12 @@ it('should parse valid input', () => {
   check(Asset.fromString('0 SILVER'), '0', 0, AssetSymbol.SILVER);
   check(Asset.fromString('-0.0 SILVER'), '0', 1, AssetSymbol.SILVER);
   check(Asset.fromString('-1.0 SILVER'), '-10', 1, AssetSymbol.SILVER);
+
+  expect(Asset.fromString('1.00001 GOLD').toString()).to.eq('1.00001 GOLD');
+  expect(Asset.fromString('0.00001 GOLD').toString()).to.eq('0.00001 GOLD');
+  expect(Asset.fromString('.00001 GOLD').toString()).to.eq('0.00001 GOLD');
+  expect(Asset.fromString('.1 GOLD').toString()).to.eq('0.1 GOLD');
+  expect(Asset.fromString('1.0 GOLD').toString()).to.eq('1.0 GOLD');
 });
 
 it('should throw parsing invalid input', () => {

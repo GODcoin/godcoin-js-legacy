@@ -55,9 +55,11 @@ export class Asset {
   toString(): string {
     const amount = this.amount.toString();
     const full = amount.substring(0, amount.length - this.decimals);
-    const partial = this.decimals > 0
-                      ? '.' + amount.substring(amount.length - this.decimals)
-                      : '';
+    let partial = '';
+    if (this.decimals > 0) {
+      const num = amount.substring(amount.length - this.decimals);
+      partial = (full ? '.' : '0.') + '0'.repeat(this.decimals - num.length) + num;
+    }
     return `${full}${partial} ${this.symbol}`;
   }
 
