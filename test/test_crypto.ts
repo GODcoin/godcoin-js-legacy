@@ -10,16 +10,24 @@ import * as bs58 from 'bs58';
 
 it('should create keys', () => {
   const keys = generateKeyPair();
-  expect(keys, 'Failed to generate keys').to.exist;
-  expect(keys.publicKey, 'Failed to generate public key').to.exist;
-  expect(keys.privateKey, 'Failed to generate private key').to.exist;
+  expect(keys, 'failed to generate keys').to.exist;
+  expect(keys.publicKey, 'failed to generate public key').to.exist;
+  expect(keys.privateKey, 'failed to generate private key').to.exist;
+  expect(keys.privateKey.extended).to.be.true;
 
   const pub = keys.publicKey.buffer;
   const priv = keys.privateKey.buffer;
-  expect(pub.equals(priv), 'Public key should not equal private key').is.false;
+  expect(pub.equals(priv), 'public key should not equal private key').is.false;
 });
 
-it('should recreate keys from WIF', () => {
+it('should recover public key from a private key', () => {
+  const keys = generateKeyPair();
+  const pub = keys.privateKey.toPub().buffer;
+
+  expect(keys.publicKey.buffer.equals(pub), 'public keys do not match').is.true;
+});
+
+it('should recreate keys from a compressed WIF', () => {
   const keys = generateKeyPair();
   const publicWif = keys.publicKey.toWif();
   const privateWif = keys.privateKey.toWif();
@@ -38,6 +46,14 @@ it('should recreate keys from WIF', () => {
   expect(pubKey.toWif()).is.eq(publicWif);
   expect(recKeys.publicKey.toWif()).is.eq(publicWif);
   expect(recKeys.privateKey.toWif()).is.eq(privateWif);
+});
+
+it('should recreate keypairs from an extended private key', () => {
+  const keys = generateKeyPair();
+  const recKeys = PrivateKey.fromWif(keys.privateKey.toWif(true));
+  expect(keys.privateKey.equals(recKeys.privateKey)).to.be.true;
+  expect(keys.publicKey.equals(recKeys.publicKey)).to.be.true;
+  expect(recKeys.privateKey.extended).to.be.false;
 });
 
 it('should import keys from WIF', () => {
@@ -76,6 +92,7 @@ it('should throw on invalid key', () => {
 
   expect(keys.privateKey).to.have.property('seed');
   const wif = (keys.privateKey as any).seed = undefined;
+  expect(keys.privateKey.extended).to.be.false;
   expect(keys.privateKey.seed).to.be.undefined;
   expect(() => {
     keys.privateKey.toWif();
@@ -90,4 +107,14 @@ it('should properly sign and validate', () => {
 
   const badKeys = generateKeyPair();
   expect(badKeys.publicKey.verify(sig, msg)).is.false;
+});
+
+it('should throw on invalid key lengths', () => {
+  expect(() => {
+    new PrivateKey(Buffer.alloc(32));
+  }).to.throw(Error, 'invalid key length (got 32 bytes)');
+
+  expect(() => {
+    new PublicKey(Buffer.alloc(64));
+  }).to.throw(Error, 'invalid key length (got 64 bytes)');
 });

@@ -88,7 +88,7 @@ export class PrivateKey extends Key {
     let buf = Key.keyFromWif(wif, PRIV_BUF_PREFIX);
     if (buf.length === sodium.crypto_sign_SEEDBYTES) {
       const keys = sodium.crypto_sign_seed_keypair(buf);
-      buf = Buffer.from(keys.privateKey)
+      buf = Buffer.from(keys.privateKey);
       return {
         privateKey: new PrivateKey(buf, Buffer.from(keys.privateKey)),
         publicKey: new PublicKey(Buffer.from(keys.publicKey))
