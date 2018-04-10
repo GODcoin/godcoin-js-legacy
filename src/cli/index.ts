@@ -2,6 +2,7 @@ import { generateKeyPair, PrivateKey } from '../lib/crypto';
 import { Daemon, getAppDir } from '../lib/daemon';
 import * as sodium from 'libsodium-wrappers';
 import * as nodeUtil from '../lib/node-util';
+import { Wallet } from './wallet';
 import * as yargs from 'yargs';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -29,7 +30,10 @@ function startDaemon(argv: any): void {
 }
 
 function startWallet(argv: any): void {
-
+  const wallet = new Wallet();
+  wallet.start().catch(e => {
+    console.log('Failed to initialize wallet', e);
+  });
 }
 
 function keygen(argv: any): void {

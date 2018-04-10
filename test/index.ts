@@ -27,3 +27,7 @@ describe('Blockchain', () => {
 describe('Lock', () => {
   require('./test_lock');
 });
+
+describe('CLI', () => {
+  require('./test_cli');
+});
