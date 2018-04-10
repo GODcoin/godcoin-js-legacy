@@ -1,6 +1,6 @@
+import { getAppDir, hookSigInt } from '../lib';
 import * as sodium from 'libsodium-wrappers';
 import * as readline from 'readline';
-import { getAppDir } from '../lib';
 import * as mkdirp from 'mkdirp';
 import * as crypto from 'crypto';
 import * as assert from 'assert';
@@ -49,15 +49,15 @@ export class Wallet {
       }
     });
 
-    this.rl.on('SIGINT', async () => {
+    hookSigInt(async () => {
+      write('Exiting wallet...');
       try {
-        write('\nClosing wallet...');
         await this.db.close();
       } catch (e) {
-        write('\nFailed to close wallet db ' + e);
+        write('Failed to close wallet db', e);
       }
       this.rl.close();
-    });
+    }, this.rl);
   }
 
   private async processLine(input: string): Promise<void> {
