@@ -25,7 +25,7 @@ export function deserialize<T>(buf: ByteBuffer, includeSigs = true): T {
 function deserializePartial(buf: ByteBuffer, includeSigs: boolean) {
   const tx: any = {};
   if (includeSigs) {
-    tx.signatures = TD.array(TS.string)(buf);
+    tx.signatures = TD.array(TS.buffer)(buf);
   }
   return Object.assign(tx, Tx.DESERIALIZER(buf));
 }

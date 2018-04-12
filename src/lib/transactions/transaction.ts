@@ -7,7 +7,6 @@ import * as ByteBuffer from 'bytebuffer';
 import { PrivateKey } from '../crypto';
 import * as newDebug from 'debug';
 import * as assert from 'assert';
-import * as bs58 from 'bs58';
 
 const debug = newDebug('godcoin:tx');
 
@@ -20,7 +19,7 @@ export interface TxData {
   type: TxType;
   timestamp: Date;
   expiration?: Date;
-  signatures: string[];
+  signatures: Buffer[];
 }
 
 export abstract class Tx {
@@ -49,7 +48,7 @@ export abstract class Tx {
   }
 
   appendSign(key: PrivateKey) {
-    const sig = bs58.encode(this.sign(key));
+    const sig = this.sign(key);
     this.data.signatures.push(sig);
     return this;
   }
@@ -71,7 +70,7 @@ export abstract class Tx {
     const buf = ByteBuffer.allocate(ByteBuffer.DEFAULT_CAPACITY,
                                     ByteBuffer.BIG_ENDIAN);
     if (includeSigs) {
-      TS.array(TS.string)(buf, this.data.signatures);
+      TS.array(TS.buffer)(buf, this.data.signatures);
     }
     Tx.SERIALIZER(buf, this.data);
     this.rawSerialize(buf);

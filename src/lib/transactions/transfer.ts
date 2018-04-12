@@ -8,7 +8,6 @@ import * as ByteBuffer from 'bytebuffer';
 import { PublicKey } from '../crypto';
 import { Asset } from '../asset';
 import * as assert from 'assert';
-import * as bs58 from 'bs58';
 
 export interface TransferTxData extends TxData {
   type: TxType.TRANSFER;
@@ -38,12 +37,12 @@ export class TransferTx extends Tx {
   validate() {
     assert(this.data.signatures.length > 0, 'tx must have at least 1 signature');
     assert.equal(this.data.amount.symbol, this.data.fee.symbol, 'fee must be paid with the same asset');
-    assert(this.data.fee.amount.gt(0), 'fee cannot be zero or negative');
+    assert(this.data.fee.amount.gt(0), 'fee must be greater than zero');
     if (this.data.memo) {
       assert(this.data.memo.length < 512, 'maximum memo length is 512 chars');
     }
     const buf = this.serialize();
-    const sig = Buffer.from(bs58.decode(this.data.signatures[0]));
+    const sig = this.data.signatures[0];
     assert(this.data.from.verify(sig, buf.toBuffer()), 'invalid signature');
   }
 
