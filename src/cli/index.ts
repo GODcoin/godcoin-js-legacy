@@ -17,7 +17,6 @@ function startDaemon(argv: any): void {
     port: argv.port
   });
   nodeUtil.hookSigInt(() => {
-    console.log();
     console.log('Shutting down daemon...');
     daemon.stop().catch(e => {
       console.log('Failed to stop daemon properly', e);
@@ -30,9 +29,9 @@ function startDaemon(argv: any): void {
 }
 
 function startWallet(argv: any): void {
-  const wallet = new Wallet();
+  const wallet = new Wallet(argv.server);
   wallet.start().catch(e => {
-    console.log('Failed to initialize wallet', e);
+    console.log('Failed to initialize wallet\n', e);
   });
 }
 
@@ -93,7 +92,7 @@ function keygen(argv: any): void {
   }, startDaemon).command(cmd === 'wallet' ? ['wallet', '$0'] : ['wallet'], '', () => {
     return yargs.option('server', {
       string: true,
-      default: '127.0.0.1:7777',
+      default: 'ws://127.0.0.1:7777',
       requiresArg: true,
       desc: 'Node to connect to for interacting with the blockchain'
     });

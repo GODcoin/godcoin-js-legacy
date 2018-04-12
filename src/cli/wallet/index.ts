@@ -1,19 +1,24 @@
-import { getAppDir, hookSigInt } from '../lib';
-import * as sodium from 'libsodium-wrappers';
+import { getAppDir, hookSigInt, SignedBlock } from '../../lib';
+import { WalletDb, WalletIndexProp } from './db';
+import * as ByteBuffer from 'bytebuffer';
 import * as readline from 'readline';
+import { WalletNet } from './net';
 import * as mkdirp from 'mkdirp';
-import * as crypto from 'crypto';
 import * as assert from 'assert';
-import * as level from 'level';
+import * as WebSocket from 'ws';
 import * as path from 'path';
-import * as fs from 'fs';
 
 export class Wallet {
+
+  private state = WalletState.NEW;
+  private net: WalletNet;
 
   private rl!: readline.ReadLine;
   private db!: WalletDb;
 
-  private state = WalletState.NEW;
+  constructor(nodeUrl: string) {
+    this.net = new WalletNet(nodeUrl);
+  }
 
   async start() {
     const walletDir = path.join(getAppDir(), 'wallet');
@@ -24,6 +29,8 @@ export class Wallet {
         resolve();
       });
     });
+
+    await this.net.open();
 
     let prompt = 'new>> ';
     if (await this.db.isLocked()) {
@@ -51,6 +58,11 @@ export class Wallet {
 
     hookSigInt(async () => {
       write('Exiting wallet...');
+      try {
+        this.net.close();
+      } catch (e) {
+        write('Failed to close websocket connection', e);
+      }
       try {
         await this.db.close();
       } catch (e) {
@@ -125,13 +137,34 @@ export class Wallet {
         }
         break;
       }
+      case 'get_block': {
+        const height = Number((args[1] || '').trim());
+        if (height === NaN) {
+          write('get_block <height> - missing or invalid number for height');
+          break;
+        }
+
+        const data = await this.net.send({
+          method: 'get_block',
+          height
+        });
+        if (data.block) {
+          const buf = ByteBuffer.wrap(data.block.buffer);
+          const block = SignedBlock.fullyDeserialize(buf);
+          write(block.toString());
+        } else {
+          write('Invalid block height');
+        }
+        break;
+      }
       default:
         write('Unknown command:', args[0]);
       case 'help':
         write('Available commands:');
-        write('  help               - Displays this help menu');
-        write('  new <password>     - creates a new wallet');
-        write('  unlock <password>  - unlocks your wallet');
+        write('  help                - Displays this help menu');
+        write('  new <password>      - creates a new wallet');
+        write('  unlock <password>   - unlocks your wallet');
+        write('  get_block <height>  - retrieves a block at the specified height');
     }
   }
 
@@ -185,70 +218,10 @@ export class Wallet {
   }
 }
 
-class WalletDb {
-
-  private readonly db: any;
-  private password!: Buffer;
-
-  constructor(dbPath: string, cb: (err?: any) => void) {
-    this.db = level(dbPath, function (err, db) {
-      /* istanbul ignore next */
-      if (err) return cb(err);
-      cb();
-    });
-  }
-
-  setPassword(pw: string) {
-    assert(!this.password, 'password is already set');
-    this.password = crypto.createHash('sha256').update(pw).digest();
-  }
-
-  lock() {
-    this.password = undefined as any;
-  }
-
-  async isLocked(): Promise<boolean> {
-    try {
-      await this.db.get(WalletIndexProp.INITIALIZED);
-      return true;
-    } catch (e) {
-      if (!e.notFound) throw e;
-      return false;
-    }
-  }
-
-  async getProp(prop: WalletIndexProp): Promise<any> {
-    const value = await this.db.get(prop);
-    assert(this.password, 'wallet not unlocked');
-    const cipherText = Buffer.from(value, 'base64');
-    const nonce = cipherText.slice(0, sodium.crypto_secretbox_NONCEBYTES);
-    const enc = cipherText.slice(sodium.crypto_secretbox_NONCEBYTES);
-    const dec = sodium.crypto_secretbox_open_easy(enc, nonce, this.password);
-    return Buffer.from(dec).toString();
-  }
-
-  async setProp(prop: WalletIndexProp, value: string): Promise<void> {
-    assert(this.password, 'wallet not unlocked');
-    const msg = Buffer.from(value);
-    const nonce = crypto.randomBytes(sodium.crypto_secretbox_NONCEBYTES);
-    const enc = sodium.crypto_secretbox_easy(msg, nonce, this.password);
-    const final = Buffer.concat([nonce, enc]);
-    await this.db.put(prop, final.toString('base64'));
-  }
-
-  async close(): Promise<void> {
-    await this.db.close();
-  }
-}
-
 enum WalletState {
   NEW,
   LOCKED,
   UNLOCKED
-}
-
-enum WalletIndexProp {
-  INITIALIZED = 'INITIALIZED'
 }
 
 function write(...data: any[]) {

@@ -174,7 +174,7 @@ export class SignedBlock extends Block implements SignedBlockOpts {
       }),
       tx_merkle_root: this.tx_merkle_root.toString('hex'),
       signature: this.signature.toString('hex'),
-      signingKey: this.signing_key.toWif()
+      signing_key: this.signing_key.toWif()
     }, undefined, 2);
   }
 

@@ -66,7 +66,7 @@ export class Daemon {
     }
 
     if (this.opts.listen) {
-      this.server = new Server(this.opts.bind, this.opts.port);
+      this.server = new Server(this.blockchain, this.opts.bind, this.opts.port);
       this.server.start();
     }
 
