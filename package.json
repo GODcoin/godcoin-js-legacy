@@ -9,7 +9,8 @@
     "preinstall": "node -e \"if(process.env.npm_execpath.indexOf('yarn') === -1) throw new Error('Use yarn for installing: https://yarnpkg.com/en/docs/install')\"",
     "prepare": "yarn run build",
     "build": "gulp build",
-    "test": "npx nyc mocha -r ts-node/register test/index.ts"
+    "test": "nyc mocha -r ts-node/register test/index.ts",
+    "benchmark": "ts-node bench/index.ts"
   },
   "files": [
     "tsconfig.json",
@@ -45,6 +46,7 @@
     "yargs": "^11.0.0"
   },
   "devDependencies": {
+    "@types/benchmark": "^1.0.31",
     "@types/bs58": "^3.0.30",
     "@types/bytebuffer": "^5.0.37",
     "@types/cbor": "^2.0.0",
@@ -58,6 +60,7 @@
     "@types/node": "^9.6.2",
     "@types/ws": "^4.0.2",
     "@types/yargs": "^11.0.0",
+    "benchmark": "^2.1.4",
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
     "gulp": "^3.9.1",
