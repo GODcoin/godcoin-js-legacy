@@ -46,6 +46,41 @@ export class Asset {
     return new Asset(t.divide(o), decimals, this.symbol);
   }
 
+  geq(other: Asset): boolean {
+    assert.strictEqual(this.symbol, other.symbol, 'asset type mismatch');
+
+    const decimals = Math.max(this.decimals, other.decimals);
+    const t = setDecimals(this.amount, this.decimals, decimals);
+    const o = setDecimals(other.amount, other.decimals, decimals);
+    return t.geq(o);
+  }
+
+  gt(other: Asset): boolean {
+    assert.strictEqual(this.symbol, other.symbol, 'asset type mismatch');
+
+    const decimals = Math.max(this.decimals, other.decimals);
+    const t = setDecimals(this.amount, this.decimals, decimals);
+    const o = setDecimals(other.amount, other.decimals, decimals);
+    return t.gt(o);
+  }
+
+  lt(other: Asset): boolean {
+    return !this.geq(other);
+  }
+
+  leq(other: Asset): boolean {
+    return !this.gt(other);
+  }
+
+  eq(other: Asset) {
+    assert.strictEqual(this.symbol, other.symbol, 'asset type mismatch');
+
+    const decimals = Math.max(this.decimals, other.decimals);
+    const t = setDecimals(this.amount, this.decimals, decimals);
+    const o = setDecimals(other.amount, other.decimals, decimals);
+    return t.eq(o);
+  }
+
   setDecimals(decimals: number) {
     assert(decimals >= 0, 'decimals must be 0 or greater');
     const num = setDecimals(this.amount, this.decimals, decimals);

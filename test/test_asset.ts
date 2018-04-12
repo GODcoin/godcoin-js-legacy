@@ -76,7 +76,6 @@ it('should correctly set precision of numbers', () => {
 it('should correctly perform arithmetic and format', () => {
   function check(asset: Asset, amount: string) {
     const internAmt = amount.split(' ')[0].replace('.', '');
-    expect(asset.amount.toString()).to.eq(internAmt);
     expect(asset.toString()).to.eq(amount);
   }
   const a = Asset.fromString('123.456 GOLD');
@@ -90,9 +89,28 @@ it('should correctly perform arithmetic and format', () => {
   check(a.div(Asset.fromString('-23 GOLD'), 8), '-5.36765217 GOLD');
   check(a, '123.456 GOLD');
 
+  check(Asset.fromString('10 GOLD').div(Asset.fromString('2 GOLD')), '5 GOLD');
+  check(Asset.fromString('5 GOLD').div(Asset.fromString('10 GOLD'), 1), '0.5 GOLD');
+
   expect(() => {
     a.div(Asset.fromString('0 GOLD'));
   }).to.throw(ArithmeticError, 'divide by zero');
+});
+
+it('should compare assets correctly', () => {
+  expect(Asset.fromString('1 GOLD').gt(Asset.fromString('0.50 GOLD'))).to.be.true;
+  expect(Asset.fromString('1.0 GOLD').gt(Asset.fromString('0.99 GOLD'))).to.be.true;
+
+  expect(Asset.fromString('1 GOLD').geq(Asset.fromString('1.0 GOLD'))).to.be.true;
+  expect(Asset.fromString('0.1 GOLD').geq(Asset.fromString('1.0 GOLD'))).to.be.false;
+
+  expect(Asset.fromString('1 GOLD').leq(Asset.fromString('1.0 GOLD'))).to.be.true;
+  expect(Asset.fromString('0.1 GOLD').leq(Asset.fromString('1.0 GOLD'))).to.be.true;
+  expect(Asset.fromString('5.0 GOLD').leq(Asset.fromString('10 GOLD'))).to.be.true;
+
+  expect(Asset.fromString('1 GOLD').eq(Asset.fromString('1 GOLD'))).to.be.true;
+  expect(Asset.fromString('1 GOLD').gt(Asset.fromString('1 GOLD'))).to.be.false;
+  expect(Asset.fromString('1 GOLD').lt(Asset.fromString('1 GOLD'))).to.be.false;
 });
 
 it('should throw performing arithmetic on different asset types', () => {
@@ -109,4 +127,9 @@ it('should throw performing arithmetic on different asset types', () => {
   check(a.sub);
   check(a.div);
   check(a.mul);
+  check(a.gt);
+  check(a.geq);
+  check(a.lt);
+  check(a.leq);
+  check(a.eq);
 });
