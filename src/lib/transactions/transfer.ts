@@ -15,7 +15,7 @@ export interface TransferTxData extends TxData {
   to: PublicKey;
   amount: Asset;
   fee: Asset;
-  memo?: string;
+  memo?: Buffer;
 }
 
 export class TransferTx extends Tx {
@@ -25,7 +25,7 @@ export class TransferTx extends Tx {
     ['to', TS.publicKey],
     ['amount', TS.asset],
     ['fee', TS.asset],
-    ['memo', TS.string]
+    ['memo', TS.buffer]
   ];
   static readonly SERIALIZER = TS.object(TransferTx.SERIALIZER_FIELDS);
   static readonly DESERIALIZER = TD.object(TransferTx.SERIALIZER_FIELDS);
@@ -39,7 +39,7 @@ export class TransferTx extends Tx {
     assert.equal(this.data.amount.symbol, this.data.fee.symbol, 'fee must be paid with the same asset');
     assert(this.data.fee.amount.gt(0), 'fee must be greater than zero');
     if (this.data.memo) {
-      assert(this.data.memo.length < 512, 'maximum memo length is 512 chars');
+      assert(this.data.memo.byteLength < 512, 'maximum memo length is 512 bytes');
     }
     const buf = this.serialize();
     const sig = this.data.signatures[0];
