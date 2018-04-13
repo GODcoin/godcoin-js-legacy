@@ -1,3 +1,4 @@
+import { WsCloseCode, ApiError, ApiErrorCode, check } from './net_error';
 import { Blockchain } from '../../../blockchain';
 import * as ByteBuffer from 'bytebuffer';
 import * as WebSocket from 'ws';
@@ -124,30 +125,6 @@ export class Peer {
       });
     });
   }
-}
-
-export enum WsCloseCode {
-  NORMAL = 1000,
-  GOING_AWAY = 1001,
-  UNSUPPORTED_DATA = 1003,
-  POLICY_VIOLATION = 1008
-}
-
-enum ApiErrorCode {
-  MISC = 1000,
-  UNKNOWN_METHOD = 1001,
-  INVALID_PARAMS = 1002
-}
-
-class ApiError extends Error {
-
-  constructor(readonly code: ApiErrorCode, msg: string) {
-    super(msg);
-  }
-}
-
-function check(cond: any, code: ApiErrorCode, msg: string) {
-  if (!cond) throw new ApiError(code, msg);
 }
 
 function isNullOrUndefined(val: any) {
