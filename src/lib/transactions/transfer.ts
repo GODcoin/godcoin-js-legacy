@@ -39,7 +39,7 @@ export class TransferTx extends Tx {
     assert.equal(this.data.amount.symbol, this.data.fee.symbol, 'fee must be paid with the same asset');
     assert(this.data.fee.amount.gt(0), 'fee must be greater than zero');
     if (this.data.memo) {
-      assert(this.data.memo.byteLength < 512, 'maximum memo length is 512 bytes');
+      assert(this.data.memo.byteLength <= 512, 'maximum memo length is 512 bytes');
     }
     const buf = this.serialize();
     const sig = this.data.signatures[0];

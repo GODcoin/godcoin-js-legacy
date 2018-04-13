@@ -21,6 +21,7 @@ import * as Benchmark from 'benchmark';
       to: keyB.publicKey,
       amount,
       fee: amount,
+      memo: Buffer.alloc(512),
       signatures: []
     }).appendSign(keyA.privateKey);
 
