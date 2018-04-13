@@ -1,7 +1,7 @@
 import { generateKeyPair, PrivateKey } from '../lib/crypto';
-import { Daemon, getAppDir } from '../lib/daemon';
 import * as sodium from 'libsodium-wrappers';
 import * as nodeUtil from '../lib/node-util';
+import { Daemon } from '../lib/daemon';
 import { Wallet } from './wallet';
 import * as yargs from 'yargs';
 import * as path from 'path';
@@ -47,7 +47,7 @@ function keygen(argv: any): void {
 (async () => {
   await sodium.ready;
 
-  const appDir = getAppDir();
+  const appDir = nodeUtil.getAppDir();
   try {
     fs.accessSync(appDir);
   } catch (e) {

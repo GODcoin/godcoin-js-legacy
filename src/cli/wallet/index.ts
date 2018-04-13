@@ -1,4 +1,5 @@
-import { getAppDir, hookSigInt, SignedBlock } from '../../lib';
+import { getAppDir, hookSigInt } from '../../lib/node-util';
+import { SignedBlock } from '../../lib/blockchain';
 import { WalletDb, WalletIndexProp } from './db';
 import * as ByteBuffer from 'bytebuffer';
 import * as readline from 'readline';

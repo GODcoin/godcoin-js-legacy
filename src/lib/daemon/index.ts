@@ -1,16 +1,15 @@
 import { Blockchain, Block, ChainStore } from '../blockchain';
 import { RewardTx, TxType } from '../transactions';
 import { KeyPair, PrivateKey } from '../crypto';
+import { getAppDir } from '../node-util';
 import { Minter } from '../producer';
 import { Indexer } from '../indexer';
-import { getAppDir } from './util';
 import { Server } from './server';
 import { Asset } from '../asset';
 import * as assert from 'assert';
 import * as mkdirp from 'mkdirp';
 import * as Long from 'long';
 import * as path from 'path';
-export * from './util';
 
 export interface DaemonOpts {
   signingKeys: KeyPair;
