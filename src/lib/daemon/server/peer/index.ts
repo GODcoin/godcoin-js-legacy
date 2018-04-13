@@ -23,7 +23,7 @@ export class Peer {
 
   init() {
     this.ws.on('close', () => {
-      console.log(`Client ${this.ip} has disconnected`);
+      console.log(`[${this.ip}] Peer has disconnected`);
       this.ws.removeAllListeners();
     });
 
@@ -96,6 +96,19 @@ export class Peer {
         } else {
           await this.send(cbor.encode({ id }));
         }
+        break;
+      }
+      case 'get_balance': {
+        const address = map.address;
+        check(typeof(address) === 'string', ApiErrorCode.INVALID_PARAMS, 'address must be a string');
+        const balance = await this.blockchain.getBalance(address);
+        await this.send(cbor.encode({
+          id,
+          balance: {
+            gold: balance.gold.toString(),
+            silver: balance.silver.toString()
+          }
+        }));
         break;
       }
       default:

@@ -157,6 +157,20 @@ export class Wallet {
         }
         break;
       }
+      case 'get_balance': {
+        const address = (args[1] || '').trim();
+        if (!address) {
+          write('get_balance <address> - missing address');
+          break;
+        }
+
+        const data = await this.net.send({
+          method: 'get_balance',
+          address
+        });
+        write([data.balance.gold, data.balance.silver]);
+        break;
+      }
       default:
         write('Unknown command:', args[0]);
       case 'help':
