@@ -1,7 +1,10 @@
+import { Lock } from '../../lib/lock';
 import * as WebSocket from 'ws';
 import * as cbor from 'cbor';
 
 export class WalletNet {
+
+  private readonly openLock = new Lock();
 
   private requests: {[key: number]: PromiseLike} = {};
   private ws!: WebSocket;
@@ -10,7 +13,10 @@ export class WalletNet {
   constructor(readonly nodeUrl) {
   }
 
-  send(data: any): Promise<any> {
+  async send(data: any): Promise<any> {
+    if (this.ws.readyState !== WebSocket.OPEN) {
+      await this.open();
+    }
     const id = this.id++;
     return new Promise((resolve, reject) => {
       const prom = this.requests[id] = {
@@ -37,22 +43,31 @@ export class WalletNet {
   }
 
   async open() {
-    return new Promise<void>((resolve, reject) => {
+    return new Promise<void>(async (resolve, reject) => {
+      await this.openLock.lock();
+      if (this.ws && (this.ws.readyState === WebSocket.OPEN
+                      || this.ws.readyState === WebSocket.CONNECTING)) {
+        this.openLock.unlock();
+        return resolve();
+      }
+
       let completed = false;
       this.ws = new WebSocket(this.nodeUrl);
 
       this.ws.on('open', () => {
         completed = true;
+        this.openLock.unlock();
         resolve();
       });
 
       this.ws.on('close', () => {
-        // TODO
+        this.ws.removeAllListeners();
       });
 
       this.ws.on('error', err => {
         if (completed) return console.log('Unknown WS error', err);
         completed = true;
+        this.openLock.unlock();
         reject(err);
       });
 
