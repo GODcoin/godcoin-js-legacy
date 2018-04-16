@@ -54,6 +54,16 @@ export class WalletDb {
     await this.db.close();
   }
 
+  async hasAccount(name: string): Promise<boolean> {
+    try {
+      await this.getAccount(name);
+      return true;
+    } catch (e) {
+      if (!e.notFound) throw e;
+      return false;
+    }
+  }
+
   async setAccount(name: string, key: PrivateKey) {
     await this.setProp((WalletIndexProp.ACCOUNT + name) as any, key.toWif());
   }

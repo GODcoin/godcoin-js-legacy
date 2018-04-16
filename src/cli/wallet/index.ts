@@ -1,4 +1,4 @@
-import { generateKeyPair, PublicKey } from '../../lib/crypto';
+import { generateKeyPair, PublicKey, PrivateKey } from '../../lib/crypto';
 import { getAppDir, hookSigInt } from '../../lib/node-util';
 import { SignedBlock } from '../../lib/blockchain';
 import { WalletDb, WalletIndexProp } from './db';
@@ -159,10 +159,13 @@ export class Wallet {
         break;
       }
       case 'get_balance': {
-        const address = (args[1] || '').trim();
+        let address = (args[1] || '').trim();
         if (!address) {
-          write('get_balance <address> - missing address');
+          write('get_balance <address|account> - missing address or account');
           break;
+        } else if (await this.db.hasAccount(address)) {
+          const acc = await this.db.getAccount(address);
+          address = acc.publicKey.toWif();
         }
 
         // Make sure the user can't accidentally input a private key
@@ -179,22 +182,32 @@ export class Wallet {
         const name = (args[1] || '').trim();
         if (!name) {
           write('create_account <name> - missing name');
-        }
-
-        try {
-          await this.db.getAccount(name);
+          break;
+        } else if (await this.db.hasAccount(name)) {
           write('Account already exists');
           break;
-        } catch (e) {
-          if (!e.notFound) throw e;
         }
-
         const keypair = generateKeyPair();
         await this.db.setAccount(name, keypair.privateKey);
         write({
           private_key: keypair.privateKey.toWif(),
           public_key: keypair.publicKey.toWif()
         });
+        break;
+      }
+      case 'import_account': {
+        const name = (args[1] || '').trim();
+        const pk = (args[2] || '').trim();
+        if (!(name && pk)) {
+          write('import_account <name> <private_key> - missing name or private key');
+          break;
+        } else if (await this.db.hasAccount(name)) {
+          write('Account already exists');
+          break;
+        }
+
+        const priv = PrivateKey.fromWif(pk);
+        await this.db.setAccount(name, priv.privateKey);
         break;
       }
       case 'list_accounts': {
@@ -208,14 +221,28 @@ export class Wallet {
       default:
         write('Unknown command:', args[0]);
       case 'help':
+        const cmds: string[][] = [];
+        cmds.push(['help', 'Displays this help menu']);
+        cmds.push(['new <password>', 'creates a new wallet']);
+        cmds.push(['unlock <password>', 'unlocks the wallet']);
+        cmds.push(['get_block <height>', 'retrieves a block at the specified height']);
+        cmds.push(['get_balance <address|account>', 'retrieves the total balance of a public address or account']);
+        cmds.push(['create_account <name>', 'creates an account and a new key pair']);
+        cmds.push(['import_account <name> <private_key>', 'imports an account with the following name and private key']);
+        cmds.push(['list_accounts', 'lists all accounts in the wallet']);
+
+        let maxLen = 0;
+        for (const cmd of cmds) {
+          const cmdLen = cmd[0].length;
+          if (cmdLen > maxLen) maxLen = cmdLen;
+        }
+
         write('Available commands:');
-        write('  help                   - Displays this help menu');
-        write('  new <password>         - creates a new wallet');
-        write('  unlock <password>      - unlocks your wallet');
-        write('  get_block <height>     - retrieves a block at the specified height');
-        write('  get_balance <address>  - retrieves the total balance of a public address');
-        write('  create_account <name>  - creates an account and a corresponding key pair');
-        write('  list_accounts          - lists all accounts in the wallet');
+        for (const cmd of cmds) {
+          let c = cmd[0];
+          if (c.length < maxLen) c += ' '.repeat(maxLen - c.length);
+          write('  ' + c + '  ' + cmd[1]);
+        }
     }
   }
 
