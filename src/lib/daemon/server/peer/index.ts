@@ -117,7 +117,10 @@ export class Peer {
         const balance = await this.blockchain.getBalance(address);
         await this.send(cbor.encode({
           id,
-          balance
+          balance: [
+            balance[0].toString(),
+            balance[1].toString()
+          ]
         }));
         break;
       }

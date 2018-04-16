@@ -1,6 +1,6 @@
 import { Tx, TransferTx } from '../transactions';
-import { Blockchain } from '../blockchain';
 import { AssetSymbol, Asset } from '../asset';
+import { Blockchain } from '../blockchain';
 import * as assert from 'assert';
 import { Lock } from '../lock';
 
