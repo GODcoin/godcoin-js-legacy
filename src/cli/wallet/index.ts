@@ -218,18 +218,30 @@ export class Wallet {
         }, {}));
         break;
       }
+      case 'list_all_keys': {
+        const accs = await this.db.getAllAccounts();
+        write(accs.reduce((prev, val) => {
+          prev[val[0]] = {
+            privateKey: val[1].privateKey.toWif(),
+            publicKey: val[1].publicKey.toWif(),
+          };
+          return prev;
+        }, {}));
+        break;
+      }
       default:
         write('Unknown command:', args[0]);
       case 'help':
         const cmds: string[][] = [];
-        cmds.push(['help', 'Displays this help menu']);
-        cmds.push(['new <password>', 'creates a new wallet']);
-        cmds.push(['unlock <password>', 'unlocks the wallet']);
-        cmds.push(['get_block <height>', 'retrieves a block at the specified height']);
-        cmds.push(['get_balance <address|account>', 'retrieves the total balance of a public address or account']);
-        cmds.push(['create_account <name>', 'creates an account and a new key pair']);
-        cmds.push(['import_account <name> <private_key>', 'imports an account with the following name and private key']);
-        cmds.push(['list_accounts', 'lists all accounts in the wallet']);
+        cmds.push(['help', 'Display this help menu']);
+        cmds.push(['new <password>', 'create a new wallet']);
+        cmds.push(['unlock <password>', 'unlock the wallet']);
+        cmds.push(['get_block <height>', 'retrieve a block at the specified height']);
+        cmds.push(['get_balance <address|account>', 'retrieve the total balance of a public address or account']);
+        cmds.push(['create_account <name>', 'create an account and a new key pair']);
+        cmds.push(['import_account <name> <private_key>', 'import an account with the following name and private key']);
+        cmds.push(['list_accounts', 'list all accounts in the wallet']);
+        cmds.push(['list_all_keys', 'list all keys in the wallet']);
 
         let maxLen = 0;
         for (const cmd of cmds) {
