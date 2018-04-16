@@ -125,11 +125,6 @@ export class ArithmeticError extends Error {
   }
 }
 
-export interface Balance {
-  gold: Asset;
-  silver: Asset;
-}
-
 function setDecimals(old: BigInteger,
                       oldDecimals: number,
                       newDecimals: number): BigInteger {

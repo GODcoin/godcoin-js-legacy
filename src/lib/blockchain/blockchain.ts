@@ -1,7 +1,7 @@
 import { Tx, TransferTx, RewardTx } from '../transactions';
 import { PrivateKey, KeyPair, PublicKey } from '../crypto';
-import { Asset, AssetSymbol, Balance } from '../asset';
 import { Indexer, IndexProp } from '../indexer';
+import { Asset, AssetSymbol } from '../asset';
 import { Block, SignedBlock } from './block';
 import { ChainStore } from './chain_store';
 import { BigInteger } from 'big-integer';
@@ -59,7 +59,7 @@ export class Blockchain {
     return this.genesisBlock.signing_key.equals(key);
   }
 
-  async getBalance(key: string|PublicKey): Promise<Balance> {
+  async getBalance(key: string|PublicKey): Promise<[Asset, Asset]> {
     if (typeof(key) === 'string') {
       key = PublicKey.fromWif(key);
     }
@@ -69,17 +69,14 @@ export class Blockchain {
     for (; i.lt(this.store.blockHead.height); i = i.add(1)) {
       const block = await this.store.read(i);
       const bal = Blockchain.getBlockBalance(key, block!.transactions);
-      gold = gold.add(bal.gold);
-      silver = silver.add(bal.silver);
+      gold = gold.add(bal[0]);
+      silver = silver.add(bal[1]);
     }
-    return {
-      gold,
-      silver
-    };
+    return [gold, silver];
   }
 
   private static getBlockBalance(key: PublicKey,
-                                  txs: Tx[]): Balance {
+                                  txs: Tx[]): [Asset, Asset] {
     let gold = new Asset(bigInt(0), 0, AssetSymbol.GOLD);
     let silver = new Asset(bigInt(0), 0, AssetSymbol.SILVER);
     for (const tx of txs) {
@@ -113,9 +110,6 @@ export class Blockchain {
         }
       }
     }
-    return {
-      gold,
-      silver
-    };
+    return [gold, silver];
   }
 }

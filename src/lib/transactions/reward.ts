@@ -28,8 +28,9 @@ export class RewardTx extends Tx {
     super(data);
   }
 
-  validate() {
+  validate(): ByteBuffer {
     assert(this.data.signatures.length === 0, 'reward transactions must not be signed');
+    return undefined as any;
   }
 
   rawSerialize(buf: ByteBuffer): void {

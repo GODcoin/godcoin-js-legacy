@@ -1,16 +1,18 @@
 import { Blockchain, SignedBlock, Block } from '../blockchain';
 import { RewardTx, TxType } from '../transactions';
+import { Asset, AssetSymbol } from '../asset';
 import * as bigInt from 'big-integer';
 import { KeyPair } from '../crypto';
+import { TxPool } from './tx_pool';
 import * as Long from 'long';
-import { Asset, AssetSymbol } from '..';
 
 export class Minter {
 
   private readonly blockchain: Blockchain;
   private readonly keys: KeyPair;
-
   private timer?: NodeJS.Timer;
+
+  readonly pool: TxPool = new TxPool(this.blockchain);
 
   constructor(blockchain: Blockchain, keys: KeyPair) {
     this.blockchain = blockchain;
@@ -38,7 +40,8 @@ export class Minter {
                 new Asset(bigInt(100), 0, AssetSymbol.SILVER)
               ],
               signatures: []
-            })
+            }),
+            ...(await this.pool.popAll())
           ]
         }).sign(this.keys);
         await this.blockchain.addBlock(block);

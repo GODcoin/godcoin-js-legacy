@@ -36,7 +36,7 @@ export abstract class Tx {
     this.data.timestamp = new Date(truncated);
   }
 
-  abstract validate(): void;
+  abstract validate(): ByteBuffer;
   abstract rawSerialize(buf: ByteBuffer): void;
 
   sign(key: PrivateKey): Buffer {
@@ -55,15 +55,11 @@ export abstract class Tx {
 
   checkExpiry(): void {
     const exp = this.data.expiration;
-    assert(exp && exp.getTime() > Date.now(), 'tx expired or missing');
-  }
-
-  toString(): string {
-    const data: any = {};
-    Object.getOwnPropertyNames(this).forEach(name => {
-      data[name] = this[name];
-    });
-    return JSON.stringify(data, undefined, 2);
+    assert(exp, 'missing tx expiry');
+    const time = exp!.getTime();
+    const now = Date.now();
+    assert(time > now, 'tx expired or missing');
+    assert(time - now <= 60000, 'tx expiry too far into the future');
   }
 
   serialize(includeSigs = false): ByteBuffer {
@@ -75,5 +71,13 @@ export abstract class Tx {
     Tx.SERIALIZER(buf, this.data);
     this.rawSerialize(buf);
     return buf.flip();
+  }
+
+  toString(): string {
+    const data: any = {};
+    Object.getOwnPropertyNames(this).forEach(name => {
+      data[name] = this[name];
+    });
+    return JSON.stringify(data, undefined, 2);
   }
 }

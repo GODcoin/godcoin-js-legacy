@@ -1,12 +1,21 @@
 import { Blockchain } from '../../blockchain';
-import * as WebSocket from 'ws';
+import { Minter } from '../../producer';
+import * as WebSocket from 'uws';
 import { Peer } from './peer';
 import * as http from 'http';
 import * as Koa from 'koa';
 
+export interface ServerOptions {
+  blockchain: Blockchain;
+  minter?: Minter;
+  bindAddress: string;
+  port: number;
+}
+
 export class Server {
 
   private readonly blockchain: Blockchain;
+  private readonly minter?: Minter;
   private readonly bindAddr: string;
   private readonly port: number;
 
@@ -16,10 +25,11 @@ export class Server {
   });
   private server?: http.Server;
 
-  constructor(blockchain: Blockchain, bindAddr: string, port: number) {
-    this.blockchain = blockchain;
-    this.bindAddr = bindAddr;
-    this.port = port;
+  constructor(opts: ServerOptions) {
+    this.blockchain = opts.blockchain;
+    this.minter = opts.minter;
+    this.bindAddr = opts.bindAddress;
+    this.port = opts.port;
   }
 
   start(): void {
@@ -30,8 +40,8 @@ export class Server {
       console.log(`Server bound to ${this.bindAddr}:${this.port}`);
     });
     this.server.on('upgrade', (req: http.IncomingMessage, socket, head) => {
+      let ip = req.connection.remoteAddress!;
       this.ws.handleUpgrade(req, socket, head, ws => {
-        let ip = req.connection.remoteAddress!;
         if (process.env.GODCOIN_TRUST_PROXY === 'true') {
           const tmp = req.headers['x-forwarded-for'];
           if (typeof(tmp) === 'string') ip = tmp.split(',')[0];
@@ -41,7 +51,8 @@ export class Server {
         const peer = new Peer({
           ws,
           ip,
-          blockchain: this.blockchain
+          blockchain: this.blockchain,
+          minter: this.minter
         });
         peer.init();
       });

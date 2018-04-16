@@ -1,5 +1,5 @@
 import { Lock } from '../../lib/lock';
-import * as WebSocket from 'ws';
+import * as WebSocket from 'uws';
 import * as cbor from 'cbor';
 
 export class WalletNet {
@@ -77,7 +77,7 @@ export class WalletNet {
 
       this.ws.on('message', data => {
         try {
-          const map = cbor.decode(data as Buffer);
+          const map = cbor.decode(Buffer.from(data));
           const id = map.id;
           if (id === null || id === undefined) throw new Error('missing id');
           this.requests[id].resolve(map);

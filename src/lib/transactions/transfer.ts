@@ -34,8 +34,8 @@ export class TransferTx extends Tx {
     super(data);
   }
 
-  validate() {
-    assert(this.data.signatures.length > 0, 'tx must have at least 1 signature');
+  validate(): ByteBuffer {
+    assert(this.data.signatures.length === 1, 'tx must have 1 signature');
     assert.equal(this.data.amount.symbol, this.data.fee.symbol, 'fee must be paid with the same asset');
     assert(this.data.fee.amount.gt(0), 'fee must be greater than zero');
     if (this.data.memo) {
@@ -44,6 +44,8 @@ export class TransferTx extends Tx {
     const buf = this.serialize();
     const sig = this.data.signatures[0];
     assert(this.data.from.verify(sig, buf.toBuffer()), 'invalid signature');
+
+    return buf;
   }
 
   rawSerialize(buf: ByteBuffer): void {

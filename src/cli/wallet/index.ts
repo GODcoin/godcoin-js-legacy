@@ -1,3 +1,4 @@
+import { generateKeyPair, PublicKey } from '../../lib/crypto';
 import { getAppDir, hookSigInt } from '../../lib/node-util';
 import { SignedBlock } from '../../lib/blockchain';
 import { WalletDb, WalletIndexProp } from './db';
@@ -6,7 +7,6 @@ import * as readline from 'readline';
 import { WalletNet } from './net';
 import * as mkdirp from 'mkdirp';
 import * as assert from 'assert';
-import * as WebSocket from 'ws';
 import * as path from 'path';
 
 export class Wallet {
@@ -165,21 +165,57 @@ export class Wallet {
           break;
         }
 
+        // Make sure the user can't accidentally input a private key
+        PublicKey.fromWif(address);
+
         const data = await this.net.send({
           method: 'get_balance',
           address
         });
-        write([data.balance.gold, data.balance.silver]);
+        write(data.balance);
+        break;
+      }
+      case 'create_account': {
+        const name = (args[1] || '').trim();
+        if (!name) {
+          write('create_account <name> - missing name');
+        }
+
+        try {
+          await this.db.getAccount(name);
+          write('Account already exists');
+          break;
+        } catch (e) {
+          if (!e.notFound) throw e;
+        }
+
+        const keypair = generateKeyPair();
+        await this.db.setAccount(name, keypair.privateKey);
+        write({
+          private_key: keypair.privateKey.toWif(),
+          public_key: keypair.publicKey.toWif()
+        });
+        break;
+      }
+      case 'list_accounts': {
+        const accs = await this.db.getAllAccounts();
+        write(accs.reduce((prev, val) => {
+          prev[val[0]] = val[1].publicKey.toWif();
+          return prev;
+        }, {}));
         break;
       }
       default:
         write('Unknown command:', args[0]);
       case 'help':
         write('Available commands:');
-        write('  help                - Displays this help menu');
-        write('  new <password>      - creates a new wallet');
-        write('  unlock <password>   - unlocks your wallet');
-        write('  get_block <height>  - retrieves a block at the specified height');
+        write('  help                   - Displays this help menu');
+        write('  new <password>         - creates a new wallet');
+        write('  unlock <password>      - unlocks your wallet');
+        write('  get_block <height>     - retrieves a block at the specified height');
+        write('  get_balance <address>  - retrieves the total balance of a public address');
+        write('  create_account <name>  - creates an account and a corresponding key pair');
+        write('  list_accounts          - lists all accounts in the wallet');
     }
   }
 

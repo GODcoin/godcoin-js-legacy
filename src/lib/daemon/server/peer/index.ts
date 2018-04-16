@@ -1,13 +1,16 @@
-import { WsCloseCode, ApiError, ApiErrorCode, check } from './net_error';
+import { WsCloseCode, ApiError, ApiErrorCode, check } from './api_error';
+import { Tx, deserialize } from '../../../transactions';
 import { Blockchain } from '../../../blockchain';
+import { Minter } from '../../../producer';
 import * as ByteBuffer from 'bytebuffer';
-import * as WebSocket from 'ws';
+import * as WebSocket from 'uws';
 import * as cbor from 'cbor';
 
 export interface PeerOptions {
   ws: WebSocket;
   ip: string;
   blockchain: Blockchain;
+  minter?: Minter;
 }
 
 export class Peer {
@@ -15,11 +18,13 @@ export class Peer {
   private readonly ws: WebSocket;
   private readonly ip: string;
   private readonly blockchain: Blockchain;
+  private readonly minter?: Minter;
 
   constructor(opts: PeerOptions) {
     this.ws = opts.ws;
     this.ip = opts.ip;
     this.blockchain = opts.blockchain;
+    this.minter = opts.minter;
   }
 
   init() {
@@ -32,7 +37,8 @@ export class Peer {
       try {
         if (typeof(data) === 'string') {
           this.close(WsCloseCode.UNSUPPORTED_DATA, 'text not supported');
-        } else if (data instanceof Buffer) {
+        } else if (data instanceof ArrayBuffer) {
+          data = Buffer.from(data);
           const map = cbor.decode(data);
           const id = map.id;
           if (typeof(id) !== 'number') {
@@ -80,7 +86,13 @@ export class Peer {
         break;
       }
       case 'broadcast': {
-        // TODO: handle transaction broadcasts
+        const tx = map.tx;
+        check(tx, ApiErrorCode.INVALID_PARAMS, 'missing tx');
+        if (this.minter) {
+          const desTx = deserialize<Tx>(ByteBuffer.wrap(tx));
+          await this.minter.pool.push(desTx);
+        }
+        // TODO: broadcast to all clients
         await this.send(cbor.encode({ id }));
         break;
       }
@@ -105,10 +117,7 @@ export class Peer {
         const balance = await this.blockchain.getBalance(address);
         await this.send(cbor.encode({
           id,
-          balance: {
-            gold: balance.gold.toString(),
-            silver: balance.silver.toString()
-          }
+          balance
         }));
         break;
       }

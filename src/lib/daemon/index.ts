@@ -64,13 +64,21 @@ export class Daemon {
       await this.blockchain.addBlock(genesisBlock);
     }
 
+    if (this.opts.signingKeys) {
+      this.minter = new Minter(this.blockchain, this.opts.signingKeys);
+    }
+
     if (this.opts.listen) {
-      this.server = new Server(this.blockchain, this.opts.bind, this.opts.port);
+      this.server = new Server({
+        blockchain: this.blockchain,
+        minter: this.minter,
+        bindAddress: this.opts.bind,
+        port: this.opts.port
+      });
       this.server.start();
     }
 
-    if (this.opts.signingKeys) {
-      this.minter = new Minter(this.blockchain, this.opts.signingKeys);
+    if (this.minter) {
       this.minter.start();
     }
   }
