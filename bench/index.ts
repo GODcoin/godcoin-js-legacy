@@ -25,11 +25,13 @@ import * as Benchmark from 'benchmark';
       signatures: []
     }).appendSign(keyA.privateKey);
 
-    const suite = new Benchmark.Suite('Crypto');
+    const suite = new Benchmark.Suite('Transactions');
     suite.add('sign transaction', () => {
       tx.sign(keyA.privateKey);
     }).add('verify transaction', () => {
       tx.validate();
+    }).add('serialize transaction', () => {
+      tx.serialize(true);
     }).on('start', evt => {
       console.log(evt.currentTarget.name);
     }).on('cycle', evt => {
