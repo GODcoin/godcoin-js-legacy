@@ -46,7 +46,7 @@ it('should serialize transfer transactions', () => {
     to: generateKeyPair().publicKey,
     amount: Asset.fromString('10 GOLD'),
     fee: Asset.fromString('0.00000001 GOLD'),
-    memo: 'test 123',
+    memo: Buffer.from('test 123'),
     signatures: []
   }).appendSign(from.privateKey);
 

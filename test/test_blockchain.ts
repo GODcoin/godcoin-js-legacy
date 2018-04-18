@@ -25,10 +25,7 @@ let chain: Blockchain;
 beforeEach(async () => {
   genesisKeys = generateKeyPair();
   testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'godcoin-'));
-
-  const indexer = new Indexer(path.join(testDir, 'blkindex'));
-  store = new ChainStore(path.join(testDir, 'blklog'), indexer);
-  chain = new Blockchain(store, indexer);
+  chain = new Blockchain(testDir);
   await chain.start();
 });
 
@@ -74,13 +71,13 @@ it('should read the latest block', async () => {
     await chain.addBlock(block);
     prevBlock = block;
   }
-  expect(chain.getLatestBlock()).to.eql(block);
+  expect(chain.head).to.eql(block);
 });
 
 it('should read any previous block', async () => {
   let block!: SignedBlock;
   for (let i = 0; i <= 10; ++i) {
-    const hash = i === 0 ? undefined : chain.getLatestBlock().getHash();
+    const hash = i === 0 ? undefined : chain.head.getHash();
     const b = new Block({
       height: Long.fromNumber(i, true),
       previous_hash: hash as any,

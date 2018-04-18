@@ -86,11 +86,10 @@ export class Peer {
         break;
       }
       case 'broadcast': {
-        const tx = map.tx;
+        const tx: Buffer = map.tx;
         check(tx, ApiErrorCode.INVALID_PARAMS, 'missing tx');
         if (this.minter) {
-          const desTx = deserialize<Tx>(ByteBuffer.wrap(tx));
-          await this.minter.pool.push(desTx);
+          await this.minter.pool.push(tx);
         }
         // TODO: broadcast to all clients
         await this.send(cbor.encode({ id }));

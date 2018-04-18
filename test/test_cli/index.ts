@@ -1,3 +1,3 @@
 describe('Wallet', () => {
-  require('./cli/test_wallet');
+  require('./test_wallet');
 });

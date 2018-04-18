@@ -36,11 +36,11 @@ export abstract class Tx {
     this.data.timestamp = new Date(truncated);
   }
 
-  abstract validate(): ByteBuffer;
+  abstract validate(): void;
   abstract rawSerialize(buf: ByteBuffer): void;
 
   sign(key: PrivateKey): Buffer {
-    const buf = this.serialize();
+    const buf = this.serialize(false);
     if (debug.enabled) {
       debug('Signing TX\nTX: %o\nHex: %s', this, buf.toHex());
     }
@@ -62,7 +62,7 @@ export abstract class Tx {
     assert(time - now <= 60000, 'tx expiry too far into the future');
   }
 
-  serialize(includeSigs = false): ByteBuffer {
+  serialize(includeSigs): ByteBuffer {
     const buf = ByteBuffer.allocate(ByteBuffer.DEFAULT_CAPACITY,
                                     ByteBuffer.BIG_ENDIAN);
     if (includeSigs) {

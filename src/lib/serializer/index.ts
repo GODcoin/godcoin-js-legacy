@@ -36,7 +36,7 @@ export class TypeSerializer {
   static buffer(buf: ByteBuffer, value: Buffer|ByteBuffer) {
     let len = 0;
     if (value instanceof Buffer) {
-      len = value.byteLength;
+      len = value.length;
     } else if (value instanceof ByteBuffer) {
       len = value.limit;
     }

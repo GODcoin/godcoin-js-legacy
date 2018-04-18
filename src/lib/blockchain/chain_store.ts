@@ -1,7 +1,7 @@
 import { TypeSerializer as TS } from '../serializer';
-import { Indexer, IndexProp } from '../indexer';
 import * as ByteBuffer from 'bytebuffer';
 import { SignedBlock } from './block';
+import { Indexer } from '../indexer';
 import * as crypto from 'crypto';
 import * as assert from 'assert';
 import { Lock } from '../lock';
@@ -47,59 +47,60 @@ export class ChainStore {
       }
 
       const serBlock = Buffer.from(block.fullySerialize(true).toBuffer());
-      const len = serBlock.byteLength;
-      const tmp = Buffer.allocUnsafe(8);
+      const blockLen = serBlock.length;
       {
         // Write the block length
-        tmp.writeUInt32BE(serBlock.byteLength, 0);
-        await fsWrite(this.dbFd!, tmp, 0, 4);
+        const tmp = Buffer.allocUnsafe(8);
+        const len = Long.fromNumber(blockLen, true);
+        tmp.writeInt32BE(len.high, 0, true);
+        tmp.writeInt32BE(len.low, 4, true);
+        await fsWrite(this.dbFd!, tmp, 0, 8);
       }
       await fsWrite(this.dbFd!, serBlock);
 
       const checksum = sha256(serBlock);
       await fsWrite(this.dbFd!, checksum, 0, 8);
 
-      const str = block.height.toString();
-      const val = Long.fromNumber(this.blockTailPos, true).toString();
-      await this.index.setProp(getBlockPosString(str), val);
-      await this.index.setProp(IndexProp.CURRENT_BLOCK_HEIGHT, str);
+      const val = Long.fromNumber(this.blockTailPos, true);
+      await this.index.setBlockPos(block.height, val);
+      await this.index.setBlockHeight(block.height);
 
       this._blockHead = block;
-      this.blockTailPos += len + 12;
+      this.blockTailPos += blockLen + 16; // checksum + long
     } finally {
       this.lock.unlock();
     }
   }
 
   async read(blockHeight: number|Long): Promise<SignedBlock|undefined> {
-    let blockPos: number;
-    try {
-      blockPos = await this.index.getProp(getBlockPosString(blockHeight));
-      blockPos = Long.fromString(blockPos as any, true).toNumber();
-    } catch (e) {
-      if (e.notFound) return;
-      throw e;
+    if (typeof(blockHeight) === 'number') {
+      blockHeight = Long.fromNumber(blockHeight, true);
     }
+    const pos = await this.index.getBlockPos(blockHeight) as any;
+    if (!pos) return;
 
     try {
+      const blockPos = pos.toNumber();
       const tmp = Buffer.allocUnsafe(8);
 
       // Read the length of the block
       let len: number;
       {
-        const read = await fsRead(this.dbFd!, tmp, 0, 4, blockPos);
-        assert.equal(read.bytesRead, 4, 'unexpected EOF');
-        len = tmp.readUInt32BE(0);
+        const read = await fsRead(this.dbFd!, tmp, 0, 8, blockPos);
+        assert.equal(read.bytesRead, 8, 'unexpected EOF');
+        const high = tmp.readInt32BE(0, true);
+        const low = tmp.readInt32BE(4, true);
+        len = new Long(low, high, true).toNumber();
       }
 
       // Read the block
       const buf = Buffer.allocUnsafe(len);
-      let read = await fsRead(this.dbFd!, buf, 0, len, blockPos + 4);
+      let read = await fsRead(this.dbFd!, buf, 0, len, blockPos + 8);
       assert.equal(read.bytesRead, len, 'unexpected EOF');
 
       // Verify the checksum of the stored block
       {
-        read = await fsRead(this.dbFd!, tmp, 0, 8, blockPos + len + 4);
+        read = await fsRead(this.dbFd!, tmp, 0, 8, blockPos + len + 8);
         assert.equal(read.bytesRead, 8, 'unexpected EOF');
         assert(sha256(buf).slice(0, 8).equals(tmp), 'invalid checksum');
       }
@@ -117,14 +118,13 @@ export class ChainStore {
     assert(!this.initialized, 'already initialized');
     this.dbFd = await fsOpen(this.dbFile, 'a+');
     this.blockTailPos = (await fsStat(this.dbFile)).size;
-    try {
-      const height = await this.index.getProp(IndexProp.CURRENT_BLOCK_HEIGHT);
-      const nHeight = Long.fromString(height, true);
-      this._blockHead = (await this.read(nHeight))!;
-      assert(this.blockHead, 'index points to an invalid block head');
-    } catch (e) {
-      if (!e.notFound) throw e;
+
+    const height = await this.index.getBlockHeight();
+    if (height) {
+      this._blockHead = (await this.read(height))!;
+      assert(this._blockHead, 'index points to an invalid block head');
     }
+
     this.initialized = true;
   }
 
@@ -135,10 +135,6 @@ export class ChainStore {
       this.dbFd = undefined;
     }
   }
-}
-
-function getBlockPosString(blockNum: string|number|Long): string {
-  return 'block_pos_' + (typeof(blockNum) !== 'string' ? blockNum.toString() : blockNum);
 }
 
 function sha256(val: Buffer) {

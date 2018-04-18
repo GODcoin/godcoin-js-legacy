@@ -34,18 +34,16 @@ export class TransferTx extends Tx {
     super(data);
   }
 
-  validate(): ByteBuffer {
+  validate(): void {
     assert(this.data.signatures.length === 1, 'tx must have 1 signature');
     assert.equal(this.data.amount.symbol, this.data.fee.symbol, 'fee must be paid with the same asset');
     assert(this.data.fee.amount.gt(0), 'fee must be greater than zero');
     if (this.data.memo) {
-      assert(this.data.memo.byteLength <= 512, 'maximum memo length is 512 bytes');
+      assert(this.data.memo.length <= 512, 'maximum memo length is 512 bytes');
     }
-    const buf = this.serialize();
+    const buf = this.serialize(false);
     const sig = this.data.signatures[0];
     assert(this.data.from.verify(sig, buf.toBuffer()), 'invalid signature');
-
-    return buf;
   }
 
   rawSerialize(buf: ByteBuffer): void {

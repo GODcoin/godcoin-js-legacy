@@ -24,7 +24,7 @@ export class Minter {
     console.log('Started block production');
     this.timer = setInterval(async () => {
       try {
-        const head = this.blockchain.getLatestBlock();
+        const head = this.blockchain.head;
         const ts = new Date();
         const block = new Block({
           height: head.height.add(1),

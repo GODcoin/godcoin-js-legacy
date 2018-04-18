@@ -31,15 +31,13 @@ export class Daemon {
     const dir = path.join(getAppDir(), 'blockchain', 'data');
     mkdirp.sync(dir);
 
-    const index = new Indexer(path.join(dir, 'index'));
-    const store = new ChainStore(path.join(dir, 'blklog'), index);
-    this.blockchain = new Blockchain(store, index);
+    this.blockchain = new Blockchain(dir);
   }
 
   async start(): Promise<void> {
     await this.blockchain.start();
-    if (this.blockchain.store.blockHead) {
-      const height = this.blockchain.store.blockHead.height.toString();
+    if (this.blockchain.head) {
+      const height = this.blockchain.head.height.toString();
       console.log(`Using existing blockchain at height ${height}`);
     } else {
       // TODO: synchronize p2p network
