@@ -27,6 +27,7 @@ it('should parse valid input', () => {
 
   expect(Asset.fromString('1.00001 GOLD').toString()).to.eq('1.00001 GOLD');
   expect(Asset.fromString('0.00001 GOLD').toString()).to.eq('0.00001 GOLD');
+  expect(Asset.fromString('-0.00001 GOLD').toString()).to.eq('-0.00001 GOLD');
   expect(Asset.fromString('.00001 GOLD').toString()).to.eq('0.00001 GOLD');
   expect(Asset.fromString('.1 GOLD').toString()).to.eq('0.1 GOLD');
   expect(Asset.fromString('1.0 GOLD').toString()).to.eq('1.0 GOLD');

@@ -88,14 +88,16 @@ export class Asset {
   }
 
   toString(): string {
-    const amount = this.amount.toString();
+    let amount = this.amount.toString();
+    let negative = this.amount.lt(0);
+    if (negative) amount = amount.substring(1);
     const full = amount.substring(0, amount.length - this.decimals);
     let partial = '';
     if (this.decimals > 0) {
       const num = amount.substring(amount.length - this.decimals);
       partial = (full ? '.' : '0.') + '0'.repeat(this.decimals - num.length) + num;
     }
-    return `${full}${partial} ${this.symbol}`;
+    return `${negative ? '-' : ''}${full}${partial} ${this.symbol}`;
   }
 
   static fromString(asset: string): Asset {
