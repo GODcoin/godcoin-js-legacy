@@ -64,6 +64,10 @@ export class Server {
       this.server.close();
       this.server = undefined;
     }
+    if (this.ws) {
+      this.ws.close();
+      this.server = undefined;
+    }
   }
 
 }
