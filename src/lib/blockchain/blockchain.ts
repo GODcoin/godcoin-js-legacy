@@ -9,6 +9,7 @@ import { Indexer } from '../indexer';
 import * as assert from 'assert';
 import * as Long from 'long';
 import * as path from 'path';
+import * as fs from 'fs';
 
 export * from './block';
 
@@ -24,8 +25,18 @@ export class Blockchain {
   }
 
   constructor(dir: string) {
-    this.indexer = new Indexer(path.join(dir, 'index'));
-    this.store = new ChainStore(path.join(dir, 'blklog'), this.indexer);
+    const indexDir = path.join(dir, 'index');
+    const logDir = path.join(dir, 'blklog');
+    const indexDirExists = fs.existsSync(indexDir);
+    const logDirExists = fs.existsSync(logDir);
+    if (indexDirExists && !logDirExists) {
+      throw new Error('Found index without blockchain log');
+    } else if (!indexDirExists && logDirExists) {
+      // TODO: support reindexing
+      throw new Error('blockchain log needs to be reindexed');
+    }
+    this.indexer = new Indexer(indexDir);
+    this.store = new ChainStore(logDir, this.indexer);
   }
 
   async start(): Promise<void> {
@@ -65,7 +76,7 @@ export class Blockchain {
     let gold = new Asset(bigInt(0), 0, AssetSymbol.GOLD);
     let silver = new Asset(bigInt(0), 0, AssetSymbol.SILVER);
     let i = Long.fromNumber(0, true);
-    for (; i.lt(this.store.blockHead.height); i = i.add(1)) {
+    for (; i.lte(this.store.blockHead.height); i = i.add(1)) {
       const block = await this.store.read(i);
       const bal = Blockchain.getBlockBalance(key, block!.transactions);
       gold = gold.add(bal[0]);
