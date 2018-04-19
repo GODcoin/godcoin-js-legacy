@@ -1,3 +1,5 @@
+import { PublicKey } from '../crypto';
+import { Asset } from '../asset';
 import * as assert from 'assert';
 import * as level from 'level';
 import * as Long from 'long';
@@ -5,6 +7,7 @@ import * as Long from 'long';
 const NAMESPACE_MAIN = Buffer.from([0]);
 const NAMESPACE_BLOCK = Buffer.from([1]);
 const NAMESPACE_TX = Buffer.from([2]);
+const NAMESPACE_BAL = Buffer.from([3]);
 
 const KEY_CURRENT_BLOCK_HEIGHT = Buffer.from('CURRENT_BLOCK_HEIGHT');
 
@@ -34,6 +37,23 @@ export class Indexer {
       this.expireTxTimeout(key.slice(NAMESPACE_TX.length), expiry);
     }).on('error', err => {
       console.log('Failed to prune the tx log', err);
+    });
+  }
+
+  async getBalance(key: PublicKey): Promise<[Asset,Asset]|undefined> {
+    const bal = this.getProp(NAMESPACE_BAL, key.buffer, {
+      valueEncoding: 'json'
+    });
+    if (!bal) return;
+    return [Asset.fromString(bal[0]), Asset.fromString(bal[1])];
+  }
+
+  async setBalance(key: PublicKey, gold: Asset, silver: Asset): Promise<void> {
+    await this.setProp(NAMESPACE_BAL, key.buffer, [
+      gold.toString(),
+      silver.toString()
+    ], {
+      valueEncoding: 'json'
     });
   }
 
