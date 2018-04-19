@@ -12,11 +12,12 @@ export class Minter {
   private readonly keys: KeyPair;
   private timer?: NodeJS.Timer;
 
-  readonly pool: TxPool = new TxPool(this.blockchain);
+  readonly pool: TxPool;
 
   constructor(blockchain: Blockchain, keys: KeyPair) {
     this.blockchain = blockchain;
     this.keys = keys;
+    this.pool = new TxPool(this.blockchain);
   }
 
   start() {
