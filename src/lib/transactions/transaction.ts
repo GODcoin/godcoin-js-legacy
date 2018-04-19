@@ -18,7 +18,6 @@ export enum TxType {
 export interface TxData {
   type: TxType;
   timestamp: Date;
-  expiration?: Date;
   signatures: Buffer[];
 }
 
@@ -26,7 +25,7 @@ export abstract class Tx {
 
   static readonly SERIALIZER_FIELDS: ObjectType[] = [
     ['type', TS.uint8],
-    ['timestamp', TS.date]
+    ['timestamp', TS.date],
   ];
   static readonly SERIALIZER = TS.object(Tx.SERIALIZER_FIELDS);
   static readonly DESERIALIZER = TD.object(Tx.SERIALIZER_FIELDS);
@@ -54,15 +53,14 @@ export abstract class Tx {
   }
 
   checkExpiry(): void {
-    const exp = this.data.expiration;
-    assert(exp, 'missing tx expiry');
-    const time = exp!.getTime();
+    const exp = this.data.timestamp.getTime();
     const now = Date.now();
-    assert(time > now, 'tx expired or missing');
-    assert(time - now <= 60000, 'tx expiry too far into the future');
+    const delta = now - exp;
+    assert(delta <= 60000, 'tx expired');
+    assert(delta > 0, 'tx timestamp in the future');
   }
 
-  serialize(includeSigs): ByteBuffer {
+  serialize(includeSigs: boolean): ByteBuffer {
     const buf = ByteBuffer.allocate(ByteBuffer.DEFAULT_CAPACITY,
                                     ByteBuffer.BIG_ENDIAN);
     if (includeSigs) {
