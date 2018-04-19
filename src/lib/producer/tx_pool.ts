@@ -17,7 +17,7 @@ export class TxPool {
   constructor(readonly blockchain: Blockchain) {
   }
 
-  async push(txBuf: Buffer): Promise<number> {
+  async push(txBuf: Buffer): Promise<[Long, number]> {
     await this.lock.lock();
     try {
       const tx = deserialize<Tx>(ByteBuffer.wrap(txBuf));
@@ -28,9 +28,9 @@ export class TxPool {
 
         let bal: Asset|undefined;
         if (tx.data.amount.symbol === AssetSymbol.GOLD) {
-          bal = await this.blockchain.getBalance(tx.data.from)[0];
+          bal = (await this.blockchain.getBalance(tx.data.from))[0];
         } else if (tx.data.amount.symbol === AssetSymbol.SILVER) {
-          bal = await this.blockchain.getBalance(tx.data.from)[1];
+          bal = (await this.blockchain.getBalance(tx.data.from))[1];
         }
         assert(bal, 'unknown balance symbol ' + tx.data.amount.symbol);
 
@@ -45,8 +45,8 @@ export class TxPool {
         }
         const remaining = bal!.sub(tx.data.amount).sub(tx.data.fee);
         assert(remaining.amount.geq(0), 'not enough balance');
-        await this.blockchain.indexer.addTx(txBuf, tx.data.expiration!.getTime());
-        return this.txs.push(tx) - 1;
+        await this.blockchain.indexer.addTx(txBuf, tx.data.timestamp!.getTime() + 60000);
+        return [this.blockchain.head.height, this.txs.push(tx) - 1];
       }
 
       throw new Error('invalid transaction');

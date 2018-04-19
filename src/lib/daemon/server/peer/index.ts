@@ -88,8 +88,21 @@ export class Peer {
       case 'broadcast': {
         const tx: Buffer = map.tx;
         check(tx, ApiErrorCode.INVALID_PARAMS, 'missing tx');
+        check(tx instanceof Buffer, ApiErrorCode.INVALID_PARAMS, 'tx not a buffer');
+
+        let refBlock!: Long;
+        let refTxPos!: number;
         if (this.minter) {
-          await this.minter.pool.push(tx);
+          const data = await this.minter.pool.push(tx);
+          refBlock = data[0];
+          refTxPos = data[1];
+
+          await this.send(cbor.encode({
+            id,
+            ref_block: refBlock.toString(),
+            ref_tx_pos: refTxPos
+          }));
+          break;
         }
         // TODO: broadcast to all clients
         await this.send(cbor.encode({ id }));

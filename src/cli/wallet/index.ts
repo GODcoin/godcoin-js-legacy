@@ -1,13 +1,16 @@
 import { generateKeyPair, PublicKey, PrivateKey } from '../../lib/crypto';
 import { getAppDir, hookSigInt } from '../../lib/node-util';
+import { TransferTx, TxType } from '../../lib/transactions';
 import { SignedBlock } from '../../lib/blockchain';
 import { WalletDb, WalletIndexProp } from './db';
 import * as ByteBuffer from 'bytebuffer';
+import { Asset, AssetSymbol } from '../../lib/asset';
 import * as readline from 'readline';
 import { WalletNet } from './net';
 import * as mkdirp from 'mkdirp';
 import * as assert from 'assert';
 import * as path from 'path';
+import { GODCOIN_MIN_GOLD_FEE, GODCOIN_MIN_SILVER_FEE } from '../../lib/constants';
 
 export class Wallet {
 
@@ -229,11 +232,53 @@ export class Wallet {
         }, {}));
         break;
       }
+      case 'transfer': {
+        const accountStr = (args[1] || '').trim();
+        const toAddrStr = (args[2] || '').trim();
+        const amtStr = (args[3] || '').trim();
+        const memo = (args[4] || '').trim();
+        if (!(accountStr && toAddrStr && amtStr)) {
+          write('transfer <from_account> <to_address> <amount> [memo] - missing from_account, to_address, or amount');
+          break;
+        }
+        const acc = await this.db.getAccount(accountStr);
+        if (!acc) {
+          write('Account not found');
+          break;
+        }
+        const toAddr = PublicKey.fromWif(toAddrStr);
+
+        const amt = Asset.fromString(amtStr);
+        let fee: Asset;
+        if (amt.symbol === AssetSymbol.GOLD) {
+          fee = GODCOIN_MIN_GOLD_FEE;
+        } else if (amt.symbol === AssetSymbol.SILVER) {
+          fee = GODCOIN_MIN_SILVER_FEE;
+        }
+        assert(fee!, 'unhandled asset type: ' + amt.symbol);
+
+        const tx = new TransferTx({
+          type: TxType.TRANSFER,
+          timestamp: new Date(),
+          from: acc.publicKey,
+          to: toAddr,
+          amount: amt,
+          fee: fee!,
+          memo: Buffer.from(memo),
+          signatures: []
+        }).appendSign(acc.privateKey);
+        const data = await this.net.send({
+          method: 'broadcast',
+          tx: Buffer.from(tx.serialize(true).toBuffer())
+        });
+        write(data);
+        break;
+      }
       default:
         write('Unknown command:', args[0]);
       case 'help':
         const cmds: string[][] = [];
-        cmds.push(['help', 'Display this help menu']);
+        cmds.push(['help', 'display this help menu']);
         cmds.push(['new <password>', 'create a new wallet']);
         cmds.push(['unlock <password>', 'unlock the wallet']);
         cmds.push(['get_block <height>', 'retrieve a block at the specified height']);
@@ -242,6 +287,7 @@ export class Wallet {
         cmds.push(['import_account <name> <private_key>', 'import an account with the following name and private key']);
         cmds.push(['list_accounts', 'list all accounts in the wallet']);
         cmds.push(['list_all_keys', 'list all keys in the wallet']);
+        cmds.push(['transfer <from_account> <to_address> <amount> [memo]', 'transfer funds from an account to another GODcoin public address']);
 
         let maxLen = 0;
         for (const cmd of cmds) {
