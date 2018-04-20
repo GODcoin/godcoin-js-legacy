@@ -41,7 +41,7 @@ export class Indexer {
   }
 
   async getBalance(key: PublicKey): Promise<[Asset,Asset]|undefined> {
-    const bal = this.getProp(NAMESPACE_BAL, key.buffer, {
+    const bal = await this.getProp(NAMESPACE_BAL, key.buffer, {
       valueEncoding: 'json'
     });
     if (!bal) return;
