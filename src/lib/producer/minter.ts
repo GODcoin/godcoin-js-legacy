@@ -47,39 +47,6 @@ export class Minter {
           ]
         }).sign(this.keys);
         await this.blockchain.addBlock(block);
-
-        // Update indexed balances
-        for (const tx of block.transactions) {
-          if (tx instanceof TransferTx) {
-            const fromBal = await this.blockchain.getBalance(tx.data.from);
-            const toBal = await this.blockchain.getBalance(tx.data.to);
-
-            if (tx.data.amount.symbol === AssetSymbol.GOLD) {
-              fromBal[0] = fromBal[0].sub(tx.data.amount).sub(tx.data.fee);
-              toBal[0] = toBal[0].add(tx.data.amount);
-            } else if (tx.data.amount.symbol === AssetSymbol.SILVER) {
-              fromBal[1] = fromBal[1].sub(tx.data.amount).sub(tx.data.fee);
-              toBal[1] = toBal[1].add(tx.data.amount);
-            } else {
-              throw new Error('unhandled symbol: ' + tx.data.amount.symbol);
-            }
-            await this.blockchain.setBalance(tx.data.from, fromBal);
-            await this.blockchain.setBalance(tx.data.to, toBal);
-          } else if (tx instanceof RewardTx) {
-            const toBal = await this.blockchain.getBalance(tx.data.to);
-            for (const reward of tx.data.rewards) {
-              if (reward.symbol === AssetSymbol.GOLD) {
-                toBal[0] = toBal[0].add(reward);
-              } else if (reward.symbol === AssetSymbol.SILVER) {
-                toBal[1] = toBal[1].add(reward);
-              } else {
-                throw new Error('unhandled symbol: ' + reward.symbol);
-              }
-            }
-            await this.blockchain.setBalance(tx.data.to, toBal);
-          }
-        }
-
         const len = block.transactions.length;
         console.log(`Produced block at height ${block.height.toString()} with ${len} transaction${len === 1 ? '' : 's'}`);
       } catch (e) {

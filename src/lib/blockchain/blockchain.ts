@@ -54,12 +54,45 @@ export class Blockchain {
     if (!this.store.blockHead && block.height.eq(0)) {
       // Write the genesis block directly
       this.genesisBlock = block;
-      return this.store.write(block);
+      await this.store.write(block);
+    } else {
+      assert(this.store.blockHead.height.add(1).eq(block.height), 'unexpected height');
+      assert(this.isBondValid(block.signing_key), 'invalid bond');
+      block.validate(this.head);
+      await this.store.write(block);
     }
-    assert(this.store.blockHead.height.add(1).eq(block.height), 'unexpected height');
-    assert(this.isBondValid(block.signing_key), 'invalid bond');
-    block.validate(this.head);
-    await this.store.write(block);
+
+    // Update indexed balances
+    for (const tx of block.transactions) {
+      if (tx instanceof TransferTx) {
+        const fromBal = await this.getBalance(tx.data.from);
+        const toBal = await this.getBalance(tx.data.to);
+
+        if (tx.data.amount.symbol === AssetSymbol.GOLD) {
+          fromBal[0] = fromBal[0].sub(tx.data.amount).sub(tx.data.fee);
+          toBal[0] = toBal[0].add(tx.data.amount);
+        } else if (tx.data.amount.symbol === AssetSymbol.SILVER) {
+          fromBal[1] = fromBal[1].sub(tx.data.amount).sub(tx.data.fee);
+          toBal[1] = toBal[1].add(tx.data.amount);
+        } else {
+          throw new Error('unhandled symbol: ' + tx.data.amount.symbol);
+        }
+        await this.setBalance(tx.data.from, fromBal);
+        await this.setBalance(tx.data.to, toBal);
+      } else if (tx instanceof RewardTx) {
+        const toBal = await this.getBalance(tx.data.to);
+        for (const reward of tx.data.rewards) {
+          if (reward.symbol === AssetSymbol.GOLD) {
+            toBal[0] = toBal[0].add(reward);
+          } else if (reward.symbol === AssetSymbol.SILVER) {
+            toBal[1] = toBal[1].add(reward);
+          } else {
+            throw new Error('unhandled symbol: ' + reward.symbol);
+          }
+        }
+        await this.setBalance(tx.data.to, toBal);
+      }
+    }
   }
 
   getBlock(num: number): Promise<SignedBlock|undefined> {
