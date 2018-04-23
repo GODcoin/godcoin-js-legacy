@@ -20,6 +20,7 @@ const fsStat = util.promisify(fs.stat);
 
 export class ChainStore {
 
+  private readonly lock = new Lock();
   private blockTailPos = 0;
 
   private _blockHead!: SignedBlock;
@@ -28,7 +29,6 @@ export class ChainStore {
   }
 
   private initialized = false;
-  private lock = new Lock();
   private dbFd?: number;
 
   readonly index: Indexer;
@@ -66,7 +66,7 @@ export class ChainStore {
       await this.index.setBlockHeight(block.height);
 
       this._blockHead = block;
-      this.blockTailPos += blockLen + 16; // checksum + long
+      this.blockTailPos += blockLen + 16; // checksum + blockLen
     } finally {
       this.lock.unlock();
     }
@@ -79,38 +79,17 @@ export class ChainStore {
     const pos = await this.index.getBlockPos(blockHeight) as any;
     if (!pos) return;
 
-    try {
-      const blockPos = pos.toNumber();
-      const tmp = Buffer.allocUnsafe(8);
+    const block = await this.readBlock(pos.toNumber());
+    assert(block[0].height.eq(blockHeight));
+    return block[0];
+  }
 
-      // Read the length of the block
-      let len: number;
-      {
-        const read = await fsRead(this.dbFd!, tmp, 0, 8, blockPos);
-        assert.equal(read.bytesRead, 8, 'unexpected EOF');
-        const high = tmp.readInt32BE(0, true);
-        const low = tmp.readInt32BE(4, true);
-        len = new Long(low, high, true).toNumber();
-      }
-
-      // Read the block
-      const buf = Buffer.allocUnsafe(len);
-      let read = await fsRead(this.dbFd!, buf, 0, len, blockPos + 8);
-      assert.equal(read.bytesRead, len, 'unexpected EOF');
-
-      // Verify the checksum of the stored block
-      {
-        read = await fsRead(this.dbFd!, tmp, 0, 8, blockPos + len + 8);
-        assert.equal(read.bytesRead, 8, 'unexpected EOF');
-        assert(sha256(buf).slice(0, 8).equals(tmp), 'invalid checksum');
-      }
-
-      // Deserialize and return
-      const block = SignedBlock.fullyDeserialize(ByteBuffer.wrap(buf));
-      assert(block.height.eq(blockHeight));
-      return block;
-    } catch (e) {
-      throw e;
+  async readBlockLog(cb: (block: SignedBlock, bytePos: number) => void): Promise<void> {
+    let blockPos = 0;
+    while (blockPos < this.blockTailPos) {
+      const block = await this.readBlock(blockPos);
+      await cb(block[0], blockPos);
+      blockPos += block[1];
     }
   }
 
@@ -118,22 +97,60 @@ export class ChainStore {
     assert(!this.initialized, 'already initialized');
     this.dbFd = await fsOpen(this.dbFile, 'a+');
     this.blockTailPos = (await fsStat(this.dbFile)).size;
+    this.initialized = true;
+    await this.reload();
+  }
 
+  async reload(): Promise<void> {
+    assert(this.initialized, 'must be initialized to reload');
     const height = await this.index.getBlockHeight();
     if (height) {
       this._blockHead = (await this.read(height))!;
       assert(this._blockHead, 'index points to an invalid block head');
     }
-
-    this.initialized = true;
   }
 
   async close(): Promise<void> {
-    this.initialized = false;
-    if (this.dbFd !== undefined) {
-      await fsClose(this.dbFd);
-      this.dbFd = undefined;
+    await this.lock.lock();
+    try {
+      this.initialized = false;
+      if (this.dbFd !== undefined) {
+        await fsClose(this.dbFd);
+        this.dbFd = undefined;
+      }
+    } finally {
+      this.lock.unlock();
     }
+  }
+
+  private async readBlock(blockPos: number): Promise<[SignedBlock,number]> {
+    const tmp = Buffer.allocUnsafe(8);
+
+    // Read the length of the block
+    let len: number;
+    {
+      const read = await fsRead(this.dbFd!, tmp, 0, 8, blockPos);
+      assert.equal(read.bytesRead, 8, 'unexpected EOF');
+      const high = tmp.readInt32BE(0, true);
+      const low = tmp.readInt32BE(4, true);
+      len = new Long(low, high, true).toNumber();
+    }
+
+    // Read the block
+    const buf = Buffer.allocUnsafe(len);
+    let read = await fsRead(this.dbFd!, buf, 0, len, blockPos + 8);
+    assert.equal(read.bytesRead, len, 'unexpected EOF');
+
+    // Verify the checksum of the stored block
+    {
+      read = await fsRead(this.dbFd!, tmp, 0, 8, blockPos + len + 8);
+      assert.equal(read.bytesRead, 8, 'unexpected EOF');
+      assert(sha256(buf).slice(0, 8).equals(tmp), 'invalid checksum');
+    }
+
+    // Deserialize and return
+    const block = SignedBlock.fullyDeserialize(ByteBuffer.wrap(buf));
+    return [block, len + 16];
   }
 }
 

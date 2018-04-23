@@ -12,6 +12,7 @@ function startDaemon(argv: any): void {
   const daemon = new Daemon({
     signingKeys: wif ? PrivateKey.fromWif(wif) : undefined as any,
     regtest: argv.regtest,
+    reindex: argv.reindex,
     listen: argv.listen,
     bind: argv.bind,
     port: argv.port
@@ -88,6 +89,10 @@ function keygen(argv: any): void {
       string: true,
       requiresArg: true,
       desc: 'Private WIF key for minting new blocks, required for minting'
+    }).option('reindex', {
+      boolean: true,
+      default: false,
+      desc: 'Reindexes the blockchain log'
     });
   }, startDaemon).command(cmd === 'wallet' ? ['wallet', '$0'] : ['wallet'], '', () => {
     return yargs.option('server', {

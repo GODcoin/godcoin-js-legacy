@@ -14,6 +14,7 @@ import * as path from 'path';
 export interface DaemonOpts {
   signingKeys: KeyPair;
   regtest: boolean;
+  reindex: boolean;
   listen: boolean;
   bind: string;
   port: number;
@@ -31,7 +32,7 @@ export class Daemon {
     const dir = path.join(getAppDir(), 'blockchain', 'data');
     mkdirp.sync(dir);
 
-    this.blockchain = new Blockchain(dir);
+    this.blockchain = new Blockchain(dir, opts.reindex);
   }
 
   async start(): Promise<void> {

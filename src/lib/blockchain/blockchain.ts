@@ -1,3 +1,4 @@
+import { Indexer, IndexProp, BalanceMap } from '../indexer';
 import { Tx, TransferTx, RewardTx } from '../transactions';
 import { PrivateKey, KeyPair, PublicKey } from '../crypto';
 import { Asset, AssetSymbol } from '../asset';
@@ -5,17 +6,30 @@ import { Block, SignedBlock } from './block';
 import { ChainStore } from './chain_store';
 import { BigInteger } from 'big-integer';
 import * as bigInt from 'big-integer';
-import { Indexer } from '../indexer';
+import * as Codec from 'level-codec';
 import * as assert from 'assert';
+import { Lock } from '../lock';
 import * as Long from 'long';
 import * as path from 'path';
+import * as del from 'del';
 import * as fs from 'fs';
 
 export * from './block';
 
+const jsonCodec = new Codec({
+  keyEncoding: 'binary',
+  valueEncoding: 'json'
+})
+
 export class Blockchain {
 
+  private readonly dir: string;
+  private get indexDir() { return path.join(this.dir, 'index'); }
+  private get logDir() { return path.join(this.dir, 'blklog'); }
+
+  private readonly lock = new Lock();
   private genesisBlock!: SignedBlock;
+  private reindex = false;
 
   private readonly store: ChainStore;
   readonly indexer: Indexer;
@@ -24,25 +38,89 @@ export class Blockchain {
     return this.store.blockHead;
   }
 
-  constructor(dir: string) {
-    const indexDir = path.join(dir, 'index');
-    const logDir = path.join(dir, 'blklog');
-    const indexDirExists = fs.existsSync(indexDir);
-    const logDirExists = fs.existsSync(logDir);
+  constructor(dir: string, reindex = false) {
+    this.dir = dir;
+    this.reindex = reindex;
+    const indexDirExists = fs.existsSync(this.indexDir);
+    const logDirExists = fs.existsSync(this.logDir);
     if (indexDirExists && !logDirExists) {
       throw new Error('Found index without blockchain log');
-    } else if (!indexDirExists && logDirExists) {
-      // TODO: support reindexing
-      throw new Error('blockchain log needs to be reindexed');
+    } else if (!reindex && (!indexDirExists && logDirExists)) {
+      throw new Error('blockchain needs to be reindexed');
+    } else if (reindex && indexDirExists) {
+      del.sync(this.indexDir, {
+        force: true
+      });
     }
-    this.indexer = new Indexer(indexDir);
-    this.store = new ChainStore(logDir, this.indexer);
+    if (reindex && !logDirExists) reindex = false;
+    this.indexer = new Indexer(this.indexDir);
+    this.store = new ChainStore(this.logDir, this.indexer);
   }
 
   async start(): Promise<void> {
     await this.indexer.init();
     await this.store.init();
     this.genesisBlock = (await this.store.read(0))!;
+    if (this.reindex) {
+      console.log('Reindexing blockchain...');
+      const start = Date.now();
+
+      let head: SignedBlock|undefined;
+      let ops: any[] = [];
+      const balances = new BalanceMap(this.getBalance.bind(this));
+
+      await this.store.readBlockLog(async (block, bytePos) => {
+        if (head) block.validate(head);
+        head = block;
+        await this.indexBlock(balances, head);
+        {
+          const buf = Buffer.allocUnsafe(8);
+          buf.writeInt32BE(head.height.high, 0, true);
+          buf.writeInt32BE(head.height.low, 4, true);
+
+          const val = Long.fromNumber(bytePos, true);
+          const pos = Buffer.allocUnsafe(8);
+          pos.writeInt32BE(val.high, 0, true);
+          pos.writeInt32BE(val.low, 4, true);
+
+          ops.push({
+            type: 'put',
+            key: Buffer.concat([IndexProp.NAMESPACE_BLOCK, buf]),
+            value: pos
+          });
+          if (ops.length >= 1000) {
+            await new Promise<void>((res, rej) => {
+              const batch = this.indexer.db.db.batch(ops, err => {
+                if (err) return rej(err);
+                res();
+              });
+            });
+            ops.length = 0;
+          }
+        }
+        if (head.height.mod(1000).eq(0)) {
+          console.log('=> Indexed block:', head.height.toString());
+        }
+      });
+
+      if (head) {
+        if (ops.length > 0) {
+          await new Promise<void>((res, rej) => {
+            const batch = this.indexer.db.db.batch(ops, err => {
+              if (err) return rej(err);
+              res();
+            });
+          });
+          ops.length = 0;
+        }
+        await this.indexer.setBlockHeight(head.height);
+        await this.writeBalanceMap(balances);
+        await this.store.reload();
+        this.genesisBlock = (await this.store.read(0))!;
+      }
+      const end = Date.now();
+      console.log(`Finished indexing in ${end - start}ms`);
+    }
   }
 
   async stop(): Promise<void> {
@@ -51,47 +129,23 @@ export class Blockchain {
   }
 
   async addBlock(block: SignedBlock): Promise<void> {
-    if (!this.store.blockHead && block.height.eq(0)) {
-      // Write the genesis block directly
-      this.genesisBlock = block;
-      await this.store.write(block);
-    } else {
-      assert(this.store.blockHead.height.add(1).eq(block.height), 'unexpected height');
-      assert(this.isBondValid(block.signing_key), 'invalid bond');
-      block.validate(this.head);
-      await this.store.write(block);
-    }
-
-    // Update indexed balances
-    for (const tx of block.transactions) {
-      if (tx instanceof TransferTx) {
-        const fromBal = await this.getBalance(tx.data.from);
-        const toBal = await this.getBalance(tx.data.to);
-
-        if (tx.data.amount.symbol === AssetSymbol.GOLD) {
-          fromBal[0] = fromBal[0].sub(tx.data.amount).sub(tx.data.fee);
-          toBal[0] = toBal[0].add(tx.data.amount);
-        } else if (tx.data.amount.symbol === AssetSymbol.SILVER) {
-          fromBal[1] = fromBal[1].sub(tx.data.amount).sub(tx.data.fee);
-          toBal[1] = toBal[1].add(tx.data.amount);
-        } else {
-          throw new Error('unhandled symbol: ' + tx.data.amount.symbol);
-        }
-        await this.setBalance(tx.data.from, fromBal);
-        await this.setBalance(tx.data.to, toBal);
-      } else if (tx instanceof RewardTx) {
-        const toBal = await this.getBalance(tx.data.to);
-        for (const reward of tx.data.rewards) {
-          if (reward.symbol === AssetSymbol.GOLD) {
-            toBal[0] = toBal[0].add(reward);
-          } else if (reward.symbol === AssetSymbol.SILVER) {
-            toBal[1] = toBal[1].add(reward);
-          } else {
-            throw new Error('unhandled symbol: ' + reward.symbol);
-          }
-        }
-        await this.setBalance(tx.data.to, toBal);
+    try {
+      await this.lock.lock();
+      if (!this.store.blockHead && block.height.eq(0)) {
+        // Write the genesis block directly
+        this.genesisBlock = block;
+        await this.store.write(block);
+      } else {
+        assert(this.store.blockHead.height.add(1).eq(block.height), 'unexpected height');
+        assert(this.isBondValid(block.signing_key), 'invalid bond');
+        block.validate(this.head);
+        await this.store.write(block);
       }
+      const balances = new BalanceMap(this.getBalance.bind(this));
+      await this.indexBlock(balances, block);
+      await this.writeBalanceMap(balances);
+    } finally {
+      this.lock.unlock();
     }
   }
 
@@ -104,8 +158,7 @@ export class Blockchain {
     return this.genesisBlock.signing_key.equals(key);
   }
 
-  async getBalance(key: string|PublicKey): Promise<[Asset, Asset]> {
-    if (typeof(key) === 'string') key = PublicKey.fromWif(key);
+  async getBalance(key: PublicKey): Promise<[Asset, Asset]> {
     const bal = await this.indexer.getBalance(key);
     if (!bal) {
       return [
@@ -116,9 +169,52 @@ export class Blockchain {
     return bal;
   }
 
-  async setBalance(key: string|PublicKey,
-                    balance: [Asset,Asset]): Promise<void> {
-    if (typeof(key) === 'string') key = PublicKey.fromWif(key);
-    await this.indexer.setBalance(key, balance[0], balance[1]);
+  private async indexBlock(balances: BalanceMap,
+                            block: SignedBlock): Promise<void> {
+    for (const tx of block.transactions) {
+      if (tx instanceof TransferTx) {
+        const fromBal = await balances.getBal(tx.data.from);
+        const toBal = await balances.getBal(tx.data.to);
+        if (tx.data.amount.symbol === AssetSymbol.GOLD) {
+          fromBal[0] = fromBal[0].sub(tx.data.amount).sub(tx.data.fee);
+          toBal[0] = toBal[0].add(tx.data.amount);
+        } else if (tx.data.amount.symbol === AssetSymbol.SILVER) {
+          fromBal[1] = fromBal[1].sub(tx.data.amount).sub(tx.data.fee);
+          toBal[1] = toBal[1].add(tx.data.amount);
+        } else {
+          throw new Error('unhandled symbol: ' + tx.data.amount.symbol);
+        }
+      } else if (tx instanceof RewardTx) {
+        const toBal = await balances.getBal(tx.data.to);
+        for (const reward of tx.data.rewards) {
+          if (reward.symbol === AssetSymbol.GOLD) {
+            toBal[0] = toBal[0].add(reward);
+          } else if (reward.symbol === AssetSymbol.SILVER) {
+            toBal[1] = toBal[1].add(reward);
+          } else {
+            throw new Error('unhandled symbol: ' + reward.symbol);
+          }
+        }
+      }
+    }
+  }
+
+  private async writeBalanceMap(balances: BalanceMap): Promise<void> {
+    if (balances.count <= 0) return;
+    const batch = this.indexer.db.db.batch();
+    batch.codec = jsonCodec; // Workaround for encoding-down
+    for (const [hex, assets] of Object.entries(balances.flush())) {
+      const key = [IndexProp.NAMESPACE_BAL, Buffer.from(hex, 'hex')];
+      batch.put(Buffer.concat(key), [
+        assets[0].toString(),
+        assets[1].toString()
+      ]);
+    }
+    return new Promise<void>((res, rej) => {
+      batch.write(err => {
+        if (err) return rej(err);
+        res();
+      });
+    });
   }
 }

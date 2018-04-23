@@ -4,15 +4,19 @@ import * as assert from 'assert';
 import * as level from 'level';
 import * as Long from 'long';
 
-const NAMESPACE_MAIN = Buffer.from([0]);
-const NAMESPACE_BLOCK = Buffer.from([1]);
-const NAMESPACE_TX = Buffer.from([2]);
-const NAMESPACE_BAL = Buffer.from([3]);
+export * from './balance_map';
 
-const KEY_CURRENT_BLOCK_HEIGHT = Buffer.from('CURRENT_BLOCK_HEIGHT');
+export namespace IndexProp {
+  export const NAMESPACE_MAIN = Buffer.from([0]);
+  export const NAMESPACE_BLOCK = Buffer.from([1]);
+  export const NAMESPACE_TX = Buffer.from([2]);
+  export const NAMESPACE_BAL = Buffer.from([3]);
+
+  export const KEY_CURRENT_BLOCK_HEIGHT = Buffer.from('CURRENT_BLOCK_HEIGHT');
+}
 
 export class Indexer {
-  private readonly db: any;
+  readonly db: any;
 
   constructor(dbPath) {
     this.db = level(dbPath, {
@@ -26,53 +30,44 @@ export class Indexer {
 
   async init(): Promise<void> {
     this.db.createReadStream({
-      gte: NAMESPACE_TX,
-      lte: NAMESPACE_TX
+      gte: IndexProp.NAMESPACE_TX,
+      lte: IndexProp.NAMESPACE_TX
     }).on('data', data => {
       const key = data.key as Buffer;
       const value = data.value as Buffer;
       const expiry = value.readUInt32BE(0);
-      assert(key.slice(0, NAMESPACE_TX.length).equals(NAMESPACE_TX));
+      assert(key.slice(0, IndexProp.NAMESPACE_TX.length).equals(IndexProp.NAMESPACE_TX));
 
-      this.expireTxTimeout(key.slice(NAMESPACE_TX.length), expiry);
+      this.expireTxTimeout(key.slice(IndexProp.NAMESPACE_TX.length), expiry);
     }).on('error', err => {
       console.log('Failed to prune the tx log', err);
     });
   }
 
   async getBalance(key: PublicKey): Promise<[Asset,Asset]|undefined> {
-    const bal = await this.getProp(NAMESPACE_BAL, key.buffer, {
+    const bal = await this.getProp(IndexProp.NAMESPACE_BAL, key.buffer, {
       valueEncoding: 'json'
     });
     if (!bal) return;
     return [Asset.fromString(bal[0]), Asset.fromString(bal[1])];
   }
 
-  async setBalance(key: PublicKey, gold: Asset, silver: Asset): Promise<void> {
-    await this.setProp(NAMESPACE_BAL, key.buffer, [
-      gold.toString(),
-      silver.toString()
-    ], {
-      valueEncoding: 'json'
-    });
-  }
-
   async hasTx(txBuf: Buffer): Promise<boolean> {
-    const tx = await this.getProp(NAMESPACE_TX, txBuf);
+    const tx = await this.getProp(IndexProp.NAMESPACE_TX, txBuf);
     return tx !== undefined;
   }
 
   async addTx(tx: Buffer, expiry: number): Promise<void> {
     const buf = Buffer.allocUnsafe(4);
     buf.writeUInt32BE(expiry, 0, true);
-    await this.setProp(NAMESPACE_TX, tx, buf);
+    await this.setProp(IndexProp.NAMESPACE_TX, tx, buf);
     this.expireTxTimeout(tx, expiry);
   }
 
   private expireTxTimeout(tx: Buffer, expiry: number) {
     setTimeout(async () => {
       try {
-        await this.delProp(NAMESPACE_TX, tx);
+        await this.delProp(IndexProp.NAMESPACE_TX, tx);
       } catch (e) {
         console.log('Failed to prune TX', tx.toString('hex'), e);
       }
@@ -83,7 +78,7 @@ export class Indexer {
     const buf = Buffer.allocUnsafe(8);
     buf.writeInt32BE(height.high, 0, true);
     buf.writeInt32BE(height.low, 4, true);
-    const pos: Buffer = await this.getProp(NAMESPACE_BLOCK, buf);
+    const pos: Buffer = await this.getProp(IndexProp.NAMESPACE_BLOCK, buf);
     if (!pos) return;
     const high = pos.readInt32BE(0, true);
     const low = pos.readInt32BE(4, true);
@@ -98,11 +93,11 @@ export class Indexer {
     const pos = Buffer.allocUnsafe(8);
     pos.writeInt32BE(bytePos.high, 0, true);
     pos.writeInt32BE(bytePos.low, 4, true);
-    await this.setProp(NAMESPACE_BLOCK, buf, pos);
+    await this.setProp(IndexProp.NAMESPACE_BLOCK, buf, pos);
   }
 
   async getBlockHeight(): Promise<Long|undefined> {
-    const buf = await this.getProp(NAMESPACE_MAIN, KEY_CURRENT_BLOCK_HEIGHT);
+    const buf = await this.getProp(IndexProp.NAMESPACE_MAIN, IndexProp.KEY_CURRENT_BLOCK_HEIGHT);
     if (!buf) return;
     const high = buf.readInt32BE(0, true);
     const low = buf.readInt32BE(4, true);
@@ -114,7 +109,7 @@ export class Indexer {
     const buf = Buffer.allocUnsafe(8);
     buf.writeInt32BE(height.high, 0, true);
     buf.writeInt32BE(height.low, 4, true);
-    await this.setProp(NAMESPACE_MAIN, KEY_CURRENT_BLOCK_HEIGHT, buf);
+    await this.setProp(IndexProp.NAMESPACE_MAIN, IndexProp.KEY_CURRENT_BLOCK_HEIGHT, buf);
   }
 
   private async getProp(ns: Buffer, prop: Buffer, opts?: any): Promise<any> {

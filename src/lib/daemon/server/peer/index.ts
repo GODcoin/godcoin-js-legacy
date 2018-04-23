@@ -1,6 +1,7 @@
 import { WsCloseCode, ApiError, ApiErrorCode, check } from './api_error';
 import { Tx, deserialize } from '../../../transactions';
 import { Blockchain } from '../../../blockchain';
+import { PublicKey } from '../../../crypto';
 import { Minter } from '../../../producer';
 import * as ByteBuffer from 'bytebuffer';
 import * as WebSocket from 'uws';
@@ -126,7 +127,7 @@ export class Peer {
       case 'get_balance': {
         const address = map.address;
         check(typeof(address) === 'string', ApiErrorCode.INVALID_PARAMS, 'address must be a string');
-        const balance = await this.blockchain.getBalance(address);
+        const balance = await this.blockchain.getBalance(PublicKey.fromWif(address));
         await this.send(cbor.encode({
           id,
           balance: [
