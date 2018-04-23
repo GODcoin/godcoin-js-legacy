@@ -80,7 +80,8 @@ export class WalletNet {
           const map = cbor.decode(Buffer.from(data));
           const id = map.id;
           if (id === null || id === undefined) throw new Error('missing id');
-          this.requests[id].resolve(map);
+          if (map.error) this.requests[id].reject(map);
+          else this.requests[id].resolve(map);
         } catch (e) {
           console.log('Failed to process message from server', e);
         }
