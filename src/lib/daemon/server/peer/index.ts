@@ -1,5 +1,5 @@
 import { ApiError, ApiErrorCode, check } from './api_error';
-import { Blockchain } from '../../../blockchain';
+import { Blockchain, SignedBlock } from '../../../blockchain';
 import { PublicKey } from '../../../crypto';
 import { Minter } from '../../../producer';
 import { PeerNet } from './net';
@@ -7,9 +7,9 @@ import { PeerNet } from './net';
 export * from './net';
 
 export interface PeerOptions {
-  net: PeerNet;
   blockchain: Blockchain;
   minter?: Minter;
+  net: PeerNet;
 }
 
 export class Peer {
@@ -54,6 +54,11 @@ export class Peer {
         // TODO: broadcast to all clients
         return;
       }
+      case 'blockchain_properties': {
+        return {
+          block_height: this.blockchain.head.height.toString()
+        };
+      }
       case 'get_block': {
         const height = map.height;
         check(typeof(height) === 'number', ApiErrorCode.INVALID_PARAMS, 'height must be a number');
@@ -61,10 +66,35 @@ export class Peer {
         const block = await this.blockchain.getBlock(height);
         if (block) {
           return {
-            block: block.fullySerialize()
+            block: block.fullySerialize().toBuffer()
           };
         }
         return;
+      }
+      case 'get_block_range': {
+        const min = map.min_height;
+        const max = map.max_height;
+        check(typeof(min) === 'number', ApiErrorCode.INVALID_PARAMS, 'min_height must be a number');
+        check(typeof(max) === 'number', ApiErrorCode.INVALID_PARAMS, 'max_height must be a number');
+        check(min >= 0, ApiErrorCode.INVALID_PARAMS, 'min_height must be >= 0');
+        check(max >= min, ApiErrorCode.INVALID_PARAMS, 'max_height must be >= min_height');
+        check(max - min <= 100, ApiErrorCode.INVALID_PARAMS, 'range retrieval must be <= 100 blocks');
+
+        const blocks: ArrayBuffer[] = [];
+        let outsideRange = false;
+        for (let i = min; i <= max; ++i) {
+          const block = await this.blockchain.getBlock(i);
+          if (block) {
+            blocks.push(block.fullySerialize().toBuffer());
+          } else {
+            outsideRange = true;
+            break;
+          }
+        }
+        return {
+          range_outside_height: outsideRange,
+          blocks
+        };
       }
       case 'get_balance': {
         const address = map.address;

@@ -153,12 +153,38 @@ export class Wallet {
           height
         });
         if (data.block) {
-          const buf = ByteBuffer.wrap(data.block.buffer);
+          const buf = ByteBuffer.wrap(data.block);
           const block = SignedBlock.fullyDeserialize(buf);
           write(block.toString());
         } else {
           write('Invalid block height');
         }
+        break;
+      }
+      case 'get_block_range': {
+        const minHeight = Number((args[1] || '').trim());
+        const maxHeight = Number((args[2] || '').trim());
+        if (minHeight === NaN || maxHeight === NaN) {
+          write('get_block_range <min_height> <max_height> - missing or invalid number for min and max heights');
+          break;
+        }
+
+        const data = await this.net.send({
+          method: 'get_block_range',
+          min_height: minHeight,
+          max_height: maxHeight
+        });
+
+        const blocks: string[] = [];
+        for (const block of data.blocks) {
+          const buf = ByteBuffer.wrap(block);
+          const b = SignedBlock.fullyDeserialize(buf);
+          blocks.push(JSON.parse(b.toString()));
+        }
+        write(JSON.stringify({
+          range_outside_height: data.range_outside_height,
+          blocks
+        }, undefined, 2));
         break;
       }
       case 'get_balance': {
