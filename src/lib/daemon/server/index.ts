@@ -1,7 +1,7 @@
 import { Blockchain } from '../../blockchain';
 import { Minter } from '../../producer';
+import { Peer, PeerNet } from './peer';
 import * as WebSocket from 'uws';
-import { Peer } from './peer';
 import * as http from 'http';
 import * as Koa from 'koa';
 
@@ -48,11 +48,11 @@ export class Server {
           else if (tmp) ip = tmp[0].split(',')[0];
         }
         console.log(`[${ip}] Peer has connected`);
+        const peerNet = new PeerNet(ws, ip);
         const peer = new Peer({
-          ws,
-          ip,
           blockchain: this.blockchain,
-          minter: this.minter
+          minter: this.minter,
+          net: peerNet
         });
         peer.init();
       });
