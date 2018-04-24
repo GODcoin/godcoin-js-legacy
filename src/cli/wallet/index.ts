@@ -308,6 +308,7 @@ export class Wallet {
         cmds.push(['new <password>', 'create a new wallet']);
         cmds.push(['unlock <password>', 'unlock the wallet']);
         cmds.push(['get_block <height>', 'retrieve a block at the specified height']);
+        cmds.push(['get_block_range <min_height> <max_height>', 'retrieve a block range at the specified heights']);
         cmds.push(['get_balance <address|account>', 'retrieve the total balance of a public address or account']);
         cmds.push(['create_account <name>', 'create an account and a new key pair']);
         cmds.push(['import_account <name> <private_key>', 'import an account with the following name and private key']);
