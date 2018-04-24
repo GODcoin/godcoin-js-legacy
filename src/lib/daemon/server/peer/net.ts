@@ -1,7 +1,7 @@
 import { ApiErrorCode, WsCloseCode, ApiError } from './api_error';
 import { EventEmitter } from 'events';
 import * as WebSocket from 'uws';
-import * as cbor from 'cbor';
+import * as borc from 'borc';
 
 export type MessageCallback = (map: any) => Promise<any>;
 
@@ -30,7 +30,7 @@ export class PeerNet {
           this.close(WsCloseCode.UNSUPPORTED_DATA, 'text not supported');
         } else if (data instanceof ArrayBuffer) {
           data = Buffer.from(data);
-          const map = cbor.decode(data);
+          const map = borc.decode(data);
           const id = map.id;
           if (typeof(id) !== 'number') {
             this.close(WsCloseCode.POLICY_VIOLATION, 'id must be a number');
@@ -38,12 +38,12 @@ export class PeerNet {
           }
           try {
             const resp = await cb(map);
-            await this.send(cbor.encode({
+            await this.send(borc.encode({
               id,
               ...resp
             }));
           } catch (e) {
-            await this.send(cbor.encode({
+            await this.send(borc.encode({
               id,
               error: e instanceof ApiError ? e.code : ApiErrorCode.MISC,
               message: e.message
