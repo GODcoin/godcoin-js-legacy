@@ -28,6 +28,11 @@ export class TxPool {
       if (tx instanceof TransferTx) {
         assert(!(await this.indexer.hasTx(txBuf)), 'duplicate tx');
         tx.validate();
+        {
+          const timeTx = tx.data.timestamp.getTime();
+          const timeHead = this.blockchain.head.timestamp.getTime() - 5000;
+          assert(timeTx > timeHead, 'timestamp cannot be behind 5 seconds of the block head time');
+        }
 
         let bal: Asset|undefined;
         let fee: Asset|undefined;
