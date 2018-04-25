@@ -42,14 +42,14 @@
     "libsodium-wrappers": "^0.7.3",
     "long": "^4.0.0",
     "mkdirp": "^0.5.1",
-    "uws": "^9.147.0",
+    "uws": "^9.148.0",
     "yargs": "^11.0.0"
   },
   "devDependencies": {
     "@types/benchmark": "^1.0.31",
     "@types/bs58": "^3.0.30",
     "@types/bytebuffer": "^5.0.37",
-    "@types/chai": "^4.1.2",
+    "@types/chai": "^4.1.3",
     "@types/chai-as-promised": "^7.1.0",
     "@types/debug": "0.0.30",
     "@types/del": "^3.0.1",
@@ -69,6 +69,6 @@
     "mocha": "^5.1.1",
     "nyc": "^11.7.1",
     "ts-node": "^6.0.0",
-    "typescript": "^2.8.1"
+    "typescript": "^2.8.3"
   }
 }
