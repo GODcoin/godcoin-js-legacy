@@ -29,12 +29,19 @@ export class Asset {
     return new Asset(t.subtract(o), decimals, this.symbol);
   }
 
-  mul(other: Asset): Asset {
+  mul(other: Asset, precision?: number): Asset {
     assert.strictEqual(this.symbol, other.symbol, 'asset type mismatch');
-    const decimals = Math.max(this.decimals, other.decimals);
+    let decimals = Math.max(this.decimals, other.decimals);
     const t = setDecimals(this.amount, this.decimals, decimals);
     const o = setDecimals(other.amount, other.decimals, decimals);
-    return new Asset(t.multiply(o), decimals * 2, this.symbol);
+
+    decimals *= 2;
+    let mult = t.multiply(o);
+    if (precision !== undefined) {
+      mult = setDecimals(mult, decimals, precision);
+      decimals = precision;
+    }
+    return new Asset(mult, decimals, this.symbol);
   }
 
   div(other: Asset, precision: number = 0): Asset {
@@ -44,6 +51,15 @@ export class Asset {
     const t = setDecimals(this.amount, this.decimals, decimals * 2);
     const o = setDecimals(other.amount, other.decimals, decimals);
     return new Asset(t.divide(o), decimals, this.symbol);
+  }
+
+  pow(num: number, precision: number = this.decimals): Asset {
+    assert(typeof(num) === 'number', 'num must be of type number');
+    assert((num % 1) === 0, 'num must be an integer');
+
+    const dec = this.decimals * num;
+    const pow = setDecimals(this.amount.pow(num), dec, precision);
+    return new Asset(pow, precision, this.symbol);
   }
 
   geq(other: Asset): boolean {

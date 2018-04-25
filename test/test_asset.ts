@@ -88,6 +88,8 @@ it('should correctly perform arithmetic and format', () => {
   check(a.mul(Asset.fromString('-100000.11111111 GOLD')), '-12345613.7173331961600000 GOLD');
   check(a.div(Asset.fromString('23 GOLD')), '5.367 GOLD');
   check(a.div(Asset.fromString('-23 GOLD'), 8), '-5.36765217 GOLD');
+  check(a.pow(2), '15241.383 GOLD');
+  check(a.pow(2, 8), '15241.38393600 GOLD');
   check(a, '123.456 GOLD');
 
   check(Asset.fromString('10 GOLD').div(Asset.fromString('2 GOLD')), '5 GOLD');
