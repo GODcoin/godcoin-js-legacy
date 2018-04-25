@@ -1,23 +1,28 @@
 import { Asset } from './asset';
 
-/*
- * Base fee multipliers
- */
+export namespace GODcoin {
 
-export const GODCOIN_MIN_GOLD_FEE    = Asset.fromString('0.00001000 GOLD');
-export const GODCOIN_MIN_SILVER_FEE  = Asset.fromString('0.00100000 SILVER');
+  /*
+  * Base fee multipliers
+  */
 
-/*
- * Fee settings for individual addresses performing transactions
- */
+  export const MIN_GOLD_FEE    = Asset.fromString('0.00000100 GOLD');
+  export const MIN_SILVER_FEE  = Asset.fromString('0.00001000 SILVER');
 
-export const GODCOIN_GOLD_FEE_MULT     = 2;
-export const GODCOIN_SILVER_FEE_MULT   = 2;
-export const GODCOIN_FEE_RESET_WINDOW  = 4;
+  /*
+  * Fee settings for individual addresses performing transactions
+  */
 
-/*
- * Fee settings for the global network
- */
+  export const GOLD_FEE_MULT     = Asset.fromString('2.00000000 GOLD');
+  export const SILVER_FEE_MULT   = Asset.fromString('2.00000000 SILVER');
+  export const FEE_RESET_WINDOW  = 4;
 
-export const GODCOIN_NETWORK_FEE_MULT        = 1.008;
-export const GODCOIN_NETWORK_FEE_AVG_WINDOW  = 10;
+  /*
+  * Fee settings for the global network
+  */
+
+  export const NETWORK_FEE_GOLD_MULT   = Asset.fromString('1.00200000 GOLD');
+  export const NETWORK_FEE_SILVER_MULT = Asset.fromString('1.00200000 SILVER');
+  export const NETWORK_FEE_AVG_WINDOW  = 10;
+
+}
