@@ -1,11 +1,12 @@
 import { Blockchain, Block, ChainStore } from '../blockchain';
 import { RewardTx, TxType } from '../transactions';
 import { KeyPair, PrivateKey } from '../crypto';
+import { Asset, AssetSymbol } from '../asset';
 import { getAppDir } from '../node-util';
+import * as bigInt from 'big-integer';
 import { Minter } from '../producer';
 import { Indexer } from '../indexer';
 import { Server } from './server';
-import { Asset } from '../asset';
 import * as assert from 'assert';
 import * as mkdirp from 'mkdirp';
 import * as Long from 'long';
@@ -55,6 +56,7 @@ export class Daemon {
             type: TxType.REWARD,
             timestamp: genesisTs,
             to: this.opts.signingKeys.publicKey,
+            fee: new Asset(bigInt(0), 0, AssetSymbol.GOLD),
             rewards: [ Asset.fromString('1 GOLD') ],
             signatures: []
           })

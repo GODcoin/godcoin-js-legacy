@@ -1,16 +1,16 @@
 import { generateKeyPair, PublicKey, PrivateKey } from '../../lib/crypto';
 import { getAppDir, hookSigInt } from '../../lib/node-util';
 import { TransferTx, TxType } from '../../lib/transactions';
+import { Asset, AssetSymbol } from '../../lib/asset';
 import { SignedBlock } from '../../lib/blockchain';
 import { WalletDb, WalletIndexProp } from './db';
+import { GODcoin } from '../../lib/constants';
 import * as ByteBuffer from 'bytebuffer';
-import { Asset, AssetSymbol } from '../../lib/asset';
 import * as readline from 'readline';
 import { WalletNet } from './net';
 import * as mkdirp from 'mkdirp';
 import * as assert from 'assert';
 import * as path from 'path';
-import { GODCOIN_MIN_GOLD_FEE, GODCOIN_MIN_SILVER_FEE } from '../../lib/constants';
 
 export class Wallet {
 
@@ -276,10 +276,11 @@ export class Wallet {
 
         const amt = Asset.fromString(amtStr);
         let fee: Asset;
+        // TODO: calculate the fee based on the network
         if (amt.symbol === AssetSymbol.GOLD) {
-          fee = GODCOIN_MIN_GOLD_FEE;
+          fee = GODcoin.MIN_GOLD_FEE;
         } else if (amt.symbol === AssetSymbol.SILVER) {
-          fee = GODCOIN_MIN_SILVER_FEE;
+          fee = GODcoin.MIN_SILVER_FEE;
         }
         assert(fee!, 'unhandled asset type: ' + amt.symbol);
 

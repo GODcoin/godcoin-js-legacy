@@ -6,6 +6,7 @@ import {
 import * as ByteBuffer from 'bytebuffer';
 import { PrivateKey } from '../crypto';
 import * as newDebug from 'debug';
+import { Asset } from '../asset';
 import * as assert from 'assert';
 
 const debug = newDebug('godcoin:tx');
@@ -18,6 +19,7 @@ export enum TxType {
 export interface TxData {
   type: TxType;
   timestamp: Date;
+  fee: Asset;
   signatures: Buffer[];
 }
 
@@ -26,6 +28,7 @@ export abstract class Tx {
   static readonly SERIALIZER_FIELDS: ObjectType[] = [
     ['type', TS.uint8],
     ['timestamp', TS.date],
+    ['fee', TS.asset]
   ];
   static readonly SERIALIZER = TS.object(Tx.SERIALIZER_FIELDS);
   static readonly DESERIALIZER = TD.object(Tx.SERIALIZER_FIELDS);
@@ -35,8 +38,13 @@ export abstract class Tx {
     this.data.timestamp = new Date(truncated);
   }
 
-  abstract validate(): void;
   abstract rawSerialize(buf: ByteBuffer): void;
+
+  validate(): void {
+    assert(this.data.timestamp.getTime() < Date.now(), 'timestamp cannot be in the future');
+    assert(this.data.fee.amount.gt(0), 'fee must be greater than zero');
+    assert(this.data.fee.decimals <= 8, 'fee can have a maximum of 8 decimals');
+  }
 
   sign(key: PrivateKey): Buffer {
     const buf = this.serialize(false);

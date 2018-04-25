@@ -15,7 +15,6 @@ export interface TransferTxData extends TxData {
   from: PublicKey;
   to: PublicKey;
   amount: Asset;
-  fee: Asset;
   memo?: Buffer;
 }
 
@@ -25,7 +24,6 @@ export class TransferTx extends Tx {
     ['from', TS.publicKey],
     ['to', TS.publicKey],
     ['amount', TS.asset],
-    ['fee', TS.asset],
     ['memo', TS.buffer]
   ];
   static readonly SERIALIZER = TS.object(TransferTx.SERIALIZER_FIELDS);
@@ -36,13 +34,10 @@ export class TransferTx extends Tx {
   }
 
   validate(): void {
-    assert(this.data.signatures.length === 1, 'tx must have 1 signature');
+    super.validate();
     assert.equal(this.data.amount.symbol, this.data.fee.symbol, 'fee must be paid with the same asset');
     assert(this.data.amount.amount.geq(0), 'amount must be greater than or equal to zero');
     assert(this.data.amount.decimals <= 8, 'amount can have a maximum of 8 decimals');
-    assert(this.data.timestamp.getTime() < Date.now(), 'timestamp cannot be in the future');
-    assert(this.data.fee.amount.gt(0), 'fee must be greater than zero');
-    assert(this.data.fee.decimals <= 8, 'fee can have a maximum of 8 decimals');
     if (this.data.memo) {
       assert(this.data.memo.length <= 512, 'maximum memo length is 512 bytes');
     }

@@ -59,6 +59,7 @@ it('should serialize reward transactions', () => {
   const tx = new RewardTx({
     type: TxType.REWARD,
     timestamp: new Date(),
+    fee: Asset.fromString('0 GOLD'),
     to: generateKeyPair().publicKey,
     rewards: [Asset.fromString('10 GOLD'), Asset.fromString('100 SILVER')],
     signatures: []
@@ -74,6 +75,7 @@ it('should fail on invalid transactions', () => {
   const tx = new RewardTx({
     type: 255 as any,
     timestamp: new Date(),
+    fee: Asset.fromString('0 GOLD'),
     to: generateKeyPair().publicKey,
     rewards: [],
     signatures: []
@@ -96,6 +98,7 @@ it('should serialize blocks', () => {
       new RewardTx({
         type: TxType.REWARD,
         timestamp: genesisTs,
+        fee: Asset.fromString('0 GOLD'),
         to: keys.publicKey,
         rewards: [
           Asset.fromString('1 GOLD'),

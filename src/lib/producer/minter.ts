@@ -37,6 +37,7 @@ export class Minter {
               type: TxType.REWARD,
               timestamp: ts,
               to: head.signing_key,
+              fee: new Asset(bigInt(0), 0, AssetSymbol.GOLD),
               rewards: [
                 new Asset(bigInt(1), 0, AssetSymbol.GOLD),
                 new Asset(bigInt(100), 0, AssetSymbol.SILVER)

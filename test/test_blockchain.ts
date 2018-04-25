@@ -46,6 +46,7 @@ it('should read and write the genesis block', async () => {
       new RewardTx({
         type: TxType.REWARD,
         timestamp: genesisTs,
+        fee: Asset.fromString('0 GOLD'),
         to: genesisKeys.publicKey,
         rewards: [ Asset.fromString('1 GOLD') ],
         signatures: []

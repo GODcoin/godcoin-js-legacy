@@ -5,6 +5,7 @@ import { Asset, AssetSymbol } from '../asset';
 import { Block, SignedBlock } from './block';
 import { ChainStore } from './chain_store';
 import { BigInteger } from 'big-integer';
+import { GODcoin } from '../constants';
 import * as bigInt from 'big-integer';
 import * as Codec from 'level-codec';
 import * as assert from 'assert';
@@ -33,6 +34,11 @@ export class Blockchain {
 
   private readonly store: ChainStore;
   readonly indexer: Indexer;
+
+  private _networkFee!: [Asset, Asset];
+  get networkFee() {
+    return this._networkFee;
+  }
 
   get head() {
     return this.store.blockHead;
@@ -121,6 +127,9 @@ export class Blockchain {
       const end = Date.now();
       console.log(`Finished indexing in ${end - start}ms`);
     }
+    if (this.head) {
+      await this.cacheNetworkFee();
+    }
   }
 
   async stop(): Promise<void> {
@@ -144,18 +153,41 @@ export class Blockchain {
       const balances = new BalanceMap(this.getBalance.bind(this));
       await this.indexBlock(balances, block);
       await this.writeBalanceMap(balances);
+      await this.cacheNetworkFee();
     } finally {
       this.lock.unlock();
     }
   }
 
-  getBlock(num: number): Promise<SignedBlock|undefined> {
+  getBlock(num: number|Long): Promise<SignedBlock|undefined> {
     return this.store.read(num);
   }
 
   async isBondValid(key: string|PublicKey): Promise<boolean> {
     if (typeof(key) === 'string') key = PublicKey.fromWif(key);
     return this.genesisBlock.signing_key.equals(key);
+  }
+
+  async getAddressFee(addr: PublicKey): Promise<[Asset, Asset]> {
+    // TODO: apply indexing
+    let goldFee = GODcoin.MIN_GOLD_FEE;
+    let silverFee = GODcoin.MIN_SILVER_FEE;
+
+    let delta = 0;
+    for (let i = this.head.height; i.gte(0); i = i.sub(1)) {
+      ++delta;
+      const block = (await this.getBlock(i))!;
+      for (const tx of block.transactions) {
+        if (tx instanceof TransferTx && tx.data.from.equals(addr)) {
+          goldFee = goldFee.mul(GODcoin.GOLD_FEE_MULT, 8);
+          silverFee = silverFee.mul(GODcoin.SILVER_FEE_MULT, 8);
+          delta = 0;
+        }
+      }
+      if (delta === GODcoin.FEE_RESET_WINDOW) break;
+    }
+
+    return [goldFee, silverFee];
   }
 
   async getBalance(key: PublicKey): Promise<[Asset, Asset]> {
@@ -167,6 +199,23 @@ export class Blockchain {
       ];
     }
     return bal;
+  }
+
+  private async cacheNetworkFee(): Promise<void> {
+    // The network fee adjusts every 5 blocks so that users have a bigger time
+    // frame to confirm the fee they want to spend without suddenly changing.
+    const maxHeight = this.head.height.sub(this.head.height.mod(5));
+    let minHeight = maxHeight.sub(GODcoin.NETWORK_FEE_AVG_WINDOW);
+    if (minHeight.lt(0)) minHeight = Long.fromNumber(0, true);
+
+    let goldFee = GODcoin.MIN_GOLD_FEE;
+    let silverFee = GODcoin.MIN_SILVER_FEE;
+    for (; minHeight.lte(maxHeight); minHeight = minHeight.add(1)) {
+      const block = (await this.getBlock(minHeight))!;
+      goldFee = goldFee.mul(GODcoin.NETWORK_FEE_GOLD_MULT.pow(block.transactions.length), 8);
+      silverFee = silverFee.mul(GODcoin.NETWORK_FEE_SILVER_MULT.pow(block.transactions.length), 8);
+    }
+    this._networkFee = [goldFee, silverFee];
   }
 
   private async indexBlock(balances: BalanceMap,
