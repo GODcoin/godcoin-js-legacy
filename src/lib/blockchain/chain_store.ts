@@ -39,6 +39,39 @@ export class ChainStore {
     this.index = index;
   }
 
+  async init(): Promise<void> {
+    assert(!this.initialized, 'already initialized');
+    this.dbFd = await fsOpen(this.dbFile, 'a+');
+    this.blockTailPos = (await fsStat(this.dbFile)).size;
+    this.initialized = true;
+    await this.reload();
+  }
+
+  async reload(): Promise<void> {
+    assert(this.initialized, 'must be initialized to reload');
+    const height = await this.index.getBlockHeight();
+    if (height) {
+      this._blockHead = (await this.read(height))!;
+      assert(this._blockHead, 'index points to an invalid block head');
+
+       // Check for any write corruption by reading the previous block
+      await this.read(height.sub(1));
+    }
+  }
+
+  async close(): Promise<void> {
+    await this.lock.lock();
+    try {
+      this.initialized = false;
+      if (this.dbFd !== undefined) {
+        await fsClose(this.dbFd);
+        this.dbFd = undefined;
+      }
+    } finally {
+      this.lock.unlock();
+    }
+  }
+
   async write(block: SignedBlock): Promise<void> {
     await this.lock.lock();
     try {
@@ -90,36 +123,6 @@ export class ChainStore {
       const block = await this.readBlock(blockPos);
       await cb(block[0], blockPos);
       blockPos += block[1];
-    }
-  }
-
-  async init(): Promise<void> {
-    assert(!this.initialized, 'already initialized');
-    this.dbFd = await fsOpen(this.dbFile, 'a+');
-    this.blockTailPos = (await fsStat(this.dbFile)).size;
-    this.initialized = true;
-    await this.reload();
-  }
-
-  async reload(): Promise<void> {
-    assert(this.initialized, 'must be initialized to reload');
-    const height = await this.index.getBlockHeight();
-    if (height) {
-      this._blockHead = (await this.read(height))!;
-      assert(this._blockHead, 'index points to an invalid block head');
-    }
-  }
-
-  async close(): Promise<void> {
-    await this.lock.lock();
-    try {
-      this.initialized = false;
-      if (this.dbFd !== undefined) {
-        await fsClose(this.dbFd);
-        this.dbFd = undefined;
-      }
-    } finally {
-      this.lock.unlock();
     }
   }
 
