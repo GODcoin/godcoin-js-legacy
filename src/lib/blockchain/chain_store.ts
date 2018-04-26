@@ -1,7 +1,7 @@
 import { TypeSerializer as TS } from '../serializer';
 import * as ByteBuffer from 'bytebuffer';
 import { SignedBlock } from './block';
-import { Indexer, IndexProp } from '../indexer';
+import { Indexer } from '../indexer';
 import * as crypto from 'crypto';
 import * as assert from 'assert';
 import * as path from 'path';
