@@ -53,9 +53,6 @@ export class ChainStore {
     if (height) {
       this._blockHead = (await this.read(height))!;
       assert(this._blockHead, 'index points to an invalid block head');
-
-       // Check for any write corruption by reading the previous block
-      await this.read(height.sub(1));
     }
   }
 
