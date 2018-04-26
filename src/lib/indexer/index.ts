@@ -96,7 +96,7 @@ export class Indexer {
     await this.setProp(IndexProp.NAMESPACE_BLOCK, buf, pos);
   }
 
-  async getBlockHeight(): Promise<Long|undefined> {
+  async getChainHeight(): Promise<Long|undefined> {
     const buf = await this.getProp(IndexProp.NAMESPACE_MAIN, IndexProp.KEY_CURRENT_BLOCK_HEIGHT);
     if (!buf) return;
     const high = buf.readInt32BE(0, true);
@@ -105,7 +105,7 @@ export class Indexer {
 
   }
 
-  async setBlockHeight(height: Long): Promise<void> {
+  async setChainHeight(height: Long): Promise<void> {
     const buf = Buffer.allocUnsafe(8);
     buf.writeInt32BE(height.high, 0, true);
     buf.writeInt32BE(height.low, 4, true);

@@ -119,7 +119,7 @@ export class Blockchain {
           });
           ops.length = 0;
         }
-        await this.indexer.setBlockHeight(head.height);
+        await this.indexer.setChainHeight(head.height);
         await this.writeBalanceMap(balances);
         await this.store.reload();
         this.genesisBlock = (await this.store.read(0))!;

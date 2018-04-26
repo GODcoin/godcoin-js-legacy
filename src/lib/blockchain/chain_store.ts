@@ -49,7 +49,7 @@ export class ChainStore {
 
   async reload(): Promise<void> {
     assert(this.initialized, 'must be initialized to reload');
-    const height = await this.index.getBlockHeight();
+    const height = await this.index.getChainHeight();
     if (height) {
       this._blockHead = (await this.read(height))!;
       assert(this._blockHead, 'index points to an invalid block head');
@@ -78,6 +78,11 @@ export class ChainStore {
 
       const serBlock = Buffer.from(block.fullySerialize(true).toBuffer());
       const blockLen = serBlock.length;
+
+      const val = Long.fromNumber(this.blockTailPos, true);
+      await this.index.setBlockPos(block.height, val);
+      await this.index.setChainHeight(block.height);
+
       {
         // Write the block length
         const tmp = Buffer.allocUnsafe(8);
@@ -90,10 +95,6 @@ export class ChainStore {
 
       const checksum = sha256(serBlock);
       await fsWrite(this.dbFd!, checksum, 0, 8);
-
-      const val = Long.fromNumber(this.blockTailPos, true);
-      await this.index.setBlockPos(block.height, val);
-      await this.index.setBlockHeight(block.height);
 
       this._blockHead = block;
       this.blockTailPos += blockLen + 16; // checksum + blockLen
