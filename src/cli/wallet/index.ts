@@ -141,6 +141,13 @@ export class Wallet {
         }
         break;
       }
+      case 'get_properties': {
+        const data = await this.net.send({
+          method: 'get_properties'
+        });
+        write(data);
+        break;
+      }
       case 'get_block': {
         const height = Number((args[1] || '').trim());
         if (height === NaN) {
@@ -308,6 +315,7 @@ export class Wallet {
         cmds.push(['help', 'display this help menu']);
         cmds.push(['new <password>', 'create a new wallet']);
         cmds.push(['unlock <password>', 'unlock the wallet']);
+        cmds.push(['get_properties', 'retrieve network and blockchain properties']);
         cmds.push(['get_block <height>', 'retrieve a block at the specified height']);
         cmds.push(['get_block_range <min_height> <max_height>', 'retrieve a block range at the specified heights']);
         cmds.push(['get_balance <address|account>', 'retrieve the total balance of a public address or account']);

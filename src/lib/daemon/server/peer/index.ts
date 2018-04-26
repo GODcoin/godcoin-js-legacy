@@ -54,9 +54,13 @@ export class Peer {
         // TODO: broadcast to all clients
         return;
       }
-      case 'blockchain_properties': {
+      case 'get_properties': {
         return {
-          block_height: this.blockchain.head.height.toString()
+          block_height: this.blockchain.head.height.toString(),
+          network_fee: [
+            this.blockchain.networkFee[0].toString(),
+            this.blockchain.networkFee[1].toString()
+          ]
         };
       }
       case 'get_block': {
