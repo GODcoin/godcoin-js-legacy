@@ -133,8 +133,13 @@ export class Blockchain {
   }
 
   async stop(): Promise<void> {
-    await this.store.close();
-    await this.indexer.close();
+    await this.lock.lock();
+    try {
+      await this.store.close();
+      await this.indexer.close();
+    } finally {
+      this.lock.unlock();
+    }
   }
 
   async addBlock(block: SignedBlock): Promise<void> {
