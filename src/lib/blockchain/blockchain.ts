@@ -75,7 +75,17 @@ export class Blockchain {
       let ops: any[] = [];
       const balances = new BalanceMap(this.getBalance.bind(this));
 
-      await this.store.readBlockLog(async (block, bytePos) => {
+      await this.store.readBlockLog(async (err, block, bytePos) => {
+        if (err) {
+          console.log('Error during reindexing', err);
+          if (head) {
+            console.log('Trimming the block log to height', head.height.toString());
+            await this.store.chop(head.height);
+          } else {
+            throw new Error('unable to proceed');
+          }
+          return;
+        }
         if (head) block.validate(head);
         head = block;
         await this.indexBlock(balances, head);

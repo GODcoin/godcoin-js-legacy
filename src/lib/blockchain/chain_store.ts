@@ -1,7 +1,7 @@
 import { TypeSerializer as TS } from '../serializer';
 import * as ByteBuffer from 'bytebuffer';
 import { SignedBlock } from './block';
-import { Indexer } from '../indexer';
+import { Indexer, IndexProp } from '../indexer';
 import * as crypto from 'crypto';
 import * as assert from 'assert';
 import * as path from 'path';
@@ -16,6 +16,7 @@ const fsExists = util.promisify(fs.exists);
 const fsWrite = util.promisify(fs.write);
 const fsRead = util.promisify(fs.read);
 const fsStat = util.promisify(fs.stat);
+const fsTruncate = util.promisify(fs.truncate);
 
 export class ChainStore {
 
@@ -47,7 +48,7 @@ export class ChainStore {
   }
 
   async reload(): Promise<void> {
-    assert(this.initialized, 'must be initialized to reload');
+    assert(this.initialized, 'must be initialized');
     const height = await this.index.getChainHeight();
     if (height) {
       this._blockHead = (await this.read(height))!;
@@ -60,6 +61,25 @@ export class ChainStore {
         this.blockCache.push((await this.read(min))!);
       }
     }
+  }
+
+  async chop(height: Long): Promise<void> {
+    assert(this.initialized, 'must be initialized');
+
+    let found: SignedBlock|undefined;
+    let blockPos = 0;
+    while (blockPos < this.blockTailPos) {
+      const block = await this.readBlock(blockPos);
+      blockPos += block[1];
+      if (block[0].height.eq(height)) {
+        found = block[0];
+        await fsTruncate(this.dbFile, blockPos);
+        this.blockTailPos = blockPos;
+        break;
+      }
+    }
+    assert(found, 'unable to chop at designated block height');
+    await this.index.setChainHeight(found!.height);
   }
 
   async close(): Promise<void> {
@@ -108,17 +128,26 @@ export class ChainStore {
     const block = this.blockCache.get(blockHeight);
     if (block) return block;
 
-    const pos = await this.index.getBlockPos(blockHeight) as any;
+    const pos = await this.index.getBlockPos(blockHeight);
     if (!pos) return;
 
     return (await this.readBlock(pos.toNumber()))[0];
   }
 
-  async readBlockLog(cb: (block: SignedBlock, bytePos: number) => void): Promise<void> {
+  async readBlockLog(cb: (err: any,
+                          block: SignedBlock,
+                          bytePos: number,
+                          byteLen: number) => void): Promise<void> {
     let blockPos = 0;
     while (blockPos < this.blockTailPos) {
-      const block = await this.readBlock(blockPos);
-      await cb(block[0], blockPos);
+      let block;
+      try {
+        block = await this.readBlock(blockPos);
+      } catch (err) {
+        cb(err, undefined!, undefined!, undefined!);
+        break;
+      }
+      await cb(undefined, block[0], blockPos, block[1]);
       blockPos += block[1];
     }
   }
