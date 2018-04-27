@@ -194,23 +194,22 @@ export class Blockchain {
 
   async getAddressFee(addr: PublicKey): Promise<[Asset, Asset]> {
     // TODO: apply indexing
-    let goldFee = GODcoin.MIN_GOLD_FEE;
-    let silverFee = GODcoin.MIN_SILVER_FEE;
-
     let delta = 0;
+    let txCount = 1;
     for (let i = this.head.height; i.gte(0); i = i.sub(1)) {
       ++delta;
       const block = (await this.getBlock(i))!;
       for (const tx of block.transactions) {
         if (tx instanceof TransferTx && tx.data.from.equals(addr)) {
-          goldFee = goldFee.mul(GODcoin.GOLD_FEE_MULT, 8);
-          silverFee = silverFee.mul(GODcoin.SILVER_FEE_MULT, 8);
+          ++txCount;
           delta = 0;
         }
       }
       if (delta === GODcoin.FEE_RESET_WINDOW) break;
     }
 
+    const goldFee = GODcoin.MIN_GOLD_FEE.pow(txCount, 8);
+    const silverFee = GODcoin.MIN_SILVER_FEE.pow(txCount, 8);
     return [goldFee, silverFee];
   }
 
