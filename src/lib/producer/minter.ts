@@ -16,10 +16,10 @@ export class Minter {
 
   readonly pool: TxPool;
 
-  constructor(blockchain: Blockchain, keys: KeyPair) {
+  constructor(blockchain: Blockchain, pool: TxPool, keys: KeyPair) {
     this.blockchain = blockchain;
     this.keys = keys;
-    this.pool = new TxPool(this.blockchain);
+    this.pool = pool;
   }
 
   start() {

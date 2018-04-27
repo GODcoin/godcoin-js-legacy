@@ -1,13 +1,14 @@
-import { ApiError, ApiErrorCode, check } from './api_error';
 import { Blockchain, SignedBlock } from '../../../blockchain';
+import { ApiError, ApiErrorCode, check } from './api_error';
+import { Minter, TxPool } from '../../../producer';
 import { PublicKey } from '../../../crypto';
-import { Minter } from '../../../producer';
 import { PeerNet } from './net';
 
 export * from './net';
 
 export interface PeerOptions {
   blockchain: Blockchain;
+  pool: TxPool;
   minter?: Minter;
   net: PeerNet;
 }
@@ -16,11 +17,13 @@ export class Peer {
 
   private readonly blockchain: Blockchain;
   private readonly minter?: Minter;
+  private readonly pool: TxPool;
   private readonly net: PeerNet;
 
   constructor(opts: PeerOptions) {
     this.blockchain = opts.blockchain;
     this.minter = opts.minter;
+    this.pool = opts.pool;
     this.net = opts.net;
   }
 
@@ -104,7 +107,7 @@ export class Peer {
         const address: string = map.address;
         check(typeof(address) === 'string', ApiErrorCode.INVALID_PARAMS, 'address must be a string');
         const wif = PublicKey.fromWif(address);
-        const fee = await this.blockchain.getTotalFee(wif);
+        const fee = await this.pool.getTotalFee(wif);
         return {
           fee: [
             fee[0].toString(),
@@ -115,7 +118,7 @@ export class Peer {
       case 'get_balance': {
         const address: string = map.address;
         check(typeof(address) === 'string', ApiErrorCode.INVALID_PARAMS, 'address must be a string');
-        const balance = await this.blockchain.getBalance(PublicKey.fromWif(address));
+        const balance = await this.pool.getBalance(PublicKey.fromWif(address));
         return {
           balance: [
             balance[0].toString(),

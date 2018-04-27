@@ -2,6 +2,7 @@ import { Tx, TransferTx, deserialize } from '../transactions';
 import { AssetSymbol, Asset } from '../asset';
 import { Blockchain } from '../blockchain';
 import * as ByteBuffer from 'bytebuffer';
+import { PublicKey } from '../crypto';
 import { Indexer } from '../indexer';
 import * as assert from 'assert';
 import * as crypto from 'crypto';
@@ -37,24 +38,14 @@ export class TxPool {
         let bal: Asset|undefined;
         let fee: Asset|undefined;
         if (tx.data.amount.symbol === AssetSymbol.GOLD) {
-          bal = (await this.blockchain.getBalance(tx.data.from))[0];
-          fee = (await this.blockchain.getTotalFee(tx.data.from))[0];
+          bal = (await this.blockchain.getBalance(tx.data.from, this.txs))[0];
+          fee = (await this.blockchain.getTotalFee(tx.data.from, this.txs))[0];
         } else if (tx.data.amount.symbol === AssetSymbol.SILVER) {
-          bal = (await this.blockchain.getBalance(tx.data.from))[1];
-          fee = (await this.blockchain.getTotalFee(tx.data.from))[1];
+          bal = (await this.blockchain.getBalance(tx.data.from, this.txs))[1];
+          fee = (await this.blockchain.getTotalFee(tx.data.from, this.txs))[1];
         }
         assert(bal, 'unknown balance symbol ' + tx.data.amount.symbol);
         assert(tx.data.fee.geq(fee!), 'fee amount too small, expected ' + fee!.toString());
-
-        for (const poolTx of this.txs) {
-          if (poolTx instanceof TransferTx && poolTx.data.amount.symbol === bal!.symbol) {
-            if (poolTx.data.from.equals(tx.data.from)) {
-              bal = bal!.sub(poolTx.data.amount);
-            } else if (poolTx.data.to.equals(tx.data.from)) {
-              bal = bal!.add(poolTx.data.amount);
-            }
-          }
-        }
         const remaining = bal!.sub(tx.data.amount).sub(tx.data.fee);
         assert(remaining.amount.geq(0), 'not enough balance');
         await this.indexer.addTx(txBuf, tx.data.timestamp!.getTime() + 60000);
@@ -73,5 +64,23 @@ export class TxPool {
     this.txs = [];
     this.lock.unlock();
     return txs;
+  }
+
+  async getTotalFee(addr: PublicKey): Promise<[Asset,Asset]> {
+    try {
+      await this.lock.lock();
+      return await this.blockchain.getTotalFee(addr, this.txs);
+    } finally {
+      this.lock.unlock();
+    }
+  }
+
+  async getBalance(addr: PublicKey): Promise<[Asset,Asset]> {
+    try {
+      await this.lock.lock();
+      return await this.blockchain.getBalance(addr, this.txs);
+    } finally {
+      this.lock.unlock();
+    }
   }
 }

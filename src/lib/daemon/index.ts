@@ -2,9 +2,9 @@ import { Blockchain, Block, ChainStore } from '../blockchain';
 import { RewardTx, TxType } from '../transactions';
 import { KeyPair, PrivateKey } from '../crypto';
 import { Asset, AssetSymbol } from '../asset';
+import { Minter, TxPool } from '../producer';
 import { getAppDir } from '../node-util';
 import * as bigInt from 'big-integer';
-import { Minter } from '../producer';
 import { Indexer } from '../indexer';
 import { Server } from './server';
 import * as assert from 'assert';
@@ -24,6 +24,7 @@ export interface DaemonOpts {
 export class Daemon {
 
   readonly blockchain: Blockchain;
+  readonly pool: TxPool;
   private server?: Server;
   private minter?: Minter;
 
@@ -34,6 +35,7 @@ export class Daemon {
     mkdirp.sync(dir);
 
     this.blockchain = new Blockchain(dir, opts.reindex);
+    this.pool = new TxPool(this.blockchain);
   }
 
   async start(): Promise<void> {
@@ -45,7 +47,7 @@ export class Daemon {
     }
 
     if (this.opts.signingKeys) {
-      this.minter = new Minter(this.blockchain, this.opts.signingKeys);
+      this.minter = new Minter(this.blockchain, this.pool, this.opts.signingKeys);
       if (!this.blockchain.head) {
         await this.minter.createGenesisBlock();
       }
@@ -54,6 +56,7 @@ export class Daemon {
     if (this.opts.listen) {
       this.server = new Server({
         blockchain: this.blockchain,
+        pool: this.pool,
         minter: this.minter,
         bindAddress: this.opts.bind,
         port: this.opts.port

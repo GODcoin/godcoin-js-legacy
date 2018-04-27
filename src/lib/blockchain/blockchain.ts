@@ -20,7 +20,10 @@ export * from './block';
 const jsonCodec = new Codec({
   keyEncoding: 'binary',
   valueEncoding: 'json'
-})
+});
+
+const EMPTY_GOLD = new Asset(bigInt(0), 0, AssetSymbol.GOLD);
+const EMPTY_SILVER = new Asset(bigInt(0), 0, AssetSymbol.SILVER);
 
 export class Blockchain {
 
@@ -183,8 +186,8 @@ export class Blockchain {
     return this.genesisBlock.signing_key.equals(key);
   }
 
-  async getTotalFee(addr: PublicKey): Promise<[Asset,Asset]> {
-    const addrFee = await this.getAddressFee(addr);
+  async getTotalFee(addr: PublicKey, additionalTxs?: Tx[]): Promise<[Asset,Asset]> {
+    const addrFee = await this.getAddressFee(addr, additionalTxs);
     const netFee = this.networkFee;
     return [
       netFee[0].add(addrFee[0]),
@@ -192,10 +195,17 @@ export class Blockchain {
     ];
   }
 
-  async getAddressFee(addr: PublicKey): Promise<[Asset, Asset]> {
+  async getAddressFee(addr: PublicKey, additionalTxs?: Tx[]): Promise<[Asset,Asset]> {
     // TODO: apply indexing
     let delta = 0;
     let txCount = 1;
+
+    if (additionalTxs) {
+      for (const tx of additionalTxs) {
+        if (tx instanceof TransferTx && tx.data.from.equals(addr)) ++txCount;
+      }
+    }
+
     for (let i = this.head.height; i.gte(0); i = i.sub(1)) {
       ++delta;
       const block = (await this.getBlock(i))!;
@@ -208,18 +218,36 @@ export class Blockchain {
       if (delta === GODcoin.FEE_RESET_WINDOW) break;
     }
 
-    const goldFee = GODcoin.MIN_GOLD_FEE.pow(txCount, 8);
-    const silverFee = GODcoin.MIN_SILVER_FEE.pow(txCount, 8);
+    const goldFee = GODcoin.MIN_GOLD_FEE.mul(GODcoin.GOLD_FEE_MULT.pow(txCount), 8);
+    const silverFee = GODcoin.MIN_SILVER_FEE.mul(GODcoin.SILVER_FEE_MULT.pow(txCount), 8);
     return [goldFee, silverFee];
   }
 
-  async getBalance(key: PublicKey): Promise<[Asset, Asset]> {
-    const bal = await this.indexer.getBalance(key);
-    if (!bal) {
-      return [
-        new Asset(bigInt(0), 0, AssetSymbol.GOLD),
-        new Asset(bigInt(0), 0, AssetSymbol.SILVER)
-      ];
+  async getBalance(addr: PublicKey, additionalTxs?: Tx[]): Promise<[Asset,Asset]> {
+    let bal = await this.indexer.getBalance(addr);
+    if (!bal) bal = [EMPTY_GOLD, EMPTY_SILVER];
+    if (additionalTxs) {
+      for (const tx of additionalTxs) {
+        if (tx instanceof TransferTx) {
+          if (tx.data.from.equals(addr)) {
+            if (tx.data.amount.symbol === AssetSymbol.GOLD) {
+              bal[0] = bal[0].sub(tx.data.amount).sub(tx.data.fee);
+            } else if (tx.data.amount.symbol === AssetSymbol.SILVER) {
+              bal[1] = bal[1].sub(tx.data.amount).sub(tx.data.fee);
+            } else {
+              throw new Error('unhandled symbol: ' + tx.data.amount.symbol);
+            }
+          } else if (tx.data.to.equals(addr)) {
+            if (tx.data.amount.symbol === AssetSymbol.GOLD) {
+              bal[0] = bal[0].add(tx.data.amount);
+            } else if (tx.data.amount.symbol === AssetSymbol.SILVER) {
+              bal[1] = bal[1].add(tx.data.amount);
+            } else {
+              throw new Error('unhandled symbol: ' + tx.data.amount.symbol);
+            }
+          }
+        }
+      }
     }
     return bal;
   }
@@ -231,13 +259,14 @@ export class Blockchain {
     let minHeight = maxHeight.sub(GODcoin.NETWORK_FEE_AVG_WINDOW);
     if (minHeight.lt(0)) minHeight = Long.fromNumber(0, true);
 
-    let goldFee = GODcoin.MIN_GOLD_FEE;
-    let silverFee = GODcoin.MIN_SILVER_FEE;
+    let txCount = 1;
     for (; minHeight.lte(maxHeight); minHeight = minHeight.add(1)) {
       const block = (await this.getBlock(minHeight))!;
-      goldFee = goldFee.mul(GODcoin.NETWORK_FEE_GOLD_MULT.pow(block.transactions.length), 8);
-      silverFee = silverFee.mul(GODcoin.NETWORK_FEE_SILVER_MULT.pow(block.transactions.length), 8);
+      txCount += block.transactions.length;
+
     }
+    const goldFee = GODcoin.MIN_GOLD_FEE.mul(GODcoin.NETWORK_FEE_GOLD_MULT.pow(txCount), 8);
+    const silverFee = GODcoin.MIN_SILVER_FEE.mul(GODcoin.NETWORK_FEE_SILVER_MULT.pow(txCount), 8);
     this._networkFee = [goldFee, silverFee];
   }
 
