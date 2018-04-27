@@ -37,6 +37,28 @@ export class Minter {
     }
   }
 
+  async createGenesisBlock() {
+    assert(!(await this.blockchain.getBlock(0)), 'genesis block already exists');
+    console.log('Generating new block chain');
+    const genesisTs = new Date();
+    const genesisBlock = new Block({
+      height: Long.fromNumber(0, true),
+      previous_hash: undefined as any,
+      timestamp: genesisTs,
+      transactions: [
+        new RewardTx({
+          type: TxType.REWARD,
+          timestamp: genesisTs,
+          to: this.keys.publicKey,
+          fee: new Asset(bigInt(0), 0, AssetSymbol.GOLD),
+          rewards: [ Asset.fromString('1 GOLD') ],
+          signatures: []
+        })
+      ]
+    }).sign(this.keys);
+    await this.blockchain.addBlock(genesisBlock);
+  }
+
   private startTimer() {
     this.timer = setTimeout(async () => {
       if (!this.running) return;
