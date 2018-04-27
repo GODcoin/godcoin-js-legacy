@@ -183,6 +183,15 @@ export class Blockchain {
     return this.genesisBlock.signing_key.equals(key);
   }
 
+  async getTotalFee(addr: PublicKey): Promise<[Asset,Asset]> {
+    const addrFee = await this.getAddressFee(addr);
+    const netFee = this.networkFee;
+    return [
+      netFee[0].add(addrFee[0]),
+      netFee[1].add(addrFee[1])
+    ];
+  }
+
   async getAddressFee(addr: PublicKey): Promise<[Asset, Asset]> {
     // TODO: apply indexing
     let goldFee = GODcoin.MIN_GOLD_FEE;

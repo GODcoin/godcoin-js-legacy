@@ -194,6 +194,25 @@ export class Wallet {
         }, undefined, 2));
         break;
       }
+      case 'get_total_fee': {
+        let address = (args[1] || '').trim();
+        if (!address) {
+          write('get_total_fee <address|account> - missing address or account');
+          break;
+        } else if (await this.db.hasAccount(address)) {
+          const acc = await this.db.getAccount(address);
+          address = acc.publicKey.toWif();
+        }
+
+        // Make sure the user can't accidentally input a private key
+        const addr = PublicKey.fromWif(address);
+        const fee = await this.getTotalFee(addr);
+        write([
+          fee[0].toString(),
+          fee[1].toString()
+        ]);
+        break;
+      }
       case 'get_balance': {
         let address = (args[1] || '').trim();
         if (!address) {
@@ -279,16 +298,14 @@ export class Wallet {
           write('Account not found');
           break;
         }
-        const toAddr = PublicKey.fromWif(toAddrStr);
 
+        const toAddr = PublicKey.fromWif(toAddrStr);
         const amt = Asset.fromString(amtStr);
+        const totalFee = await this.getTotalFee(acc.publicKey);
+
         let fee: Asset;
-        // TODO: calculate the fee based on the network
-        if (amt.symbol === AssetSymbol.GOLD) {
-          fee = GODcoin.MIN_GOLD_FEE;
-        } else if (amt.symbol === AssetSymbol.SILVER) {
-          fee = GODcoin.MIN_SILVER_FEE;
-        }
+        if (amt.symbol === AssetSymbol.GOLD) fee = totalFee[0];
+        else if (amt.symbol === AssetSymbol.SILVER) fee = totalFee[1];
         assert(fee!, 'unhandled asset type: ' + amt.symbol);
 
         const tx = new TransferTx({
@@ -301,6 +318,7 @@ export class Wallet {
           memo: Buffer.from(memo),
           signatures: []
         }).appendSign(acc.privateKey);
+        write('Broadcasting tx\n', tx.toString(), '\n');
         const data = await this.net.send({
           method: 'broadcast',
           tx: Buffer.from(tx.serialize(true).toBuffer())
@@ -318,6 +336,7 @@ export class Wallet {
         cmds.push(['get_properties', 'retrieve network and blockchain properties']);
         cmds.push(['get_block <height>', 'retrieve a block at the specified height']);
         cmds.push(['get_block_range <min_height> <max_height>', 'retrieve a block range at the specified heights']);
+        cmds.push(['get_total_fee <address|account>', 'retrieve the minimum address and network fee combined to broadcast transactions']);
         cmds.push(['get_balance <address|account>', 'retrieve the total balance of a public address or account']);
         cmds.push(['create_account <name>', 'create an account and a new key pair']);
         cmds.push(['import_account <name> <private_key>', 'import an account with the following name and private key']);
@@ -338,6 +357,17 @@ export class Wallet {
           write('  ' + c + '  ' + cmd[1]);
         }
     }
+  }
+
+  private async getTotalFee(addr: PublicKey): Promise<[Asset,Asset]> {
+    const fee = (await this.net.send({
+      method: 'get_total_fee',
+      address: addr.toWif()
+    })).fee;
+    return [
+      Asset.fromString(fee[0]),
+      Asset.fromString(fee[1])
+    ];
   }
 
   static parse(line: string): string[] {

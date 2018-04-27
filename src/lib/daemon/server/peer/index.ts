@@ -64,7 +64,7 @@ export class Peer {
         };
       }
       case 'get_block': {
-        const height = map.height;
+        const height: number = map.height;
         check(typeof(height) === 'number', ApiErrorCode.INVALID_PARAMS, 'height must be a number');
         check(height >= 0, ApiErrorCode.INVALID_PARAMS, 'height must be >= 0');
         const block = await this.blockchain.getBlock(height);
@@ -76,8 +76,8 @@ export class Peer {
         return;
       }
       case 'get_block_range': {
-        const min = map.min_height;
-        const max = map.max_height;
+        const min: number = map.min_height;
+        const max: number = map.max_height;
         check(typeof(min) === 'number', ApiErrorCode.INVALID_PARAMS, 'min_height must be a number');
         check(typeof(max) === 'number', ApiErrorCode.INVALID_PARAMS, 'max_height must be a number');
         check(min >= 0, ApiErrorCode.INVALID_PARAMS, 'min_height must be >= 0');
@@ -100,8 +100,20 @@ export class Peer {
           blocks
         };
       }
+      case 'get_total_fee': {
+        const address: string = map.address;
+        check(typeof(address) === 'string', ApiErrorCode.INVALID_PARAMS, 'address must be a string');
+        const wif = PublicKey.fromWif(address);
+        const fee = await this.blockchain.getTotalFee(wif);
+        return {
+          fee: [
+            fee[0].toString(),
+            fee[1].toString()
+          ]
+        };
+      }
       case 'get_balance': {
-        const address = map.address;
+        const address: string = map.address;
         check(typeof(address) === 'string', ApiErrorCode.INVALID_PARAMS, 'address must be a string');
         const balance = await this.blockchain.getBalance(PublicKey.fromWif(address));
         return {

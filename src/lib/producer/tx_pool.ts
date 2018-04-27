@@ -38,10 +38,10 @@ export class TxPool {
         let fee: Asset|undefined;
         if (tx.data.amount.symbol === AssetSymbol.GOLD) {
           bal = (await this.blockchain.getBalance(tx.data.from))[0];
-          fee = this.blockchain.networkFee[0].add((await this.blockchain.getAddressFee(tx.data.from))[0]);
+          fee = (await this.blockchain.getTotalFee(tx.data.from))[0];
         } else if (tx.data.amount.symbol === AssetSymbol.SILVER) {
           bal = (await this.blockchain.getBalance(tx.data.from))[1];
-          fee = this.blockchain.networkFee[1].add((await this.blockchain.getAddressFee(tx.data.from))[1]);
+          fee = (await this.blockchain.getTotalFee(tx.data.from))[1];
         }
         assert(bal, 'unknown balance symbol ' + tx.data.amount.symbol);
         assert(tx.data.fee.geq(fee!), 'fee amount too small, expected ' + fee!.toString());
