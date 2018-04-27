@@ -3,8 +3,8 @@ import {
   TypeSerializer as TS,
   ObjectType
 } from '../serializer';
+import { PrivateKey, PublicKey } from '../crypto';
 import * as ByteBuffer from 'bytebuffer';
-import { PrivateKey } from '../crypto';
 import * as newDebug from 'debug';
 import { Asset } from '../asset';
 import * as assert from 'assert';
@@ -81,9 +81,22 @@ export abstract class Tx {
 
   toString(): string {
     const data: any = {};
-    Object.getOwnPropertyNames(this).forEach(name => {
-      data[name] = this[name];
+    Object.getOwnPropertyNames(this.data).forEach(name => {
+      data[name] = Tx.stringify(this.data[name]);
     });
     return JSON.stringify(data, undefined, 2);
+  }
+
+  private static stringify(obj: any): any {
+    if (obj instanceof Array) {
+      const arr: any[] = [];
+      for (const o of obj) arr.push(Tx.stringify(o));
+      return arr;
+    } else if (obj instanceof Buffer) {
+      return obj.toString('hex');
+    } else if (obj instanceof PublicKey) {
+      return obj.toWif();
+    }
+    return obj;
   }
 }
