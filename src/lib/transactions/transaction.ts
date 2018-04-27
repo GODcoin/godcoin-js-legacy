@@ -92,6 +92,8 @@ export abstract class Tx {
       const arr: any[] = [];
       for (const o of obj) arr.push(Tx.stringify(o));
       return arr;
+    } else if (obj instanceof Asset) {
+      return obj.toString();
     } else if (obj instanceof Buffer) {
       return obj.toString('hex');
     } else if (obj instanceof PublicKey) {
