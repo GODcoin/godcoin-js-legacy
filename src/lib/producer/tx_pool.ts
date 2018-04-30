@@ -47,7 +47,7 @@ export class TxPool {
         assert(bal, 'unknown balance symbol ' + tx.data.amount.symbol);
         assert(tx.data.fee.geq(fee!), 'fee amount too small, expected ' + fee!.toString());
         const remaining = bal!.sub(tx.data.amount).sub(tx.data.fee);
-        assert(remaining.amount.geq(0), 'not enough balance');
+        assert(remaining.amount.geq(0), 'insufficient balance');
         await this.indexer.addTx(txBuf, tx.data.timestamp!.getTime() + 60000);
         return [this.blockchain.head.height, this.txs.push(tx) - 1];
       }
