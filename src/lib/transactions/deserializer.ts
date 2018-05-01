@@ -7,7 +7,7 @@ import { RewardTx, RewardTxData } from './reward';
 import { Tx, TxType } from './transaction';
 import * as assert from 'assert';
 
-export function deserialize<T>(buf: ByteBuffer, includeSigs = true): T {
+export function deserialize<T extends Tx>(buf: ByteBuffer, includeSigs = true): T {
   const txData = deserializePartial(buf, includeSigs);
   let tx: Tx|undefined;
   if (txData.type === TxType.REWARD) {
@@ -18,14 +18,15 @@ export function deserialize<T>(buf: ByteBuffer, includeSigs = true): T {
     tx = new TransferTx(txData as TransferTxData);
   }
   assert(tx, 'unhandled type: ' + txData.type);
-  if (!includeSigs) txData.signatures = [];
   return tx as any;
 }
 
 function deserializePartial(buf: ByteBuffer, includeSigs: boolean) {
-  const tx: any = {};
-  if (includeSigs) {
-    tx.signatures = TD.array(TS.buffer)(buf);
-  }
-  return Object.assign(tx, Tx.DESERIALIZER(buf));
+  let sigs: any[];
+  if (includeSigs) sigs = TD.array(TS.sigPair)(buf);
+  else sigs = [];
+
+  const tx = Tx.DESERIALIZER(buf);
+  tx.signatures = sigs;
+  return tx;
 }

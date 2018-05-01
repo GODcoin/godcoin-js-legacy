@@ -1,5 +1,5 @@
+import { PublicKey, SigPair } from '../crypto';
 import * as ByteBuffer from 'bytebuffer';
-import { PublicKey } from '../crypto';
 import * as newDebug from 'debug';
 import { Asset } from '../asset';
 import * as Long from 'long';
@@ -46,17 +46,18 @@ export class TypeSerializer {
   }
 
   static date(buf: ByteBuffer, value: Date|string) {
-    if (typeof(value) === 'string') {
-      value = new Date(value);
-    }
+    if (typeof(value) === 'string') value = new Date(value);
     buf.writeUint32(Math.floor(value.getTime() / 1000));
   }
 
   static publicKey(buf: ByteBuffer, value: PublicKey|string) {
-    if (typeof(value) === 'string') {
-      value = PublicKey.fromWif(value);
-    }
+    if (typeof(value) === 'string') value = PublicKey.fromWif(value);
     TypeSerializer.buffer(buf, value.buffer);
+  }
+
+  static sigPair(buf: ByteBuffer, value: SigPair) {
+    TypeSerializer.publicKey(buf, value.publicKey);
+    TypeSerializer.buffer(buf, value.signature);
   }
 
   static asset(buf: ByteBuffer, value: Asset|string) {
@@ -124,6 +125,15 @@ export class TypeDeserializer {
   static publicKey(buf: ByteBuffer): PublicKey {
     const wif = TypeDeserializer.buffer(buf) as Buffer;
     return new PublicKey(wif);
+  }
+
+  static sigPair(buf: ByteBuffer): SigPair {
+    const publicKey = TypeDeserializer.publicKey(buf);
+    const signature = TypeDeserializer.buffer(buf)!;
+    return {
+      publicKey,
+      signature
+    };
   }
 
   static asset(buf: ByteBuffer): Asset {

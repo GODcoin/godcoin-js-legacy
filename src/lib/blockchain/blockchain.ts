@@ -164,7 +164,7 @@ export class Blockchain {
         await this.store.write(block);
       } else {
         assert(this.store.blockHead.height.add(1).eq(block.height), 'unexpected height');
-        assert(this.isBondValid(block.signing_key), 'invalid bond');
+        assert(this.isBondValid(block.signature_pair.publicKey), 'invalid bond');
         block.validate(this.head);
         await this.store.write(block);
       }
@@ -183,7 +183,7 @@ export class Blockchain {
 
   async isBondValid(key: string|PublicKey): Promise<boolean> {
     if (typeof(key) === 'string') key = PublicKey.fromWif(key);
-    return this.genesisBlock.signing_key.equals(key);
+    return this.genesisBlock.signature_pair.publicKey.equals(key);
   }
 
   async getTotalFee(addr: PublicKey, additionalTxs?: Tx[]): Promise<[Asset,Asset]> {

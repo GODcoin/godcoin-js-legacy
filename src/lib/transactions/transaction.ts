@@ -3,7 +3,7 @@ import {
   TypeSerializer as TS,
   ObjectType
 } from '../serializer';
-import { PrivateKey, PublicKey } from '../crypto';
+import { PrivateKey, PublicKey, SigPair } from '../crypto';
 import * as ByteBuffer from 'bytebuffer';
 import * as newDebug from 'debug';
 import { Asset } from '../asset';
@@ -20,7 +20,7 @@ export interface TxData {
   type: TxType;
   timestamp: Date;
   fee: Asset;
-  signatures: Buffer[];
+  signatures: SigPair[];
 }
 
 export abstract class Tx {
@@ -46,7 +46,7 @@ export abstract class Tx {
     assert(this.data.fee.decimals <= 8, 'fee can have a maximum of 8 decimals');
   }
 
-  sign(key: PrivateKey): Buffer {
+  sign(key: PrivateKey): SigPair {
     const buf = this.serialize(false);
     if (debug.enabled) {
       debug('Signing TX\nTX: %o\nHex: %s', this, buf.toHex());
@@ -71,9 +71,7 @@ export abstract class Tx {
   serialize(includeSigs: boolean): ByteBuffer {
     const buf = ByteBuffer.allocate(ByteBuffer.DEFAULT_CAPACITY,
                                     ByteBuffer.BIG_ENDIAN);
-    if (includeSigs) {
-      TS.array(TS.buffer)(buf, this.data.signatures);
-    }
+    if (includeSigs) TS.array(TS.sigPair)(buf, this.data.signatures);
     Tx.SERIALIZER(buf, this.data);
     this.rawSerialize(buf);
     return buf.flip();

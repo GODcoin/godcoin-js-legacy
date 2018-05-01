@@ -103,10 +103,10 @@ it('should properly sign and validate', () => {
   const keys = generateKeyPair();
   const msg = Buffer.from('Hello world!');
   const sig = keys.privateKey.sign(msg);
-  expect(keys.publicKey.verify(sig, msg)).is.true;
+  expect(keys.publicKey.verify(sig.signature, msg)).is.true;
 
   const badKeys = generateKeyPair();
-  expect(badKeys.publicKey.verify(sig, msg)).is.false;
+  expect(badKeys.publicKey.verify(sig.signature, msg)).is.false;
 });
 
 it('should throw on invalid key lengths', () => {

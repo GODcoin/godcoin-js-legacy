@@ -3,7 +3,13 @@ import {
   TypeSerializer as TS,
   ObjectType
 } from '../serializer';
-import { doubleSha256, PublicKey, PrivateKey, KeyPair } from '../crypto';
+import {
+  doubleSha256,
+  PublicKey,
+  PrivateKey,
+  KeyPair,
+  SigPair
+} from '../crypto';
 import { Tx, deserialize } from '../transactions';
 import * as ByteBuffer from 'bytebuffer';
 import * as assert from 'assert';
@@ -19,8 +25,7 @@ export interface BlockOpts {
 }
 
 export interface SignedBlockOpts extends BlockOpts {
-  signature: Buffer;
-  signing_key: PublicKey;
+  signature_pair: SigPair;
 }
 
 export class Block implements BlockOpts {
@@ -61,8 +66,7 @@ export class Block implements BlockOpts {
       timestamp: this.timestamp,
       transactions: this.transactions,
       tx_merkle_root: this.tx_merkle_root,
-      signature: keys.privateKey.sign(serialized),
-      signing_key: keys.publicKey
+      signature_pair: keys.privateKey.sign(serialized)
     });
   }
 
@@ -112,19 +116,16 @@ export class Block implements BlockOpts {
 export class SignedBlock extends Block implements SignedBlockOpts {
 
   static readonly SERIALIZER_FIELDS: ObjectType[] = [
-    ['signing_key', TS.publicKey],
-    ['signature', TS.buffer]
+    ['signature_pair', TS.sigPair]
   ];
   static readonly SERIALIZER = TS.object(SignedBlock.SERIALIZER_FIELDS);
   static readonly DESERIALIZER = TD.object(SignedBlock.SERIALIZER_FIELDS);
 
-  readonly signature: Buffer;
-  readonly signing_key: PublicKey;
+  readonly signature_pair: SigPair;
 
   constructor(data: SignedBlockOpts) {
     super(data);
-    this.signature = data.signature;
-    this.signing_key = data.signing_key;
+    this.signature_pair = data.signature_pair;
   }
 
   validate(prevBlock: SignedBlock) {
@@ -136,7 +137,9 @@ export class SignedBlock extends Block implements SignedBlockOpts {
     }
     {
       const serialized = this.serialize();
-      assert(this.signing_key.verify(this.signature, serialized), 'invalid signature');
+      const key = this.signature_pair.publicKey;
+      const sig = this.signature_pair.signature;
+      assert(key.verify(sig, serialized), 'invalid signature');
     }
   }
 
@@ -173,8 +176,10 @@ export class SignedBlock extends Block implements SignedBlockOpts {
         return data;
       }),
       tx_merkle_root: this.tx_merkle_root.toString('hex'),
-      signature: this.signature.toString('hex'),
-      signing_key: this.signing_key.toWif()
+      signature_pair: {
+        public_key: this.signature_pair.publicKey.toWif(),
+        signature: this.signature_pair.signature.toString('hex')
+      }
     }, undefined, 2);
   }
 
