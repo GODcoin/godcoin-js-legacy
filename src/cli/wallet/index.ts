@@ -1,10 +1,11 @@
 import { generateKeyPair, PublicKey, PrivateKey } from '../../lib/crypto';
-import { getAppDir, hookSigInt } from '../../lib/node-util';
 import { TransferTx, TxType } from '../../lib/transactions';
 import { Asset, AssetSymbol } from '../../lib/asset';
 import { SignedBlock } from '../../lib/blockchain';
 import { WalletDb, WalletIndexProp } from './db';
+import { hookSigInt } from '../../lib/node-util';
 import { GODcoin } from '../../lib/constants';
+import { GODcoinEnv } from '../../lib/env';
 import * as ByteBuffer from 'bytebuffer';
 import * as readline from 'readline';
 import { WalletNet } from './net';
@@ -25,7 +26,7 @@ export class Wallet {
   }
 
   async start() {
-    const walletDir = path.join(getAppDir(), 'wallet');
+    const walletDir = path.join(GODcoinEnv.GODCOIN_HOME, 'wallet');
     mkdirp.sync(walletDir);
     await new Promise((resolve, reject) => {
       this.db = new WalletDb(walletDir, err => {

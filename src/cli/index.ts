@@ -1,6 +1,7 @@
 import { generateKeyPair, PrivateKey } from '../lib/crypto';
 import * as sodium from 'libsodium-wrappers';
 import * as nodeUtil from '../lib/node-util';
+import { GODcoinEnv } from '../lib/env';
 import { Daemon } from '../lib/daemon';
 import { Wallet } from './wallet';
 import * as yargs from 'yargs';
@@ -48,20 +49,18 @@ function keygen(argv: any): void {
 (async () => {
   await sodium.ready;
 
-  const appDir = nodeUtil.getAppDir();
   try {
-    fs.accessSync(appDir);
+    fs.accessSync(GODcoinEnv.GODCOIN_HOME);
   } catch (e) {
     if (e.code !== 'ENOENT') {
       throw e;
     }
-    fs.mkdirSync(appDir);
+    fs.mkdirSync(GODcoinEnv.GODCOIN_HOME);
   }
 
-  const confPath = process.env.GODCOINRC || path.join(appDir, 'godcoinrc');
   let conf: any = {};
-  if (fs.existsSync(confPath)) {
-    conf = JSON.parse(fs.readFileSync(confPath, 'utf8'));
+  if (fs.existsSync(GODcoinEnv.GODCOIN_RC)) {
+    conf = JSON.parse(fs.readFileSync(GODcoinEnv.GODCOIN_RC, 'utf8'));
   }
   const cmd: string|undefined = conf.$0;
   delete conf.$0;

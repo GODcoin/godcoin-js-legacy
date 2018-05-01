@@ -3,9 +3,9 @@ import { RewardTx, TxType } from '../transactions';
 import { KeyPair, PrivateKey } from '../crypto';
 import { Asset, AssetSymbol } from '../asset';
 import { Minter, TxPool } from '../producer';
-import { getAppDir } from '../node-util';
 import * as bigInt from 'big-integer';
 import { Indexer } from '../indexer';
+import { GODcoinEnv } from '../env';
 import { Server } from './server';
 import * as assert from 'assert';
 import * as mkdirp from 'mkdirp';
@@ -31,7 +31,7 @@ export class Daemon {
   constructor(readonly opts: DaemonOpts) {
     this.opts = opts;
 
-    const dir = path.join(getAppDir(), 'blockchain', 'data');
+    const dir = path.join(GODcoinEnv.GODCOIN_HOME, 'blockchain', 'data');
     mkdirp.sync(dir);
 
     this.blockchain = new Blockchain(dir, opts.reindex);

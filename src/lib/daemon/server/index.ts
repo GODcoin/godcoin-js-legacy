@@ -1,6 +1,7 @@
 import { Minter, TxPool } from '../../producer';
 import { Blockchain } from '../../blockchain';
 import { Peer, PeerNet } from './peer';
+import { GODcoinEnv } from '../../env';
 import * as WebSocket from 'uws';
 import * as http from 'http';
 import * as Koa from 'koa';
@@ -45,7 +46,7 @@ export class Server {
     this.server.on('upgrade', (req: http.IncomingMessage, socket, head) => {
       let ip = req.connection.remoteAddress!;
       this.ws.handleUpgrade(req, socket, head, ws => {
-        if (process.env.GODCOIN_TRUST_PROXY === 'true') {
+        if (GODcoinEnv.GODCOIN_TRUST_PROXY) {
           const tmp = req.headers['x-forwarded-for'];
           if (typeof(tmp) === 'string') ip = tmp.split(',')[0];
           else if (tmp) ip = tmp[0].split(',')[0];
