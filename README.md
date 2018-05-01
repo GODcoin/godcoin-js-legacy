@@ -1,4 +1,5 @@
 # GODcoin
+[![Build Status](https://travis-ci.org/GODcoin/GODcoin-js.svg?branch=master)](https://travis-ci.org/GODcoin/GODcoin-js)
 
 https://godcoin.gold
 
@@ -19,7 +20,7 @@ will be minimal until the software stabilizes.
 
 ### Prerequisites
 
-- NodeJS 9+
+- NodeJS 8+
 - Yarn
 
 This project does not, and will never, use npm. Yarn is able to keep the lock
