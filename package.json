@@ -22,7 +22,7 @@
   "types": "./out/lib/index.d.ts",
   "bin": "./bin/godcoin.js",
   "engines": {
-    "node": ">=9.0.0"
+    "node": ">=8.0.0"
   },
   "yargs": {
     "camel-case-expansion": false
