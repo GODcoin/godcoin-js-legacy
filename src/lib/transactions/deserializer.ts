@@ -11,11 +11,9 @@ export function deserialize<T extends Tx>(buf: ByteBuffer, includeSigs = true): 
   const txData = deserializePartial(buf, includeSigs);
   let tx: Tx|undefined;
   if (txData.type === TxType.REWARD) {
-    Object.assign(txData, RewardTx.deserialize(buf));
-    tx = new RewardTx(txData as RewardTxData);
+    tx = new RewardTx(RewardTx.deserialize(buf, txData));
   } else if (txData.type === TxType.TRANSFER) {
-    Object.assign(txData, TransferTx.deserialize(buf));
-    tx = new TransferTx(txData as TransferTxData);
+    tx = new TransferTx(TransferTx.deserialize(buf, txData));
   }
   assert(tx, 'unhandled type: ' + txData.type);
   return tx as any;

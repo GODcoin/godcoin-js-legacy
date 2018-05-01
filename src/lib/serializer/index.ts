@@ -8,6 +8,7 @@ const debug = newDebug('godcoin:serializer');
 
 export type Serializer = (buf: ByteBuffer, value: any) => void;
 export type Deserializer = (buf: ByteBuffer) => any;
+export type ObjectDeserializer = (buf: ByteBuffer, obj?: any) => any;
 
 export interface ObjectType {
   0: string;
@@ -141,9 +142,9 @@ export class TypeDeserializer {
     return Asset.fromString(asset);
   }
 
-  static object(fields: ObjectType[]): Deserializer {
-    return (buf: ByteBuffer): any => {
-      const data = {};
+  static object(fields: ObjectType[]): ObjectDeserializer {
+    return (buf: ByteBuffer, obj?: any): any => {
+      const data = obj ? obj : {};
       for (let i = 0; i < fields.length; ++i) {
         const key = fields[i][0];
         const ds = fields[i][1].name;

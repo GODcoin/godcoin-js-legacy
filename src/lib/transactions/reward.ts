@@ -36,7 +36,7 @@ export class RewardTx extends Tx {
     RewardTx.SERIALIZER(buf, this.data);
   }
 
-  static deserialize(buf: ByteBuffer): any {
-    return RewardTx.DESERIALIZER(buf);
+  static deserialize(buf: ByteBuffer, obj: any): any {
+    return RewardTx.DESERIALIZER(buf, obj);
   }
 }

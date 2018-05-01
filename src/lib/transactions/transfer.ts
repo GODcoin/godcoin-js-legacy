@@ -50,7 +50,7 @@ export class TransferTx extends Tx {
     TransferTx.SERIALIZER(buf, this.data);
   }
 
-  static deserialize(buf: ByteBuffer): any {
-    return TransferTx.DESERIALIZER(buf);
+  static deserialize(buf: ByteBuffer, obj: any): any {
+    return TransferTx.DESERIALIZER(buf, obj);
   }
 }
