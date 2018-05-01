@@ -52,7 +52,7 @@ export class Minter {
           to: this.keys.publicKey,
           fee: new Asset(bigInt(0), 0, AssetSymbol.GOLD),
           rewards: [ Asset.fromString('1 GOLD') ],
-          signatures: []
+          signature_pairs: []
         })
       ]
     }).sign(this.keys);
@@ -88,7 +88,7 @@ export class Minter {
             new Asset(bigInt(1), 0, AssetSymbol.GOLD),
             new Asset(bigInt(100), 0, AssetSymbol.SILVER)
           ],
-          signatures: []
+          signature_pairs: []
         }),
         ...(await this.pool.popAll())
       ]

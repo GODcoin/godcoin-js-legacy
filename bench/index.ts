@@ -22,7 +22,7 @@ import * as bigInt from 'big-integer';
     amount,
     fee: amount,
     memo: Buffer.alloc(512),
-    signatures: []
+    signature_pairs: []
   }).appendSign(keyA.privateKey);
 
   let suite: Benchmark.Suite;

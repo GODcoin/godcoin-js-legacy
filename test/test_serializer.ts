@@ -47,7 +47,7 @@ it('should serialize transfer transactions', () => {
     amount: Asset.fromString('10 GOLD'),
     fee: Asset.fromString('0.00000001 GOLD'),
     memo: Buffer.from('test 123'),
-    signatures: []
+    signature_pairs: []
   }).appendSign(from.privateKey);
 
   const buf = tx.serialize(true);
@@ -62,7 +62,7 @@ it('should serialize reward transactions', () => {
     fee: Asset.fromString('0 GOLD'),
     to: generateKeyPair().publicKey,
     rewards: [Asset.fromString('10 GOLD'), Asset.fromString('100 SILVER')],
-    signatures: []
+    signature_pairs: []
   });
 
   const buf = tx.serialize(false);
@@ -78,7 +78,7 @@ it('should fail on invalid transactions', () => {
     fee: Asset.fromString('0 GOLD'),
     to: generateKeyPair().publicKey,
     rewards: [],
-    signatures: []
+    signature_pairs: []
   });
 
   const buf = tx.serialize(false);
@@ -104,7 +104,7 @@ it('should serialize blocks', () => {
           Asset.fromString('1 GOLD'),
           Asset.fromString('1 SILVER')
         ],
-        signatures: []
+        signature_pairs: []
       })
     ]
   }).sign(keys);

@@ -20,7 +20,7 @@ export interface TxData {
   type: TxType;
   timestamp: Date;
   fee: Asset;
-  signatures: SigPair[];
+  signature_pairs: SigPair[];
 }
 
 export abstract class Tx {
@@ -56,7 +56,7 @@ export abstract class Tx {
 
   appendSign(key: PrivateKey) {
     const sig = this.sign(key);
-    this.data.signatures.push(sig);
+    this.data.signature_pairs.push(sig);
     return this;
   }
 
@@ -71,7 +71,7 @@ export abstract class Tx {
   serialize(includeSigs: boolean): ByteBuffer {
     const buf = ByteBuffer.allocate(ByteBuffer.DEFAULT_CAPACITY,
                                     ByteBuffer.BIG_ENDIAN);
-    if (includeSigs) TS.array(TS.sigPair)(buf, this.data.signatures);
+    if (includeSigs) TS.array(TS.sigPair)(buf, this.data.signature_pairs);
     Tx.SERIALIZER(buf, this.data);
     this.rawSerialize(buf);
     return buf.flip();

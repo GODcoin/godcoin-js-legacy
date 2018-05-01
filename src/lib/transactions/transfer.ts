@@ -42,7 +42,7 @@ export class TransferTx extends Tx {
       assert(this.data.memo.length <= 512, 'maximum memo length is 512 bytes');
     }
     const buf = this.serialize(false);
-    const pair = this.data.signatures[0];
+    const pair = this.data.signature_pairs[0];
     assert(this.data.from.verify(pair.signature, buf.toBuffer()), 'invalid signature');
   }
 

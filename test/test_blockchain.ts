@@ -50,7 +50,7 @@ it('should read and write the genesis block', async () => {
         fee: Asset.fromString('0 GOLD'),
         to: genesisKeys.publicKey,
         rewards: [ Asset.fromString('1 GOLD') ],
-        signatures: []
+        signature_pairs: []
       })
     ]
   }).sign(genesisKeys);
@@ -159,7 +159,7 @@ it('should have correct balances', async () => {
             Asset.fromString('0.1 GOLD'),
             Asset.fromString('10 SILVER')
           ],
-          signatures: []
+          signature_pairs: []
         }),
         new TransferTx({
           type: TxType.TRANSFER,
@@ -168,7 +168,7 @@ it('should have correct balances', async () => {
           to: txTo.publicKey,
           amount: Asset.fromString('0.1 GOLD'),
           fee: goldFee,
-          signatures: []
+          signature_pairs: []
         }).appendSign(txFrom.privateKey),
         new TransferTx({
           type: TxType.TRANSFER,
@@ -177,7 +177,7 @@ it('should have correct balances', async () => {
           to: txTo.publicKey,
           amount: Asset.fromString('1.0 SILVER'),
           fee: silverFee,
-          signatures: []
+          signature_pairs: []
         }).appendSign(txFrom.privateKey)
       ]
     }).sign(genesisKeys);

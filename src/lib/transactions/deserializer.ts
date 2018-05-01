@@ -3,8 +3,8 @@ import {
   TypeSerializer as TS
 } from '../serializer';
 import { TransferTx, TransferTxData } from './transfer';
+import { Tx, TxType, TxData } from './transaction';
 import { RewardTx, RewardTxData } from './reward';
-import { Tx, TxType } from './transaction';
 import * as assert from 'assert';
 
 export function deserialize<T extends Tx>(buf: ByteBuffer, includeSigs = true): T {
@@ -26,7 +26,7 @@ function deserializePartial(buf: ByteBuffer, includeSigs: boolean) {
   if (includeSigs) sigs = TD.array(TS.sigPair)(buf);
   else sigs = [];
 
-  const tx = Tx.DESERIALIZER(buf);
-  tx.signatures = sigs;
+  const tx: TxData = Tx.DESERIALIZER(buf);
+  tx.signature_pairs = sigs;
   return tx;
 }

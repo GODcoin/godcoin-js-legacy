@@ -317,7 +317,7 @@ export class Wallet {
           amount: amt,
           fee: fee!,
           memo: Buffer.from(memo),
-          signatures: []
+          signature_pairs: []
         }).appendSign(acc.privateKey);
         write('Broadcasting tx\n', tx.toString(), '\n');
         const data = await this.net.send({

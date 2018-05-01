@@ -29,7 +29,7 @@ export class RewardTx extends Tx {
   }
 
   validate(): void {
-    assert(this.data.signatures.length === 0, 'reward transactions must not be signed');
+    assert(this.data.signature_pairs.length === 0, 'reward transactions must not be signed');
   }
 
   rawSerialize(buf: ByteBuffer): void {
