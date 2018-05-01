@@ -6,9 +6,10 @@ import {
 } from '../src/lib/blockchain';
 import { TxType, RewardTx, TransferTx } from '../src/lib/transactions';
 import { generateKeyPair, KeyPair } from '../src/lib/crypto';
+import { Asset, AssetSymbol } from '../src/lib/asset';
 import { Indexer } from '../src/lib/indexer';
-import { Asset } from '../src/lib/asset';
 import { AssertionError } from 'assert';
+import * as bigInt from 'big-integer';
 import { expect } from 'chai';
 import * as path from 'path';
 import * as util from 'util';
@@ -134,4 +135,64 @@ it('should fail with incorrect height', async () => {
     await expect(chain.addBlock(block)).to.be
             .rejectedWith(AssertionError, 'unexpected height');
   }
+});
+
+it('should have correct balances', async () => {
+  const goldFee = new Asset(bigInt(1), 0, AssetSymbol.GOLD);
+  const silverFee = new Asset(bigInt(1), 0, AssetSymbol.SILVER);
+  const txFrom = generateKeyPair();
+  const txTo = generateKeyPair();
+  for (let i = 0; i < 10; ++i) {
+    const hash = i === 0 ? undefined : chain.head.getHash();
+    const ts = new Date();
+    const b = new Block({
+      height: Long.fromNumber(i, true),
+      previous_hash: hash as any,
+      timestamp: ts,
+      transactions: [
+        new RewardTx({
+          type: TxType.REWARD,
+          to: genesisKeys.publicKey,
+          timestamp: ts,
+          fee: goldFee,
+          rewards: [
+            Asset.fromString('0.1 GOLD'),
+            Asset.fromString('10 SILVER')
+          ],
+          signatures: []
+        }),
+        new TransferTx({
+          type: TxType.TRANSFER,
+          timestamp: ts,
+          from: txFrom.publicKey,
+          to: txTo.publicKey,
+          amount: Asset.fromString('0.1 GOLD'),
+          fee: goldFee,
+          signatures: []
+        }).appendSign(txFrom.privateKey),
+        new TransferTx({
+          type: TxType.TRANSFER,
+          timestamp: ts,
+          from: txFrom.publicKey,
+          to: txTo.publicKey,
+          amount: Asset.fromString('1.0 SILVER'),
+          fee: silverFee,
+          signatures: []
+        }).appendSign(txFrom.privateKey)
+      ]
+    }).sign(genesisKeys);
+    await chain.addBlock(b);
+  }
+
+  let bal = await chain.getBalance(genesisKeys.publicKey);
+  expect(bal[0].toString()).to.eq('1.0 GOLD');
+  expect(bal[1].toString()).to.eq('100 SILVER');
+
+  bal = await chain.getBalance(txFrom.publicKey);
+  expect(bal[0].toString()).to.eq('-11.0 GOLD');
+  expect(bal[1].toString()).to.eq('-20.0 SILVER');
+
+  bal = await chain.getBalance(txTo.publicKey);
+  expect(bal[0].toString()).to.eq('1.0 GOLD');
+  expect(bal[1].toString()).to.eq('10.0 SILVER');
 });
