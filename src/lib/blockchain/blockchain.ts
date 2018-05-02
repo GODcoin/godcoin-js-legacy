@@ -1,7 +1,7 @@
+import { Asset, AssetSymbol, EMPTY_GOLD, EMPTY_SILVER } from '../asset';
 import { Indexer, IndexProp, BalanceMap } from '../indexer';
 import { Tx, TransferTx, RewardTx } from '../transactions';
 import { PrivateKey, KeyPair, PublicKey } from '../crypto';
-import { Asset, AssetSymbol } from '../asset';
 import { Block, SignedBlock } from './block';
 import { ChainStore } from './chain_store';
 import { BigInteger } from 'big-integer';
@@ -21,9 +21,6 @@ const jsonCodec = new Codec({
   keyEncoding: 'binary',
   valueEncoding: 'json'
 });
-
-const EMPTY_GOLD = new Asset(bigInt(0), 0, AssetSymbol.GOLD);
-const EMPTY_SILVER = new Asset(bigInt(0), 0, AssetSymbol.SILVER);
 
 export class Blockchain {
 

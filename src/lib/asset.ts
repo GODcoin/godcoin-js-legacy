@@ -137,6 +137,9 @@ export class Asset {
   }
 }
 
+export const EMPTY_GOLD = new Asset(bigInt(0), 0, AssetSymbol.GOLD);
+export const EMPTY_SILVER = new Asset(bigInt(0), 0, AssetSymbol.SILVER);
+
 export class ArithmeticError extends Error {
   constructor(msg: string) {
     super(msg);

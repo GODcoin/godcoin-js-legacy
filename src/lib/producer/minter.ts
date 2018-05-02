@@ -1,7 +1,7 @@
 import { RewardTx, TxType, TransferTx, Tx } from '../transactions';
 import { Blockchain, SignedBlock, Block } from '../blockchain';
+import { Asset, AssetSymbol, EMPTY_GOLD } from '../asset';
 import { KeyPair, PublicKey } from '../crypto';
-import { Asset, AssetSymbol } from '../asset';
 import * as bigInt from 'big-integer';
 import { TxPool } from './tx_pool';
 import * as assert from 'assert';
@@ -50,7 +50,7 @@ export class Minter {
           type: TxType.REWARD,
           timestamp: genesisTs,
           to: this.keys.publicKey,
-          fee: new Asset(bigInt(0), 0, AssetSymbol.GOLD),
+          fee: EMPTY_GOLD,
           rewards: [ Asset.fromString('1 GOLD') ],
           signature_pairs: []
         })
@@ -83,7 +83,7 @@ export class Minter {
           type: TxType.REWARD,
           timestamp: ts,
           to: head.signature_pair.publicKey,
-          fee: new Asset(bigInt(0), 0, AssetSymbol.GOLD),
+          fee: EMPTY_GOLD,
           rewards: [
             new Asset(bigInt(1), 0, AssetSymbol.GOLD),
             new Asset(bigInt(100), 0, AssetSymbol.SILVER)
