@@ -1,8 +1,11 @@
-import { generateKeyPair, PrivateKey } from '../lib/crypto';
+import {
+  generateKeyPair,
+  hookSigInt,
+  GODcoinEnv,
+  PrivateKey,
+  Daemon
+} from '../lib';
 import * as sodium from 'libsodium-wrappers';
-import * as nodeUtil from '../lib/node-util';
-import { GODcoinEnv } from '../lib/env';
-import { Daemon } from '../lib/daemon';
 import { Wallet } from './wallet';
 import * as yargs from 'yargs';
 import * as path from 'path';
@@ -18,7 +21,7 @@ function startDaemon(argv: any): void {
     bind: argv.bind,
     port: argv.port
   });
-  nodeUtil.hookSigInt(() => {
+  hookSigInt(() => {
     console.log('Shutting down daemon...');
     daemon.stop().catch(e => {
       console.log('Failed to stop daemon properly', e);

@@ -1,12 +1,18 @@
-import { generateKeyPair, PublicKey, PrivateKey } from '../../lib/crypto';
-import { TransferTx, TxType } from '../../lib/transactions';
-import { Asset, AssetSymbol } from '../../lib/asset';
-import { SignedBlock } from '../../lib/blockchain';
-import { ClientNet } from '../../lib/client_peer';
+import {
+  generateKeyPair,
+  hookSigInt,
+  GODcoinEnv,
+  GODcoin,
+  PublicKey,
+  PrivateKey,
+  ClientNet,
+  SignedBlock,
+  Asset,
+  AssetSymbol,
+  TransferTx,
+  TxType
+} from '../../lib';
 import { WalletDb, WalletIndexProp } from './db';
-import { hookSigInt } from '../../lib/node-util';
-import { GODcoin } from '../../lib/constants';
-import { GODcoinEnv } from '../../lib/env';
 import * as ByteBuffer from 'bytebuffer';
 import * as readline from 'readline';
 import * as mkdirp from 'mkdirp';

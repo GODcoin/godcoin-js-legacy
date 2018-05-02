@@ -1,4 +1,4 @@
-import { PrivateKey, KeyPair } from '../../lib/crypto';
+import { PrivateKey, KeyPair } from '../../lib';
 import * as sodium from 'libsodium-wrappers';
 import * as crypto from 'crypto';
 import * as assert from 'assert';
