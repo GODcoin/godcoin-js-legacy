@@ -8,6 +8,7 @@ import { TxType, RewardTx, TransferTx } from '../src/lib/transactions';
 import { generateKeyPair, KeyPair } from '../src/lib/crypto';
 import { Asset, AssetSymbol } from '../src/lib/asset';
 import { Indexer } from '../src/lib/indexer';
+import { TxPool } from '../src/lib/producer';
 import { AssertionError } from 'assert';
 import * as bigInt from 'big-integer';
 import { expect } from 'chai';
@@ -137,7 +138,7 @@ it('should fail with incorrect height', async () => {
   }
 });
 
-it('should have correct balances', async () => {
+it('should have correct balances in the blockchain', async () => {
   const goldFee = new Asset(bigInt(1), 0, AssetSymbol.GOLD);
   const silverFee = new Asset(bigInt(1), 0, AssetSymbol.SILVER);
   const txFrom = generateKeyPair();
@@ -195,4 +196,53 @@ it('should have correct balances', async () => {
   bal = await chain.getBalance(txTo.publicKey);
   expect(bal[0].toString()).to.eq('1.0 GOLD');
   expect(bal[1].toString()).to.eq('10.0 SILVER');
+});
+
+it('should have correct balances in the tx pool', async () => {
+  for (let i = 0; i < 10; ++i) {
+    const hash = i === 0 ? undefined : chain.head.getHash();
+    const ts = new Date();
+    const b = new Block({
+      height: Long.fromNumber(i, true),
+      previous_hash: hash as any,
+      timestamp: ts,
+      transactions: [
+        new RewardTx({
+          type: TxType.REWARD,
+          to: genesisKeys.publicKey,
+          timestamp: ts,
+          fee: Asset.fromString('0 GOLD'),
+          rewards: [
+            Asset.fromString('1 GOLD'),
+            Asset.fromString('10 SILVER')
+          ],
+          signature_pairs: []
+        })
+      ]
+    }).sign(genesisKeys);
+    await chain.addBlock(b);
+  }
+
+  const txTo = generateKeyPair();
+  const pool = new TxPool(chain, true);
+  {
+    const tx = Buffer.from(new TransferTx({
+      type: TxType.TRANSFER,
+      timestamp: new Date(),
+      from: genesisKeys.publicKey,
+      to: txTo.publicKey,
+      amount: Asset.fromString('5 GOLD'),
+      fee: Asset.fromString('5 GOLD'),
+      signature_pairs: []
+    }).appendSign(genesisKeys.privateKey).serialize(true).toBuffer());
+    await pool.push(tx);
+  }
+
+  let bal = await pool.getBalance(genesisKeys.publicKey);
+  expect(bal[0].toString()).to.eq('0 GOLD');
+  expect(bal[1].toString()).to.eq('100 SILVER');
+
+  bal = await pool.getBalance(txTo.publicKey);
+  expect(bal[0].toString()).to.eq('5 GOLD');
+  expect(bal[1].toString()).to.eq('0 SILVER');
 });
