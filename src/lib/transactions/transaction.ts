@@ -96,6 +96,11 @@ export abstract class Tx {
       return obj.toString('hex');
     } else if (obj instanceof PublicKey) {
       return obj.toWif();
+    } else if (obj.public_key && obj.signature) {
+      return {
+        public_key: obj.public_key.toWif(),
+        signature: obj.signature.toString('hex')
+      };
     }
     return obj;
   }
