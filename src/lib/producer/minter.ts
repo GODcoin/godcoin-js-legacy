@@ -7,6 +7,9 @@ import { TxPool } from './tx_pool';
 import * as assert from 'assert';
 import * as Long from 'long';
 
+const REWARD_GOLD = new Asset(bigInt(1), 0, AssetSymbol.GOLD);
+const REWARD_SILVER = new Asset(bigInt(100), 0, AssetSymbol.SILVER);
+
 export class Minter {
 
   private readonly blockchain: Blockchain;
@@ -84,10 +87,7 @@ export class Minter {
           timestamp: ts,
           to: head.signature_pair.publicKey,
           fee: EMPTY_GOLD,
-          rewards: [
-            new Asset(bigInt(1), 0, AssetSymbol.GOLD),
-            new Asset(bigInt(100), 0, AssetSymbol.SILVER)
-          ],
+          rewards: [ REWARD_GOLD, REWARD_SILVER ],
           signature_pairs: []
         }),
         ...(await this.pool.popAll())
