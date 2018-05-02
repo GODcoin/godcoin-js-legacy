@@ -65,7 +65,7 @@ export class PrivateKey extends Key {
 
   sign(buf: Buffer|ArrayBuffer): SigPair {
     return {
-      publicKey: this.toPub(),
+      public_key: this.toPub(),
       signature: Buffer.from(sodium.crypto_sign_detached(buf, this.buffer))
     };
   }
@@ -136,14 +136,14 @@ export class PublicKey extends Key {
 
   static fromSigPair(buf: Buffer): SigPair {
     return {
-      publicKey: new PublicKey(buf.slice(0, sodium.crypto_sign_PUBLICKEYBYTES)),
+      public_key: new PublicKey(buf.slice(0, sodium.crypto_sign_PUBLICKEYBYTES)),
       signature: buf.slice(sodium.crypto_sign_PUBLICKEYBYTES)
     };
   }
 }
 
 export interface SigPair {
-  publicKey: PublicKey;
+  public_key: PublicKey;
   signature: Buffer;
 }
 

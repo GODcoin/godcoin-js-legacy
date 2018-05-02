@@ -10,7 +10,8 @@ import {
   Asset,
   AssetSymbol,
   TransferTx,
-  TxType
+  TxType,
+  ClientPeer
 } from '../../lib';
 import { WalletDb, WalletIndexProp } from './db';
 import * as ByteBuffer from 'bytebuffer';
@@ -22,13 +23,13 @@ import * as path from 'path';
 export class Wallet {
 
   private state = WalletState.NEW;
-  private net: ClientNet;
+  private client: ClientPeer;
 
   private rl!: readline.ReadLine;
   private db!: WalletDb;
 
   constructor(nodeUrl: string) {
-    this.net = new ClientNet(nodeUrl);
+    this.client = new ClientPeer(new ClientNet(nodeUrl));
   }
 
   async start() {
@@ -41,7 +42,7 @@ export class Wallet {
       });
     });
 
-    await this.net.open();
+    await this.client.open();
 
     let prompt = 'new>> ';
     if (await this.db.isLocked()) {
@@ -70,7 +71,7 @@ export class Wallet {
     hookSigInt(async () => {
       write('Exiting wallet...');
       try {
-        this.net.close();
+        this.client.close();
       } catch (e) {
         write('Failed to close websocket connection', e);
       }
@@ -149,9 +150,7 @@ export class Wallet {
         break;
       }
       case 'get_properties': {
-        const data = await this.net.send({
-          method: 'get_properties'
-        });
+        const data = await this.client.getProperties();
         write(data);
         break;
       }
@@ -162,17 +161,9 @@ export class Wallet {
           break;
         }
 
-        const data = await this.net.send({
-          method: 'get_block',
-          height
-        });
-        if (data.block) {
-          const buf = ByteBuffer.wrap(data.block);
-          const block = SignedBlock.fullyDeserialize(buf);
-          write(block.toString());
-        } else {
-          write('Invalid block height');
-        }
+        const block = await this.client.getBlock(height);
+        if (block) write(block.toString());
+        else write('Invalid block height');
         break;
       }
       case 'get_block_range': {
@@ -183,17 +174,10 @@ export class Wallet {
           break;
         }
 
-        const data = await this.net.send({
-          method: 'get_block_range',
-          min_height: minHeight,
-          max_height: maxHeight
-        });
-
+        const data = await this.client.getBlockRange(minHeight, maxHeight);
         const blocks: string[] = [];
         for (const block of data.blocks) {
-          const buf = ByteBuffer.wrap(block);
-          const b = SignedBlock.fullyDeserialize(buf);
-          blocks.push(JSON.parse(b.toString()));
+          blocks.push(JSON.parse(block.toString()));
         }
         write(JSON.stringify({
           range_outside_height: data.range_outside_height,
@@ -233,11 +217,8 @@ export class Wallet {
         // Make sure the user can't accidentally input a private key
         PublicKey.fromWif(address);
 
-        const data = await this.net.send({
-          method: 'get_balance',
-          address
-        });
-        write(data.balance);
+        const balance = await this.client.getBalance(address);
+        write(balance);
         break;
       }
       case 'create_account': {
@@ -326,10 +307,8 @@ export class Wallet {
           signature_pairs: []
         }).appendSign(acc.privateKey);
         write('Broadcasting tx\n', tx.toString(), '\n');
-        const data = await this.net.send({
-          method: 'broadcast',
-          tx: Buffer.from(tx.serialize(true).toBuffer())
-        });
+        const buf = Buffer.from(tx.serialize(true).toBuffer());
+        const data = await this.client.broadcast(buf);
         write(data);
         break;
       }
@@ -367,10 +346,7 @@ export class Wallet {
   }
 
   private async getTotalFee(addr: PublicKey): Promise<[Asset,Asset]> {
-    const fee = (await this.net.send({
-      method: 'get_total_fee',
-      address: addr.toWif()
-    })).fee;
+    const fee = await this.client.getTotalFee(addr.toWif());
     return [
       Asset.fromString(fee[0]),
       Asset.fromString(fee[1])

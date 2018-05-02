@@ -85,7 +85,7 @@ export class Minter {
         new RewardTx({
           type: TxType.REWARD,
           timestamp: ts,
-          to: head.signature_pair.publicKey,
+          to: head.signature_pair.public_key,
           fee: EMPTY_GOLD,
           rewards: [ REWARD_GOLD, REWARD_SILVER ],
           signature_pairs: []

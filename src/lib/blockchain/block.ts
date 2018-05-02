@@ -137,7 +137,7 @@ export class SignedBlock extends Block implements SignedBlockOpts {
     }
     {
       const serialized = this.serialize();
-      const key = this.signature_pair.publicKey;
+      const key = this.signature_pair.public_key;
       const sig = this.signature_pair.signature;
       assert(key.verify(sig, serialized), 'invalid signature');
     }
@@ -177,7 +177,7 @@ export class SignedBlock extends Block implements SignedBlockOpts {
       }),
       tx_merkle_root: this.tx_merkle_root.toString('hex'),
       signature_pair: {
-        public_key: this.signature_pair.publicKey.toWif(),
+        public_key: this.signature_pair.public_key.toWif(),
         signature: this.signature_pair.signature.toString('hex')
       }
     }, undefined, 2);

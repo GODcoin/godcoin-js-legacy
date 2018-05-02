@@ -57,7 +57,7 @@ export class TypeSerializer {
   }
 
   static sigPair(buf: ByteBuffer, value: SigPair) {
-    TypeSerializer.publicKey(buf, value.publicKey);
+    TypeSerializer.publicKey(buf, value.public_key);
     TypeSerializer.buffer(buf, value.signature);
   }
 
@@ -129,10 +129,10 @@ export class TypeDeserializer {
   }
 
   static sigPair(buf: ByteBuffer): SigPair {
-    const publicKey = TypeDeserializer.publicKey(buf);
+    const public_key = TypeDeserializer.publicKey(buf);
     const signature = TypeDeserializer.buffer(buf)!;
     return {
-      publicKey,
+      public_key,
       signature
     };
   }
