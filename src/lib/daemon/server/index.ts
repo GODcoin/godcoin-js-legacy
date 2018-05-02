@@ -9,7 +9,6 @@ import * as Koa from 'koa';
 export interface ServerOptions {
   blockchain: Blockchain;
   pool: TxPool;
-  minter?: Minter;
   bindAddress: string;
   port: number;
 }
@@ -18,7 +17,6 @@ export class Server {
 
   private readonly blockchain: Blockchain;
   private readonly pool: TxPool;
-  private readonly minter?: Minter;
   private readonly bindAddr: string;
   private readonly port: number;
 
@@ -31,7 +29,6 @@ export class Server {
   constructor(opts: ServerOptions) {
     this.blockchain = opts.blockchain;
     this.pool = opts.pool;
-    this.minter = opts.minter;
     this.bindAddr = opts.bindAddress;
     this.port = opts.port;
   }
@@ -56,7 +53,6 @@ export class Server {
         const peer = new Peer({
           blockchain: this.blockchain,
           pool: this.pool,
-          minter: this.minter,
           net: peerNet
         });
         peer.init();

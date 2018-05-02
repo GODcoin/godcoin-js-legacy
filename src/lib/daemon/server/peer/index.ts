@@ -16,13 +16,11 @@ export interface PeerOptions {
 export class Peer {
 
   private readonly blockchain: Blockchain;
-  private readonly minter?: Minter;
   private readonly pool: TxPool;
   private readonly net: PeerNet;
 
   constructor(opts: PeerOptions) {
     this.blockchain = opts.blockchain;
-    this.minter = opts.minter;
     this.pool = opts.pool;
     this.net = opts.net;
   }
@@ -45,8 +43,8 @@ export class Peer {
 
         let refBlock!: Long;
         let refTxPos!: number;
-        if (this.minter) {
-          const data = await this.minter.pool.push(tx);
+        if (this.pool.writable) {
+          const data = await this.pool.push(tx);
           refBlock = data[0];
           refTxPos = data[1];
           return {

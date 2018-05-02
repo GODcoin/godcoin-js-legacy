@@ -29,13 +29,11 @@ export class Daemon {
   private minter?: Minter;
 
   constructor(readonly opts: DaemonOpts) {
-    this.opts = opts;
-
     const dir = path.join(GODcoinEnv.GODCOIN_HOME, 'blockchain', 'data');
     mkdirp.sync(dir);
 
     this.blockchain = new Blockchain(dir, opts.reindex);
-    this.pool = new TxPool(this.blockchain);
+    this.pool = new TxPool(this.blockchain, this.opts.signingKeys !== undefined);
   }
 
   async start(): Promise<void> {
@@ -48,7 +46,7 @@ export class Daemon {
 
     if (this.opts.signingKeys) {
       this.minter = new Minter(this.blockchain, this.pool, this.opts.signingKeys);
-      if (!this.blockchain.head) {
+      if (!(this.blockchain.head || this.opts.peers.length)) {
         await this.minter.createGenesisBlock();
       }
     }
@@ -57,16 +55,13 @@ export class Daemon {
       this.server = new Server({
         blockchain: this.blockchain,
         pool: this.pool,
-        minter: this.minter,
         bindAddress: this.opts.bind,
         port: this.opts.port
       });
       this.server.start();
     }
 
-    if (this.minter) {
-      this.minter.start();
-    }
+    if (this.minter) this.minter.start();
   }
 
   async stop(): Promise<void> {
