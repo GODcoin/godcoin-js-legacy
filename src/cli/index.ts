@@ -12,7 +12,6 @@ function startDaemon(argv: any): void {
   const wif = argv['minter-wif'];
   const daemon = new Daemon({
     signingKeys: wif ? PrivateKey.fromWif(wif) : undefined as any,
-    regtest: argv.regtest,
     reindex: argv.reindex,
     listen: argv.listen,
     bind: argv.bind,
@@ -80,10 +79,6 @@ function keygen(argv: any): void {
       default: 7777,
       requiresArg: true,
       desc: 'Port for peer-to-peer network connectivity'
-    }).option('regtest', {
-      boolean: true,
-      default: false,
-      desc: 'Runs the network in regtest mode allowing blocks to be minted instantly'
     }).option('minter-wif', {
       string: true,
       requiresArg: true,
