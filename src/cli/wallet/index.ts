@@ -2,13 +2,13 @@ import { generateKeyPair, PublicKey, PrivateKey } from '../../lib/crypto';
 import { TransferTx, TxType } from '../../lib/transactions';
 import { Asset, AssetSymbol } from '../../lib/asset';
 import { SignedBlock } from '../../lib/blockchain';
+import { ClientNet } from '../../lib/client_peer';
 import { WalletDb, WalletIndexProp } from './db';
 import { hookSigInt } from '../../lib/node-util';
 import { GODcoin } from '../../lib/constants';
 import { GODcoinEnv } from '../../lib/env';
 import * as ByteBuffer from 'bytebuffer';
 import * as readline from 'readline';
-import { WalletNet } from './net';
 import * as mkdirp from 'mkdirp';
 import * as assert from 'assert';
 import * as path from 'path';
@@ -16,13 +16,13 @@ import * as path from 'path';
 export class Wallet {
 
   private state = WalletState.NEW;
-  private net: WalletNet;
+  private net: ClientNet;
 
   private rl!: readline.ReadLine;
   private db!: WalletDb;
 
   constructor(nodeUrl: string) {
-    this.net = new WalletNet(nodeUrl);
+    this.net = new ClientNet(nodeUrl);
   }
 
   async start() {

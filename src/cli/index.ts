@@ -13,6 +13,7 @@ function startDaemon(argv: any): void {
   const daemon = new Daemon({
     signingKeys: wif ? PrivateKey.fromWif(wif) : undefined as any,
     reindex: argv.reindex,
+    peers: argv.peers,
     listen: argv.listen,
     bind: argv.bind,
     port: argv.port
@@ -79,6 +80,11 @@ function keygen(argv: any): void {
       default: 7777,
       requiresArg: true,
       desc: 'Port for peer-to-peer network connectivity'
+    }).option('peers', {
+      array: true,
+      default: [],
+      requiresArg: false,
+      desc: 'A list of peers to connect to and keep the connection open'
     }).option('minter-wif', {
       string: true,
       requiresArg: true,

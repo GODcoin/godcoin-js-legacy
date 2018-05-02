@@ -1,3 +1,4 @@
+export * from './client_peer';
 export * from './blockchain';
 export * from './serializer';
 export * from './node-util';

@@ -15,6 +15,7 @@ import * as path from 'path';
 export interface DaemonOpts {
   signingKeys: KeyPair;
   reindex: boolean;
+  peers: string[];
   listen: boolean;
   bind: string;
   port: number;

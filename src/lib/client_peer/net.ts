@@ -1,14 +1,18 @@
-import { Lock } from '../../lib/lock';
 import * as WebSocket from 'uws';
+import { Lock } from '../lock';
 import * as borc from 'borc';
 
-export class WalletNet {
+export class ClientNet {
 
   private readonly openLock = new Lock();
 
   private requests: {[key: number]: PromiseLike} = {};
   private ws!: WebSocket;
   private id = 0;
+
+  get isOpen(): boolean {
+    return this.ws && this.ws.readyState === WebSocket.OPEN;
+  }
 
   constructor(readonly nodeUrl) {
   }
@@ -42,7 +46,7 @@ export class WalletNet {
     });
   }
 
-  async open() {
+  async open(): Promise<void> {
     return new Promise<void>(async (resolve, reject) => {
       await this.openLock.lock();
       if (this.ws && (this.ws.readyState === WebSocket.OPEN
@@ -91,6 +95,7 @@ export class WalletNet {
 
   close() {
     if (this.ws) this.ws.close();
+    // TODO: clear all requests
   }
 }
 
