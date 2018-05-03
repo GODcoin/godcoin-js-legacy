@@ -1,10 +1,10 @@
 # Output and runtime
-yarn-error.log
 node_modules/
 .nyc_output/
 coverage/
 out/
 run/
+*.log
 
 # IDEs and editors
 !.vscode/settings.json
