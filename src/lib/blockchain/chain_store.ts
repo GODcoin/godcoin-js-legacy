@@ -2,7 +2,7 @@ import { TypeSerializer as TS } from '../serializer';
 import * as ByteBuffer from 'bytebuffer';
 import { SignedBlock } from './block';
 import { Indexer } from '../indexer';
-import * as crypto from 'crypto';
+import * as crc32 from 'sse4_crc32';
 import * as assert from 'assert';
 import * as path from 'path';
 import * as util from 'util';
@@ -102,21 +102,20 @@ export class ChainStore {
     await this.index.setBlockPos(block.height, val);
     await this.index.setChainHeight(block.height);
 
+    const tmp = Buffer.allocUnsafe(4);
     {
       // Write the block length
-      const tmp = Buffer.allocUnsafe(8);
-      const len = Long.fromNumber(blockLen, true);
-      tmp.writeInt32BE(len.high, 0, true);
-      tmp.writeInt32BE(len.low, 4, true);
-      await fsWrite(this.dbFd!, tmp, 0, 8);
+      tmp.writeUInt32BE(blockLen, 0, true);
+      await fsWrite(this.dbFd!, tmp, 0, 4);
     }
     await fsWrite(this.dbFd!, serBlock);
 
-    const checksum = sha256(serBlock);
-    await fsWrite(this.dbFd!, checksum, 0, 8);
+    const checksum = crc32.calculate(serBlock);
+    tmp.writeUInt32BE(checksum, 0, true);
+    await fsWrite(this.dbFd!, tmp, 0, 4);
 
     this._blockHead = block;
-    this.blockTailPos += blockLen + 16; // checksum + blockLen
+    this.blockTailPos += blockLen + 8; // blockLen + len num + checksum
     this.blockCache.push(block);
   }
 
@@ -149,33 +148,32 @@ export class ChainStore {
   }
 
   private async readBlock(blockPos: number): Promise<[SignedBlock,number]> {
-    const tmp = Buffer.allocUnsafe(8);
+    const tmp = Buffer.allocUnsafe(4);
 
     // Read the length of the block
     let len: number;
     {
-      const read = await fsRead(this.dbFd!, tmp, 0, 8, blockPos);
-      assert.equal(read.bytesRead, 8, 'unexpected EOF');
-      const high = tmp.readInt32BE(0, true);
-      const low = tmp.readInt32BE(4, true);
-      len = new Long(low, high, true).toNumber();
+      const read = await fsRead(this.dbFd!, tmp, 0, 4, blockPos);
+      assert.equal(read.bytesRead, 4, 'unexpected EOF');
+      len = tmp.readUInt32BE(0, true);
     }
 
     // Read the block
     const buf = Buffer.allocUnsafe(len);
-    let read = await fsRead(this.dbFd!, buf, 0, len, blockPos + 8);
+    let read = await fsRead(this.dbFd!, buf, 0, len, blockPos + 4);
     assert.equal(read.bytesRead, len, 'unexpected EOF');
 
     // Verify the checksum of the stored block
     {
-      read = await fsRead(this.dbFd!, tmp, 0, 8, blockPos + len + 8);
-      assert.equal(read.bytesRead, 8, 'unexpected EOF');
-      assert(sha256(buf).slice(0, 8).equals(tmp), 'invalid checksum');
+      read = await fsRead(this.dbFd!, tmp, 0, 4, blockPos + len + 4);
+      assert.equal(read.bytesRead, 4, 'unexpected EOF');
+      const checksum = tmp.readUInt32BE(0, true);
+      assert.equal(crc32.calculate(buf), checksum, 'invalid checksum');
     }
 
     // Deserialize and return
     const block = SignedBlock.fullyDeserialize(ByteBuffer.wrap(buf));
-    return [block, len + 16];
+    return [block, len + 8];
   }
 }
 
@@ -203,8 +201,4 @@ class BlockCache {
       ++this.count;
     }
   }
-}
-
-function sha256(val: Buffer) {
-  return crypto.createHash('sha256').update(val).digest();
 }
