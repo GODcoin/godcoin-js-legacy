@@ -66,6 +66,14 @@ export class ClientNet {
 
       this.ws.on('close', () => {
         this.ws.removeAllListeners();
+
+        const requests = Object.values(this.requests);
+        this.requests = {};
+        for (const req of requests) {
+          setImmediate(() => {
+            req.reject(new Error('disconnected'));
+          });
+        }
       });
 
       this.ws.on('error', err => {
@@ -95,7 +103,6 @@ export class ClientNet {
 
   close() {
     if (this.ws) this.ws.close();
-    // TODO: clear all requests
   }
 }
 
