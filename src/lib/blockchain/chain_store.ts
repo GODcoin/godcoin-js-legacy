@@ -120,11 +120,7 @@ export class ChainStore {
     this.blockCache.push(block);
   }
 
-  async read(blockHeight: number|Long): Promise<SignedBlock|undefined> {
-    if (typeof(blockHeight) === 'number') {
-      blockHeight = Long.fromNumber(blockHeight, true);
-    }
-
+  async read(blockHeight: Long): Promise<SignedBlock|undefined> {
     const block = this.blockCache.get(blockHeight);
     if (block) return block;
 

@@ -66,7 +66,7 @@ export class Blockchain {
   async start(): Promise<void> {
     await this.indexer.init();
     await this.store.init();
-    this.genesisBlock = (await this.store.read(0))!;
+    this.genesisBlock = (await this.getBlock(0))!;
     if (this.reindex) {
       console.log('Reindexing blockchain...');
       const start = Date.now();
@@ -132,7 +132,7 @@ export class Blockchain {
         await this.indexer.setChainHeight(head.height);
         await this.writeBalanceMap(balances);
         await this.store.reload();
-        this.genesisBlock = (await this.store.read(0))!;
+        this.genesisBlock = (await this.getBlock(0))!;
       }
       const end = Date.now();
       console.log(`Finished indexing in ${end - start}ms`);
@@ -174,8 +174,9 @@ export class Blockchain {
     }
   }
 
-  getBlock(num: number|Long): Promise<SignedBlock|undefined> {
-    return this.store.read(num);
+  getBlock(height: number|Long): Promise<SignedBlock|undefined> {
+    if (typeof(height) === 'number') height = Long.fromNumber(height, true);
+    return this.store.read(height);
   }
 
   async isBondValid(key: string|PublicKey): Promise<boolean> {
