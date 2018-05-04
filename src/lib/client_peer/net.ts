@@ -1,10 +1,14 @@
+import { EventEmitter } from 'events';
 import * as WebSocket from 'uws';
+import * as assert from 'assert';
 import { Lock } from '../lock';
 import * as borc from 'borc';
 
-export class ClientNet {
+export class ClientNet extends EventEmitter {
 
   private readonly openLock = new Lock();
+  private timer?: NodeJS.Timer;
+  private running = false;
 
   private requests: {[key: number]: PromiseLike} = {};
   private ws!: WebSocket;
@@ -15,12 +19,31 @@ export class ClientNet {
   }
 
   constructor(readonly nodeUrl) {
+    super();
+  }
+
+  /**
+   * @returns Whether the first connection was successful
+   */
+  async start(): Promise<boolean> {
+    assert(!this.running, 'client network already started');
+    this.running = true;
+    return await this.startOpenTimer(0);
+  }
+
+  async stop(): Promise<void> {
+    if (!this.running) return;
+    this.running = false;
+
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = undefined;
+    }
+    await this.close();
   }
 
   async send(data: any): Promise<any> {
-    if (this.ws.readyState !== WebSocket.OPEN) {
-      await this.open();
-    }
+    if (this.ws.readyState !== WebSocket.OPEN) throw new DisconnectedError();
     const id = this.id++;
     return new Promise((resolve, reject) => {
       const prom = this.requests[id] = {
@@ -46,8 +69,10 @@ export class ClientNet {
     });
   }
 
-  async open(): Promise<void> {
+  private async open(): Promise<void> {
     return new Promise<void>(async (resolve, reject) => {
+      if (!this.running) return;
+
       await this.openLock.lock();
       if (this.ws && (this.ws.readyState === WebSocket.OPEN
                       || this.ws.readyState === WebSocket.CONNECTING)) {
@@ -58,22 +83,27 @@ export class ClientNet {
       let completed = false;
       this.ws = new WebSocket(this.nodeUrl);
 
-      this.ws.on('open', () => {
+      this.ws.once('open', () => {
         completed = true;
         this.openLock.unlock();
         resolve();
       });
 
-      this.ws.on('close', () => {
+      this.ws.once('close', () => {
+        this.emit('close');
         this.ws.removeAllListeners();
 
         const requests = Object.values(this.requests);
         this.requests = {};
         for (const req of requests) {
           setImmediate(() => {
-            req.reject(new Error('disconnected'));
+            req.reject(new DisconnectedError());
           });
         }
+
+        setImmediate(() => {
+          if (this.running) this.startOpenTimer();
+        });
       });
 
       this.ws.on('error', err => {
@@ -101,8 +131,32 @@ export class ClientNet {
     });
   }
 
-  close() {
+  private async close() {
     if (this.ws) this.ws.close();
+    this.removeAllListeners();
+    this.openLock.unlock();
+  }
+
+  private async startOpenTimer(tries = 1): Promise<boolean> {
+    return new Promise<boolean>(resolve => {
+      if (this.timer) clearTimeout(this.timer);
+      this.timer = setTimeout(async () => {
+        try {
+          await this.open();
+          resolve(true);
+        } catch (e) {
+          console.log(`[${this.nodeUrl}] Failed to connect to peer`, e);
+          resolve(false);
+          if (this.running) this.startOpenTimer(++tries);
+        }
+      }, Math.min(10000, Math.floor(Math.pow(2, tries) * 700 * Math.random())));
+    });
+  }
+}
+
+export class DisconnectedError extends Error {
+  constructor() {
+    super('disconnected');
   }
 }
 

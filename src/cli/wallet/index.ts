@@ -42,7 +42,7 @@ export class Wallet {
       });
     });
 
-    await this.client.open();
+    await this.client.start();
 
     let prompt = 'new>> ';
     if (await this.db.isLocked()) {
@@ -71,7 +71,7 @@ export class Wallet {
     hookSigInt(async () => {
       write('Exiting wallet...');
       try {
-        this.client.close();
+        await this.client.stop();
       } catch (e) {
         write('Failed to close websocket connection', e);
       }

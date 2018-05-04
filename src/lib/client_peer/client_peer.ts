@@ -9,12 +9,12 @@ export class ClientPeer {
 
   constructor(readonly net: ClientNet) {}
 
-  open(): Promise<void> {
-    return this.net.open();
+  start(): Promise<boolean> {
+    return this.net.start();
   }
 
-  close(): void {
-    return this.net.close();
+  stop(): Promise<void> {
+    return this.net.stop();
   }
 
   async broadcast(tx: Buffer): Promise<BroadcastResult> {

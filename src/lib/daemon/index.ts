@@ -1,4 +1,5 @@
 import { Blockchain, Block, ChainStore } from '../blockchain';
+import { ClientPeerPool } from './client_peer_pool';
 import { RewardTx, TxType } from '../transactions';
 import { KeyPair, PrivateKey } from '../crypto';
 import { Asset, AssetSymbol } from '../asset';
@@ -42,6 +43,12 @@ export class Daemon {
     if (this.blockchain.head) {
       const height = this.blockchain.head.height.toString();
       console.log(`Using existing blockchain at height ${height}`);
+    }
+
+    if (this.opts.peers.length) {
+      const peerPool = new ClientPeerPool();
+      for (const peer of this.opts.peers) peerPool.addNode(peer);
+      peerPool.open();
     }
 
     if (this.opts.signingKeys) {
