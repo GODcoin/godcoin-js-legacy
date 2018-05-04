@@ -122,7 +122,7 @@ it('should throw performing arithmetic on different asset types', () => {
 
   function check(func: (asset: Asset) => void) {
     expect(() => {
-      func.bind(a)(b);
+      func.call(a, b);
     }).to.throw(AssertionError, "asset type mismatch");
   }
 
