@@ -149,7 +149,7 @@ export class ClientNet extends EventEmitter {
           resolve(false);
           if (this.running) this.startOpenTimer(++tries);
         }
-      }, Math.min(10000, Math.floor(Math.pow(2, tries) * 700 * Math.random())));
+      }, tries === 0 ? 0 : Math.min(10000, Math.floor(Math.pow(2, tries) * 700 * Math.random())));
     });
   }
 }
