@@ -25,7 +25,8 @@ export interface DaemonOpts {
 export class Daemon {
 
   readonly blockchain: Blockchain;
-  readonly pool: TxPool;
+  readonly txPool: TxPool;
+  readonly peerPool: ClientPeerPool;
   private server?: Server;
   private minter?: Minter;
 
@@ -34,7 +35,8 @@ export class Daemon {
     mkdirp.sync(dir);
 
     this.blockchain = new Blockchain(dir, opts.reindex);
-    this.pool = new TxPool(this.blockchain, this.opts.signingKeys !== undefined);
+    this.txPool = new TxPool(this.blockchain, this.opts.signingKeys !== undefined);
+    this.peerPool = new ClientPeerPool();
   }
 
   async start(): Promise<void> {
@@ -46,13 +48,12 @@ export class Daemon {
     }
 
     if (this.opts.peers.length) {
-      const peerPool = new ClientPeerPool();
-      for (const peer of this.opts.peers) peerPool.addNode(peer);
-      peerPool.open();
+      for (const peer of this.opts.peers) this.peerPool.addNode(peer);
+      await this.peerPool.start();
     }
 
     if (this.opts.signingKeys) {
-      this.minter = new Minter(this.blockchain, this.pool, this.opts.signingKeys);
+      this.minter = new Minter(this.blockchain, this.txPool, this.opts.signingKeys);
       if (!(this.blockchain.head || this.opts.peers.length)) {
         await this.minter.createGenesisBlock();
       }
@@ -61,7 +62,7 @@ export class Daemon {
     if (this.opts.listen) {
       this.server = new Server({
         blockchain: this.blockchain,
-        pool: this.pool,
+        pool: this.txPool,
         bindAddress: this.opts.bind,
         port: this.opts.port
       });
@@ -72,11 +73,13 @@ export class Daemon {
   }
 
   async stop(): Promise<void> {
-    await this.blockchain.stop();
+    this.peerPool.stop();
     if (this.server) {
       this.server.stop();
       this.server = undefined;
     }
+
+    await this.blockchain.stop();
     if (this.minter) {
       this.minter.stop();
       this.minter = undefined;

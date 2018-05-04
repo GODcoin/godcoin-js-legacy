@@ -7,7 +7,6 @@ import {
 
 export class ClientPeerPool {
 
-  private running = false;
   private clients: ClientPeer[] = [];
   private index = 0;
 
@@ -16,7 +15,7 @@ export class ClientPeerPool {
     this.clients.push(peer);
   }
 
-  async open() {
+  async start() {
     this.index = 0;
     for (const client of this.clients) {
       const connected = await client.start();
@@ -24,6 +23,11 @@ export class ClientPeerPool {
         console.log(`[${client.net.nodeUrl}] Successfully connected to peer`);
       }
     }
+  }
+
+  async stop() {
+    this.index = 0;
+    for (const client of this.clients) await client.stop();
   }
 
   async getBlockRange(min: number, max: number): Promise<BlockRange> {
