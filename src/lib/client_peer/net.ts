@@ -83,13 +83,13 @@ export class ClientNet extends EventEmitter {
       let completed = false;
       this.ws = new WebSocket(this.nodeUrl);
 
-      this.ws.once('open', () => {
+      this.ws.on('open', () => {
         completed = true;
         this.openLock.unlock();
         resolve();
       });
 
-      this.ws.once('close', () => {
+      this.ws.on('close', () => {
         this.emit('close');
         this.ws.removeAllListeners();
 
