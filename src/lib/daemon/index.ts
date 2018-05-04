@@ -45,6 +45,8 @@ export class Daemon {
     if (this.blockchain.head) {
       const height = this.blockchain.head.height.toString();
       console.log(`Using existing blockchain at height ${height}`);
+    } else {
+      console.log('Block log is empty or missing');
     }
 
     if (this.opts.peers.length) {
