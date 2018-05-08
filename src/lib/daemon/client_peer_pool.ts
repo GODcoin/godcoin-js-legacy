@@ -10,6 +10,8 @@ export class ClientPeerPool {
   private clients: ClientPeer[] = [];
   private index = 0;
 
+  get count() { return this.clients.length; }
+
   async addNode(nodeUrl: string) {
     const peer = new ClientPeer(new ClientNet(nodeUrl));
     this.clients.push(peer);
@@ -41,7 +43,7 @@ export class ClientPeerPool {
       this.index = (i + 1) % clientLen;
       try {
         const client = this.clients[this.index];
-        return await func.call(this.clients[this.index], args);
+        return await func.call(client, ...args);
       } catch (e) {
         if (e instanceof DisconnectedError) continue;
         throw e;
