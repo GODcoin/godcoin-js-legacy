@@ -1,5 +1,5 @@
+import { ClientPeerPool, EndOfClients } from './client_peer_pool';
 import { Blockchain, Block, ChainStore } from '../blockchain';
-import { ClientPeerPool } from './client_peer_pool';
 import { RewardTx, TxType } from '../transactions';
 import { KeyPair, PrivateKey } from '../crypto';
 import { Asset, AssetSymbol } from '../asset';
@@ -27,6 +27,7 @@ export class Daemon {
   readonly blockchain: Blockchain;
   readonly txPool: TxPool;
   readonly peerPool: ClientPeerPool;
+  private running = false;
   private server?: Server;
   private minter?: Minter;
 
@@ -40,6 +41,7 @@ export class Daemon {
   }
 
   async start(): Promise<void> {
+    this.running = true;
     await this.blockchain.start();
 
     if (this.blockchain.head) {
@@ -52,6 +54,7 @@ export class Daemon {
     if (this.opts.peers.length) {
       for (const peer of this.opts.peers) this.peerPool.addNode(peer);
       await this.peerPool.start();
+      await this.synchronizeChain();
     }
 
     if (this.opts.signingKeys) {
@@ -75,6 +78,7 @@ export class Daemon {
   }
 
   async stop(): Promise<void> {
+    this.running = false;
     this.peerPool.stop();
     if (this.server) {
       this.server.stop();
@@ -87,4 +91,37 @@ export class Daemon {
       this.minter = undefined;
     }
   }
+
+  private async synchronizeChain(): Promise<void> {
+    let height = this.blockchain.head ? this.blockchain.head.height : undefined;
+    let batch = this.blockchain.prepareBatch();
+    while (this.running) {
+      try {
+        const min = height ? height.add(1) : Long.fromNumber(0, true);
+        const max = height ? height.add(100) : min.add(100);
+        const range = await this.peerPool.getBlockRange(min.toNumber(), max.toNumber());
+        height = max;
+
+        if (range.blocks.length) {
+          for (const block of range.blocks) {
+            if (this.running) await batch.index(block);
+          }
+        }
+        if (range.range_outside_height) {
+          const height = this.blockchain.head.height.toString();
+          console.log('Synchronization completed at height', height);
+          break;
+        }
+      } catch (e) {
+        if (e instanceof EndOfClients) {
+          await new Promise(r => setTimeout(r, 3000).unref());
+          continue;
+        }
+        await batch.flush();
+        throw e;
+      }
+    }
+    await batch.flush();
+  }
+
 }
