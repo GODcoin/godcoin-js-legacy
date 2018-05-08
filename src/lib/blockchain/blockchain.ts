@@ -8,6 +8,7 @@ import { BigInteger } from 'big-integer';
 import { GODcoin } from '../constants';
 import * as bigInt from 'big-integer';
 import * as Codec from 'level-codec';
+import { BatchIndex } from './batch';
 import * as assert from 'assert';
 import { Lock } from '../lock';
 import * as Long from 'long';
@@ -17,17 +18,13 @@ import * as fs from 'fs';
 
 export * from './block';
 
-const jsonCodec = new Codec({
-  keyEncoding: 'binary',
-  valueEncoding: 'json'
-});
-
 export class Blockchain {
 
   private readonly dir: string;
   private get indexDir() { return path.join(this.dir, 'index'); }
   private get logDir() { return path.join(this.dir, 'blklog'); }
 
+  private readonly balances: BalanceMap;
   private readonly lock = new Lock();
   private genesisBlock!: SignedBlock;
   private reindex = false;
@@ -61,6 +58,7 @@ export class Blockchain {
     if (reindex && !logDirExists) reindex = false;
     this.indexer = new Indexer(this.indexDir);
     this.store = new ChainStore(this.logDir, this.indexer);
+    this.balances = new BalanceMap(this.indexer, this.getBalance.bind(this));
   }
 
   async start(): Promise<void> {
@@ -71,9 +69,8 @@ export class Blockchain {
       console.log('Reindexing blockchain...');
       const start = Date.now();
 
+      const batch = this.prepareBatch();
       let head: SignedBlock|undefined;
-      let ops: any[] = [];
-      const balances = new BalanceMap(this.getBalance.bind(this));
 
       await this.store.readBlockLog(async (err, block, bytePos) => {
         if (err) {
@@ -86,51 +83,13 @@ export class Blockchain {
           }
           return;
         }
-        if (head) block.validate(head);
         head = block;
-        await this.indexBlock(balances, head);
-        {
-          const buf = Buffer.allocUnsafe(8);
-          buf.writeInt32BE(head.height.high, 0, true);
-          buf.writeInt32BE(head.height.low, 4, true);
-
-          const val = Long.fromNumber(bytePos, true);
-          const pos = Buffer.allocUnsafe(8);
-          pos.writeInt32BE(val.high, 0, true);
-          pos.writeInt32BE(val.low, 4, true);
-
-          ops.push({
-            type: 'put',
-            key: Buffer.concat([IndexProp.NAMESPACE_BLOCK, buf]),
-            value: pos
-          });
-          if (ops.length >= 1000) {
-            await new Promise<void>((res, rej) => {
-              const batch = this.indexer.db.db.batch(ops, err => {
-                if (err) return rej(err);
-                res();
-              });
-            });
-            ops.length = 0;
-          }
-        }
-        if (head.height.mod(1000).eq(0)) {
-          console.log('=> Indexed block:', head.height.toString());
-        }
+        batch.index(block, bytePos);
       });
 
       if (head) {
-        if (ops.length > 0) {
-          await new Promise<void>((res, rej) => {
-            const batch = this.indexer.db.db.batch(ops, err => {
-              if (err) return rej(err);
-              res();
-            });
-          });
-          ops.length = 0;
-        }
+        await batch.flush();
         await this.indexer.setChainHeight(head.height);
-        await this.writeBalanceMap(balances);
         await this.store.reload();
         this.genesisBlock = (await this.getBlock(0))!;
       }
@@ -152,6 +111,10 @@ export class Blockchain {
     }
   }
 
+  prepareBatch(): BatchIndex {
+    return new BatchIndex(this.indexer, this.store, this.getBalance.bind(this));
+  }
+
   async addBlock(block: SignedBlock): Promise<void> {
     try {
       await this.lock.lock();
@@ -165,9 +128,8 @@ export class Blockchain {
         block.validate(this.head);
         await this.store.write(block);
       }
-      const balances = new BalanceMap(this.getBalance.bind(this));
-      await this.indexBlock(balances, block);
-      await this.writeBalanceMap(balances);
+      await this.balances.update(block);
+      await this.balances.write();
       await this.cacheNetworkFee();
     } finally {
       this.lock.unlock();
@@ -266,54 +228,5 @@ export class Blockchain {
     const goldFee = GODcoin.MIN_GOLD_FEE.mul(GODcoin.NETWORK_FEE_GOLD_MULT.pow(txCount), 8);
     const silverFee = GODcoin.MIN_SILVER_FEE.mul(GODcoin.NETWORK_FEE_SILVER_MULT.pow(txCount), 8);
     this._networkFee = [goldFee, silverFee];
-  }
-
-  private async indexBlock(balances: BalanceMap,
-                            block: SignedBlock): Promise<void> {
-    for (const tx of block.transactions) {
-      if (tx instanceof TransferTx) {
-        const fromBal = await balances.getBal(tx.data.from);
-        const toBal = await balances.getBal(tx.data.to);
-        if (tx.data.amount.symbol === AssetSymbol.GOLD) {
-          fromBal[0] = fromBal[0].sub(tx.data.amount).sub(tx.data.fee);
-          toBal[0] = toBal[0].add(tx.data.amount);
-        } else if (tx.data.amount.symbol === AssetSymbol.SILVER) {
-          fromBal[1] = fromBal[1].sub(tx.data.amount).sub(tx.data.fee);
-          toBal[1] = toBal[1].add(tx.data.amount);
-        } else {
-          throw new Error('unhandled symbol: ' + tx.data.amount.symbol);
-        }
-      } else if (tx instanceof RewardTx) {
-        const toBal = await balances.getBal(tx.data.to);
-        for (const reward of tx.data.rewards) {
-          if (reward.symbol === AssetSymbol.GOLD) {
-            toBal[0] = toBal[0].add(reward);
-          } else if (reward.symbol === AssetSymbol.SILVER) {
-            toBal[1] = toBal[1].add(reward);
-          } else {
-            throw new Error('unhandled symbol: ' + reward.symbol);
-          }
-        }
-      }
-    }
-  }
-
-  private async writeBalanceMap(balances: BalanceMap): Promise<void> {
-    if (balances.count <= 0) return;
-    const batch = this.indexer.db.db.batch();
-    batch.codec = jsonCodec; // Workaround for encoding-down
-    for (const [hex, assets] of Object.entries(balances.flush())) {
-      const key = [IndexProp.NAMESPACE_BAL, Buffer.from(hex, 'hex')];
-      batch.put(Buffer.concat(key), [
-        assets[0].toString(),
-        assets[1].toString()
-      ]);
-    }
-    return new Promise<void>((res, rej) => {
-      batch.write(err => {
-        if (err) return rej(err);
-        res();
-      });
-    });
   }
 }
