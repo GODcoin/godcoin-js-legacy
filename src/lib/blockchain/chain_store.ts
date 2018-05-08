@@ -44,10 +44,9 @@ export class ChainStore {
     this.dbFd = await fsOpen(this.dbFile, 'a+');
     this.blockTailPos = (await fsStat(this.dbFile)).size;
     this.initialized = true;
-    await this.reload();
   }
 
-  async reload(): Promise<void> {
+  async postInit(): Promise<void> {
     assert(this.initialized, 'must be initialized');
     const height = await this.index.getChainHeight();
     if (height) {

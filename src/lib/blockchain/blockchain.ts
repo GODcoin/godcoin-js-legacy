@@ -64,7 +64,7 @@ export class Blockchain {
   async start(): Promise<void> {
     await this.indexer.init();
     await this.store.init();
-    this.genesisBlock = (await this.getBlock(0))!;
+
     if (this.reindex) {
       console.log('Reindexing blockchain...');
       const start = Date.now();
@@ -90,15 +90,12 @@ export class Blockchain {
       if (head) {
         await batch.flush();
         await this.indexer.setChainHeight(head.height);
-        await this.store.reload();
-        this.genesisBlock = (await this.getBlock(0))!;
       }
       const end = Date.now();
       console.log(`Finished indexing in ${end - start}ms`);
     }
-    if (this.head) {
-      await this.cacheNetworkFee();
-    }
+
+    await this.reload();
   }
 
   async stop(): Promise<void> {
@@ -109,6 +106,12 @@ export class Blockchain {
     } finally {
       this.lock.unlock();
     }
+  }
+
+  async reload(): Promise<void> {
+    await this.store.postInit();
+    this.genesisBlock = (await this.getBlock(0))!;
+    if (this.head) await this.cacheNetworkFee();
   }
 
   prepareBatch(): BatchIndex {

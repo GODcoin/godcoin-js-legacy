@@ -122,6 +122,7 @@ export class Daemon {
       }
     }
     await batch.flush();
+    await this.blockchain.reload();
   }
 
 }
