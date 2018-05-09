@@ -312,10 +312,24 @@ export class Wallet {
         write(data);
         break;
       }
+      case 'subscribe_block': {
+        const handler = (data: any) => {
+          const block = SignedBlock.fullyDeserialize(ByteBuffer.wrap(data.block));
+          write('subscribe_block =>', block.toString());
+        };
+        this.client.net.on('net_event_block', handler);
+        this.client.net.once('close', () => {
+          this.client.net.removeListener('net_event_block', handler);
+        });
+
+        const data = await this.client.subscribeBlock();
+        write('subscribe_block =>', data.toString());
+        break;
+      }
       default:
         write('Unknown command:', args[0]);
       case 'help':
-        const cmds: string[][] = [];
+        let cmds: string[][] = [];
         cmds.push(['help', 'display this help menu']);
         cmds.push(['new <password>', 'create a new wallet']);
         cmds.push(['unlock <password>', 'unlock the wallet']);
@@ -329,19 +343,11 @@ export class Wallet {
         cmds.push(['list_accounts', 'list all accounts in the wallet']);
         cmds.push(['list_all_keys', 'list all keys in the wallet']);
         cmds.push(['transfer <from_account> <to_address> <amount> [memo]', 'transfer funds from an account to another GODcoin public address']);
+        Wallet.writeHelp('Available commands:', cmds);
 
-        let maxLen = 0;
-        for (const cmd of cmds) {
-          const cmdLen = cmd[0].length;
-          if (cmdLen > maxLen) maxLen = cmdLen;
-        }
-
-        write('Available commands:');
-        for (const cmd of cmds) {
-          let c = cmd[0];
-          if (c.length < maxLen) c += ' '.repeat(maxLen - c.length);
-          write('  ' + c + '  ' + cmd[1]);
-        }
+        cmds = [];
+        cmds.push(['subscribe_block', 'subscribes to blocks as they are added to the network']);
+        Wallet.writeHelp('Additional commands:', cmds);
     }
   }
 
@@ -400,6 +406,22 @@ export class Wallet {
       tmp = '';
     }
     return args;
+  }
+
+  static writeHelp(header: string, cmds: string[][]) {
+    let maxLen = 0;
+    for (const cmd of cmds) {
+      assert(cmd.length === 2);
+      const cmdLen = cmd[0].length;
+      if (cmdLen > maxLen) maxLen = cmdLen;
+    }
+
+    write(header);
+    for (const cmd of cmds) {
+      let c = cmd[0];
+      if (c.length < maxLen) c += ' '.repeat(maxLen - c.length);
+      write('  ' + c + '  ' + cmd[1]);
+    }
   }
 }
 

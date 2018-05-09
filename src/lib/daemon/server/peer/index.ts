@@ -1,6 +1,7 @@
 import { Blockchain, SignedBlock } from '../../../blockchain';
 import { ApiError, ApiErrorCode, check } from './api_error';
 import { Minter, TxPool } from '../../../producer';
+import { DisconnectedError } from '../../..';
 import { PublicKey } from '../../../crypto';
 import { PeerNet } from './net';
 
@@ -18,6 +19,8 @@ export class Peer {
   private readonly blockchain: Blockchain;
   private readonly pool: TxPool;
   private readonly net: PeerNet;
+
+  private blockHandler?: (block: SignedBlock) => void;
 
   constructor(opts: PeerOptions) {
     this.blockchain = opts.blockchain;
@@ -122,6 +125,31 @@ export class Peer {
             balance[0].toString(),
             balance[1].toString()
           ]
+        };
+      }
+      case 'subscribe_block': {
+        check(!this.blockHandler, ApiErrorCode.MISC, 'already subscribed');
+        const id = map.id;
+
+        this.blockHandler = async (block: SignedBlock) => {
+          try {
+            await this.net.sendEvent('block', {
+              block: block.fullySerialize().toBuffer()
+            });
+          } catch (e) {
+            if (e instanceof DisconnectedError) {
+              this.blockchain.removeListener('block', this.blockHandler!);
+              this.blockHandler = undefined;
+            } else {
+              console.log(`[${this.net.ip}] Failed to push block to client`);
+            }
+          }
+        };
+        setImmediate(() => {
+          this.blockchain.on('block', this.blockHandler!);
+        });
+        return {
+          block: this.blockchain.head.fullySerialize().toBuffer()
         };
       }
       default:

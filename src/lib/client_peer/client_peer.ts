@@ -24,6 +24,13 @@ export class ClientPeer {
     });
   }
 
+  async subscribeBlock(): Promise<SignedBlock> {
+    const data = (await this.net.send({
+      method: 'subscribe_block'
+    })).block;
+    return SignedBlock.fullyDeserialize(ByteBuffer.wrap(data));
+  }
+
   async getProperties(): Promise<NetworkProperties> {
     return await this.net.send({
       method: 'get_properties'
