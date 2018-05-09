@@ -6,6 +6,7 @@ import { Block, SignedBlock } from './block';
 import { ChainStore } from './chain_store';
 import { BigInteger } from 'big-integer';
 import { GODcoin } from '../constants';
+import { EventEmitter } from 'events';
 import * as bigInt from 'big-integer';
 import * as Codec from 'level-codec';
 import { BatchIndex } from './batch';
@@ -18,7 +19,7 @@ import * as fs from 'fs';
 
 export * from './block';
 
-export class Blockchain {
+export class Blockchain extends EventEmitter {
 
   private readonly dir: string;
   private get indexDir() { return path.join(this.dir, 'index'); }
@@ -42,6 +43,7 @@ export class Blockchain {
   }
 
   constructor(dir: string, reindex = false) {
+    super();
     this.dir = dir;
     this.reindex = reindex;
     const indexDirExists = fs.existsSync(this.indexDir);
@@ -101,6 +103,7 @@ export class Blockchain {
   async stop(): Promise<void> {
     await this.lock.lock();
     try {
+      this.removeAllListeners();
       await this.store.close();
       await this.indexer.close();
     } finally {
@@ -134,6 +137,7 @@ export class Blockchain {
       await this.balances.update(block);
       await this.balances.write();
       await this.cacheNetworkFee();
+      this.emit('block', block);
     } finally {
       this.lock.unlock();
     }
