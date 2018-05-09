@@ -179,6 +179,7 @@ export class Blockchain {
         }
       }
       if (delta === GODcoin.FEE_RESET_WINDOW) break;
+      else if (i.eq(0)) break;
     }
 
     const goldFee = GODcoin.MIN_GOLD_FEE.mul(GODcoin.GOLD_FEE_MULT.pow(txCount), 8);
