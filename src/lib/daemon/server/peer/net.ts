@@ -38,16 +38,12 @@ export class PeerNet {
           }
           try {
             const resp = await cb(map);
-            await this.send(borc.encode({
-              id,
-              ...resp
-            }));
+            await this.sendId(id, resp);
           } catch (e) {
-            await this.send(borc.encode({
-              id,
+            await this.sendId(id, {
               error: e instanceof ApiError ? e.code : ApiErrorCode.MISC,
               message: e.message
-            }));
+            });
           }
         }
       } catch (e) {
@@ -56,16 +52,32 @@ export class PeerNet {
     });
   }
 
-  send(data: Buffer): Promise<void> {
+  sendEvent(event: string, data: any): Promise<void> {
+    const buf = borc.encode({
+      event,
+      ...data
+    });
+    return this.send(buf);
+  }
+
+  close(code: WsCloseCode = 1000, reason?: string): void {
+    this.ws.close(code, reason);
+  }
+
+  private sendId(id: number, data: any): Promise<void> {
+    const buf = borc.encode({
+      id,
+      ...data
+    });
+    return this.send(buf);
+  }
+
+  private async send(data: Buffer): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       this.ws.send(data, err => {
         if (err) return reject(err);
         resolve();
       });
     });
-  }
-
-  close(code: WsCloseCode = 1000, reason?: string): void {
-    this.ws.close(code, reason);
   }
 }

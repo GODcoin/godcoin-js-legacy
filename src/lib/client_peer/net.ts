@@ -120,6 +120,7 @@ export class ClientNet extends EventEmitter {
       this.ws.on('message', data => {
         try {
           const map = borc.decode(Buffer.from(data));
+          if (map.event) return this.emit(`net_event_${map.event}`, map);
           const id = map.id;
           if (id === null || id === undefined) throw new Error('missing id');
           if (map.error) this.requests[id].reject(map);
