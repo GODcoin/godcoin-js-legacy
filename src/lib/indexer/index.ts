@@ -35,7 +35,7 @@ export class Indexer {
     }).on('data', data => {
       const key = data.key as Buffer;
       const value = data.value as Buffer;
-      const expiry = value.readUInt32BE(0);
+      const expiry = value.readDoubleBE(0);
       assert(key.slice(0, IndexProp.NAMESPACE_TX.length).equals(IndexProp.NAMESPACE_TX));
 
       this.expireTxTimeout(key.slice(IndexProp.NAMESPACE_TX.length), expiry);
@@ -58,8 +58,8 @@ export class Indexer {
   }
 
   async addTx(tx: Buffer, expiry: number): Promise<void> {
-    const buf = Buffer.allocUnsafe(4);
-    buf.writeUInt32BE(expiry, 0, true);
+    const buf = Buffer.allocUnsafe(8);
+    buf.writeDoubleBE(expiry, 0, true);
     await this.setProp(IndexProp.NAMESPACE_TX, tx, buf);
     this.expireTxTimeout(tx, expiry);
   }
