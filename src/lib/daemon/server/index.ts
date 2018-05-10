@@ -4,7 +4,6 @@ import { Peer, PeerNet } from './peer';
 import { GODcoinEnv } from '../../env';
 import * as WebSocket from 'uws';
 import * as http from 'http';
-import * as Koa from 'koa';
 
 export interface ServerOptions {
   blockchain: Blockchain;
@@ -20,7 +19,6 @@ export class Server {
   private readonly bindAddr: string;
   private readonly port: number;
 
-  private readonly app = new Koa();
   private ws = new WebSocket.Server({
     noServer: true
   });
@@ -36,8 +34,10 @@ export class Server {
   start(): void {
     if (this.server) return;
 
-    const cb = this.app.callback();
-    this.server = http.createServer(cb).listen(this.port, this.bindAddr, () => {
+    this.server = http.createServer((req, res) => {
+      res.statusCode = 404;
+      res.end();
+    }).listen(this.port, this.bindAddr, () => {
       console.log(`Server bound to ${this.bindAddr}:${this.port}`);
     });
     this.server.on('upgrade', (req: http.IncomingMessage, socket, head) => {
