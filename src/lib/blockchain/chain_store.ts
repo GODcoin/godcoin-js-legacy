@@ -150,16 +150,13 @@ export class ChainStore {
     const tmp = Buffer.allocUnsafe(4);
 
     // Read the length of the block
-    let len: number;
-    {
-      const read = await fsRead(this.dbFd!, tmp, 0, 4, blockPos);
-      assert.equal(read.bytesRead, 4, 'unexpected EOF');
-      len = tmp.readUInt32BE(0, true);
-    }
+    let read = await fsRead(this.dbFd!, tmp, 0, 4, blockPos);
+    assert.equal(read.bytesRead, 4, 'unexpected EOF');
+    const len = tmp.readUInt32BE(0, true);
 
     // Read the block
     const buf = Buffer.allocUnsafe(len);
-    let read = await fsRead(this.dbFd!, buf, 0, len, blockPos + 4);
+    read = await fsRead(this.dbFd!, buf, 0, len, blockPos + 4);
     assert.equal(read.bytesRead, len, 'unexpected EOF');
 
     // Verify the checksum of the stored block
