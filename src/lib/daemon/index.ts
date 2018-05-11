@@ -1,5 +1,5 @@
+import { Blockchain, Block, ChainStore, SignedBlock } from '../blockchain';
 import { ClientPeerPool, EndOfClients } from './client_peer_pool';
-import { Blockchain, Block, ChainStore } from '../blockchain';
 import { RewardTx, TxType } from '../transactions';
 import { KeyPair, PrivateKey } from '../crypto';
 import { Asset, AssetSymbol } from '../asset';
@@ -10,6 +10,7 @@ import { GODcoinEnv } from '../env';
 import { Server } from './server';
 import * as assert from 'assert';
 import * as mkdirp from 'mkdirp';
+import { Lock } from '../lock';
 import * as Long from 'long';
 import * as path from 'path';
 
@@ -54,7 +55,37 @@ export class Daemon {
     if (this.opts.peers.length) {
       for (const peer of this.opts.peers) this.peerPool.addNode(peer);
       await this.peerPool.start();
+
+      const lock = new Lock();
+      let blocks: SignedBlock[]|undefined = [];
+      await this.peerPool.subscribeBlock(async block => {
+        try {
+          await lock.lock();
+          if (blocks) {
+            blocks.push(block);
+          } else {
+            const height = block.height.toString();
+            const len = block.transactions.length;
+            await this.blockchain.addBlock(block);
+            console.log(`Received block at height ${height} with ${len} transaction${len === 1 ? '' : 's'}`);
+          }
+        } finally {
+          lock.unlock();
+        }
+      });
       await this.synchronizeChain();
+
+      await lock.lock();
+      for (const b of blocks) {
+        if (b.height.gt(this.blockchain.head.height)) {
+          await this.blockchain.addBlock(b);
+        }
+      }
+      blocks = undefined;
+
+      const height = this.blockchain.head.height;
+      console.log('Synchronization completed at height', height.toString());
+      lock.unlock();
     }
 
     if (this.opts.signingKeys) {
@@ -107,11 +138,7 @@ export class Daemon {
             if (this.running) await batch.index(block);
           }
         }
-        if (range.range_outside_height) {
-          const height = this.blockchain.head.height.toString();
-          console.log('Synchronization completed at height', height);
-          break;
-        }
+        if (range.range_outside_height) break;
       } catch (e) {
         if (e instanceof EndOfClients) {
           await new Promise(r => setTimeout(r, 3000).unref());

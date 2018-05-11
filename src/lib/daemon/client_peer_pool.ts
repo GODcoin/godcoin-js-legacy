@@ -4,6 +4,8 @@ import {
   ClientPeer,
   ClientNet
 } from '../client_peer';
+import { SignedBlock } from '../blockchain';
+import * as ByteBuffer from 'bytebuffer';
 
 export class ClientPeerPool {
 
@@ -30,6 +32,37 @@ export class ClientPeerPool {
   async stop() {
     this.index = 0;
     for (const client of this.clients) await client.stop();
+  }
+
+  async subscribeBlock(cb: (block: SignedBlock) => void) {
+    let lastHeight: Long|undefined;
+    const handler = (data: any) => {
+      const block = SignedBlock.fullyDeserialize(ByteBuffer.wrap(data.block));
+      if (block.height.gt(lastHeight!)) {
+        lastHeight = block.height;
+        cb(block);
+      }
+    };
+    for (const client of this.clients) {
+      client.net.on('open', async () => {
+        try {
+          await client.subscribeBlock();
+        } catch (e) {
+          console.log(`[${client.net.nodeUrl}] Failed to subscribe to incoming blocks`, e);
+        }
+      });
+
+      client.net.on('net_event_block', handler);
+      try {
+        const b = await client.subscribeBlock();
+        if (!lastHeight) {
+          lastHeight = b.height;
+          cb(b);
+        }
+      } catch (e) {
+        console.log(`[${client.net.nodeUrl}] Failed to subscribe to incoming blocks`, e);
+      }
+    }
   }
 
   async getBlockRange(min: number, max: number): Promise<BlockRange> {

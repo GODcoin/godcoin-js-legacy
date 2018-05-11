@@ -34,12 +34,15 @@ export class ClientNet extends EventEmitter {
   async stop(): Promise<void> {
     if (!this.running) return;
     this.running = false;
+    this.removeAllListeners();
 
     if (this.timer) {
       clearTimeout(this.timer);
       this.timer = undefined;
     }
-    await this.close();
+    await this.openLock.lock();
+    if (this.ws) this.ws.close();
+    this.openLock.unlock();
   }
 
   async send(data: any): Promise<any> {
@@ -130,12 +133,6 @@ export class ClientNet extends EventEmitter {
         }
       });
     });
-  }
-
-  private async close() {
-    if (this.ws) this.ws.close();
-    this.removeAllListeners();
-    this.openLock.unlock();
   }
 
   private async startOpenTimer(tries = 1): Promise<boolean> {
