@@ -48,9 +48,8 @@ export abstract class Tx {
 
   sign(key: PrivateKey): SigPair {
     const buf = this.serialize(false);
-    if (debug.enabled) {
-      debug('Signing TX\nTX: %o\nHex: %s', this, buf.toHex());
-    }
+    /* istanbul ignore if */
+    if (debug.enabled) debug('Signing TX\nTX: %o\nHex: %s', this, buf.toHex());
     return key.sign(buf.toBuffer());
   }
 

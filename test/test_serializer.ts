@@ -42,17 +42,18 @@ it('should serialize transfer transactions', () => {
   const tx = new TransferTx({
     type: TxType.TRANSFER,
     timestamp: new Date(),
+    fee: Asset.fromString('0.00000001 GOLD'),
+    signature_pairs: [],
     from: from.publicKey,
     to: generateKeyPair().publicKey,
     amount: Asset.fromString('10 GOLD'),
-    fee: Asset.fromString('0.00000001 GOLD'),
-    memo: Buffer.from('test 123'),
-    signature_pairs: []
+    memo: Buffer.from('test 123')
   }).appendSign(from.privateKey);
 
   const buf = tx.serialize(true);
   const recTx = deserialize<TransferTx>(buf);
   expect(recTx.data).to.eql(tx.data);
+  expect(recTx.toString()).to.eql(tx.toString());
 });
 
 it('should serialize reward transactions', () => {
