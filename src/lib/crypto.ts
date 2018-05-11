@@ -133,13 +133,6 @@ export class PublicKey extends Key {
     wif = wif.slice(PUB_ADDRESS_PREFIX.length);
     return new PublicKey(Key.keyFromWif(wif, PUB_BUF_PREFIX));
   }
-
-  static fromSigPair(buf: Buffer): SigPair {
-    return {
-      public_key: new PublicKey(buf.slice(0, sodium.crypto_sign_PUBLICKEYBYTES)),
-      signature: buf.slice(sodium.crypto_sign_PUBLICKEYBYTES)
-    };
-  }
 }
 
 export interface SigPair {
