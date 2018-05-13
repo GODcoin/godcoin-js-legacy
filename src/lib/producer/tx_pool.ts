@@ -51,7 +51,7 @@ export class TxPool {
         const remaining = bal!.sub(tx.data.amount).sub(tx.data.fee);
         assert(remaining.amount.geq(0), 'insufficient balance');
         await this.indexer.addTx(txBuf, tx.data.timestamp!.getTime() + 60000);
-        return [this.blockchain.head.height, this.txs.push(tx) - 1];
+        return [this.blockchain.head.height.add(1), this.txs.push(tx) - 1];
       }
 
       throw new Error('invalid transaction');
