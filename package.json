@@ -9,7 +9,7 @@
     "preinstall": "node -e \"if(process.env.npm_execpath.indexOf('yarn') === -1) throw new Error('Use yarn for installing: https://yarnpkg.com/en/docs/install')\"",
     "prepare": "yarn run build",
     "build": "gulp build",
-    "test": "nyc mocha -r ts-node/register test/index.ts",
+    "test": "cross-env NODE_ENV=TEST nyc mocha -r ts-node/register test/index.ts",
     "benchmark": "ts-node bench/index.ts"
   },
   "files": [
@@ -61,6 +61,7 @@
     "benchmark": "^2.1.4",
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
+    "cross-env": "^5.1.5",
     "gulp": "^3.9.1",
     "gulp-sourcemaps": "^2.6.4",
     "gulp-typescript": "^4.0.2",
