@@ -1,22 +1,33 @@
-import { Indexer, IndexProp, BalanceMap, CacheMissCallback } from '../indexer';
-import { TransferTx, RewardTx } from '../transactions';
+import { TransferTx, RewardTx, BondTx } from '../transactions';
+import { Indexer, IndexProp } from '../indexer';
 import { ChainStore } from './chain_store';
 import { AssetSymbol } from '../asset';
 import { SignedBlock } from './block';
-import * as Long from 'long';
+import { PublicKey } from '../crypto';
+import * as Codec from 'level-codec';
+import { Asset } from '../asset';
 import { Lock } from '../lock';
+import * as Long from 'long';
+
+export type CacheMissCallback = (key: PublicKey) => Promise<[Asset,Asset]>;
+export type AssetMap = { [acc: string]: [Asset,Asset] };
+
+const jsonCodec = new Codec({
+  keyEncoding: 'binary',
+  valueEncoding: 'json'
+});
 
 export class BatchIndex {
 
   private readonly lock = new Lock();
   private head: SignedBlock|undefined;
-  private balances: BalanceMap;
+
   private ops: any[] = [];
+  private map: AssetMap = {};
 
   constructor(readonly indexer: Indexer,
               readonly store: ChainStore,
               readonly cmcb: CacheMissCallback) {
-    this.balances = new BalanceMap(indexer, cmcb);
   }
 
   async index(block: SignedBlock, bytePos?: number) {
@@ -25,7 +36,7 @@ export class BatchIndex {
       if (this.head) block.validate(this.head);
       this.head = block;
 
-      await this.balances.update(block);
+      await this.indexTransactions(block);
       if (bytePos !== undefined) {
         const buf = Buffer.allocUnsafe(8);
         buf.writeInt32BE(block.height.high, 0, true);
@@ -45,7 +56,7 @@ export class BatchIndex {
       } else {
         await this.store.write(block);
       }
-      if (block.height.mod(1000).eq(0)) {
+      if (block.height.mod(1000).eq(0) && process.env.NODE_ENV !== 'TEST') {
         console.log('=> Indexed block:', block.height.toString());
       }
     } finally {
@@ -53,14 +64,78 @@ export class BatchIndex {
     }
   }
 
+  private async indexTransactions(block: SignedBlock) {
+    for (const tx of block.transactions) {
+      if (tx instanceof TransferTx) {
+        const fromBal = await this.getBal(tx.data.from);
+        const toBal = await this.getBal(tx.data.to);
+        if (tx.data.amount.symbol === AssetSymbol.GOLD) {
+          fromBal[0] = fromBal[0].sub(tx.data.amount).sub(tx.data.fee);
+          toBal[0] = toBal[0].add(tx.data.amount);
+        } else if (tx.data.amount.symbol === AssetSymbol.SILVER) {
+          fromBal[1] = fromBal[1].sub(tx.data.amount).sub(tx.data.fee);
+          toBal[1] = toBal[1].add(tx.data.amount);
+        } else {
+          throw new Error('unhandled symbol: ' + tx.data.amount.symbol);
+        }
+      } else if (tx instanceof RewardTx) {
+        const toBal = await this.getBal(tx.data.to);
+        for (const reward of tx.data.rewards) {
+          if (reward.symbol === AssetSymbol.GOLD) {
+            toBal[0] = toBal[0].add(reward);
+          } else if (reward.symbol === AssetSymbol.SILVER) {
+            toBal[1] = toBal[1].add(reward);
+          } else {
+            throw new Error('unhandled symbol: ' + reward.symbol);
+          }
+        }
+      } else if (tx instanceof BondTx) {
+        const stakerBal = await this.getBal(tx.data.staker);
+        if (tx.data.bond_fee.symbol === AssetSymbol.GOLD) {
+          stakerBal[0] = stakerBal[0].sub(tx.data.bond_fee).sub(tx.data.fee);
+        } else if (tx.data.bond_fee.symbol === AssetSymbol.SILVER) {
+          stakerBal[1] = stakerBal[1].sub(tx.data.bond_fee).sub(tx.data.fee);
+        } else {
+          throw new Error('unhandled symbol: ' + tx.data.bond_fee.symbol);
+        }
+      }
+    }
+  }
+
+  private async getBal(key: PublicKey): Promise<[Asset, Asset]> {
+    const hex = key.buffer.toString('hex');
+    let cache = this.map[hex];
+    if (!cache) cache = this.map[hex] = await this.cmcb(key);
+    return cache;
+  }
+
   async flush() {
     await this.lock.lock();
     try {
+      await this.flushBalances();
       await this.flushOps();
-      await this.balances.write();
     } finally {
       this.lock.unlock();
     }
+  }
+
+  private async flushBalances(): Promise<void> {
+    const batch = this.indexer.db.db.batch();
+    batch.codec = jsonCodec; // Workaround for encoding-down
+    for (const [hex, assets] of Object.entries(this.map)) {
+      const key = [IndexProp.NAMESPACE_BAL, Buffer.from(hex, 'hex')];
+      batch.put(Buffer.concat(key), [
+        assets[0].toString(),
+        assets[1].toString()
+      ]);
+    }
+    return new Promise<void>((res, rej) => {
+      batch.write(err => {
+        if (err) return rej(err);
+        this.map = {};
+        res();
+      });
+    });
   }
 
   private async flushOps() {
