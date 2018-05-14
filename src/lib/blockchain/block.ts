@@ -71,6 +71,7 @@ export class Block implements BlockOpts {
   }
 
   validate(prevBlock: Block): void {
+    assert(prevBlock.height.add(1).eq(this.height), 'unexpected height');
     for (const tx of this.transactions) {
       tx.validate();
     }
@@ -133,7 +134,7 @@ export class SignedBlock extends Block implements SignedBlockOpts {
     {
       const prevHash = prevBlock.getHash();
       const curHash = this.previous_hash;
-      assert(prevHash.equals(curHash), 'previous hash does not match');
+      assert(curHash.equals(prevHash), 'previous hash does not match');
     }
     {
       const serialized = this.serialize();
@@ -148,9 +149,7 @@ export class SignedBlock extends Block implements SignedBlockOpts {
     SignedBlock.SERIALIZER(buf, this);
     if (includeTx) {
       buf.writeUint32(this.transactions.length);
-      for (const tx of this.transactions) {
-        buf.append(tx.serialize(true));
-      }
+      for (const tx of this.transactions) buf.append(tx.serialize(true));
     }
     return buf.flip();
   }

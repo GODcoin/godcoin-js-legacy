@@ -126,10 +126,8 @@ export class Blockchain extends EventEmitter {
       if (!this.store.blockHead && block.height.eq(0)) {
         this.genesisBlock = block;
       } else {
-        assert(this.store.blockHead.height.add(1).eq(block.height), 'unexpected height');
-        assert(this.isBondValid(block.signature_pair.public_key), 'invalid bond');
-        block.validate(this.head);
-        await this.store.write(block);
+        block.validate(this.store.blockHead);
+        assert(await this.isBondValid(block.signature_pair.public_key), 'invalid bond');
       }
       await this.batchIndex.index(block);
       await this.batchIndex.flush();
@@ -238,7 +236,6 @@ export class Blockchain extends EventEmitter {
     for (; minHeight.lte(maxHeight); minHeight = minHeight.add(1)) {
       const block = (await this.getBlock(minHeight))!;
       txCount += block.transactions.length;
-
     }
     const goldFee = GODcoin.MIN_GOLD_FEE.mul(GODcoin.NETWORK_FEE_GOLD_MULT.pow(txCount), 8);
     const silverFee = GODcoin.MIN_SILVER_FEE.mul(GODcoin.NETWORK_FEE_SILVER_MULT.pow(txCount), 8);
