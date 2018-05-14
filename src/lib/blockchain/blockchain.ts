@@ -86,7 +86,7 @@ export class Blockchain extends EventEmitter {
           return;
         }
         head = block;
-        batch.index(block, bytePos);
+        await batch.index(block, bytePos);
       });
 
       if (head) {
