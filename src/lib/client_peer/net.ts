@@ -90,6 +90,7 @@ export class ClientNet extends EventEmitter {
         completed = true;
         this.openLock.unlock();
         resolve();
+        this.emit('open');
       });
 
       this.ws.on('close', () => {
