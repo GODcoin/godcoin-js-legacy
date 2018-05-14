@@ -59,8 +59,8 @@ export class Daemon {
       const lock = new Lock();
       let blocks: SignedBlock[]|undefined = [];
       await this.peerPool.subscribeBlock(async block => {
+        await lock.lock();
         try {
-          await lock.lock();
           if (blocks) {
             blocks.push(block);
           } else {
@@ -75,16 +75,43 @@ export class Daemon {
           lock.unlock();
         }
       });
-      await this.synchronizeChain();
 
-      await lock.lock();
-      for (const b of blocks) {
-        if (b.height.gt(this.blockchain.head.height)) {
-          await this.blockchain.addBlock(b);
+      const sync = async () => {
+        try {
+          await lock.lock();
+          await this.synchronizeChain();
+          if (blocks) {
+            for (const b of blocks) {
+              if (b.height.gt(this.blockchain.head.height)) {
+                await this.blockchain.addBlock(b);
+              }
+            }
+            blocks = undefined;
+          }
+        } catch (e) {
+          console.log('Failed to synchronize blockchain');
+        } finally {
+          lock.unlock();
         }
-      }
-      blocks = undefined;
+      };
 
+      this.peerPool.on('open', async () => {
+        console.log('Resuming synchronization...');
+        await sync();
+        console.log('Synchronized at height', this.blockchain.head.height.toString());
+      });
+
+      this.peerPool.on('close', async () => {
+        try {
+          await lock.lock();
+          console.log('Synchronization paused until more clients are connected in the peer pool');
+          blocks = [];
+        } finally {
+          lock.unlock();
+        }
+      });
+
+      await sync();
       const height = this.blockchain.head.height;
       console.log('Synchronization completed at height', height.toString());
       lock.unlock();
