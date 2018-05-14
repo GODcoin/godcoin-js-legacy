@@ -138,7 +138,7 @@ export class ChainStore {
       try {
         block = await this.readBlock(blockPos);
       } catch (err) {
-        cb(err, undefined!, undefined!, undefined!);
+        await cb(err, undefined!, undefined!, undefined!);
         break;
       }
       await cb(undefined, block[0], blockPos, block[1]);
