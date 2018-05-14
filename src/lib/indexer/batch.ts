@@ -19,7 +19,6 @@ const jsonCodec = new Codec({
 export class BatchIndex {
 
   private readonly lock = new Lock();
-  private head: SignedBlock|undefined;
 
   private ops: any[] = [];
   private map: AssetMap = {};
@@ -32,9 +31,6 @@ export class BatchIndex {
   async index(block: SignedBlock, bytePos?: number) {
     await this.lock.lock();
     try {
-      if (this.head) block.validate(this.head);
-      this.head = block;
-
       await this.indexTransactions(block);
       if (bytePos !== undefined) {
         const buf = Buffer.allocUnsafe(8);

@@ -59,7 +59,7 @@ export class Blockchain extends EventEmitter {
     if (reindex && !logDirExists) reindex = false;
     this.indexer = new Indexer(this.indexDir);
     this.store = new ChainStore(this.logDir, this.indexer);
-    this.batchIndex = new BatchIndex(this.indexer, this.store, this.getBalance.bind(this));
+    this.batchIndex = this.prepareBatch();
   }
 
   async start(): Promise<void> {
@@ -84,6 +84,7 @@ export class Blockchain extends EventEmitter {
           }
           return;
         }
+        if (head) block.validate(head);
         head = block;
         await batch.index(block, bytePos);
       });
@@ -143,8 +144,7 @@ export class Blockchain extends EventEmitter {
     return this.store.read(height);
   }
 
-  async isBondValid(key: string|PublicKey): Promise<boolean> {
-    if (typeof(key) === 'string') key = PublicKey.fromWif(key);
+  async isBondValid(key: PublicKey): Promise<boolean> {
     return this.genesisBlock.signature_pair.public_key.equals(key);
   }
 

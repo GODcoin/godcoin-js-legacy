@@ -135,7 +135,10 @@ export class Daemon {
 
         if (range.blocks.length) {
           for (const block of range.blocks) {
-            if (this.running) await batch.index(block);
+            if (this.running) {
+              if (this.blockchain.head) block.validate(this.blockchain.head);
+              await batch.index(block);
+            }
           }
         }
         if (range.range_outside_height) break;
