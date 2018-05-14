@@ -1,8 +1,7 @@
 import { TransferTx, RewardTx, BondTx } from '../transactions';
+import { ChainStore, SignedBlock } from '../blockchain';
 import { Indexer, IndexProp } from '../indexer';
-import { ChainStore } from './chain_store';
 import { AssetSymbol } from '../asset';
-import { SignedBlock } from './block';
 import { PublicKey } from '../crypto';
 import * as Codec from 'level-codec';
 import { Asset } from '../asset';

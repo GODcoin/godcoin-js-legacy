@@ -1,7 +1,7 @@
 import { Asset, AssetSymbol, EMPTY_GOLD, EMPTY_SILVER } from '../asset';
 import { Tx, TransferTx, RewardTx, BondTx } from '../transactions';
+import { Indexer, IndexProp, BatchIndex } from '../indexer';
 import { PrivateKey, KeyPair, PublicKey } from '../crypto';
-import { Indexer, IndexProp } from '../indexer';
 import { Block, SignedBlock } from './block';
 import { ChainStore } from './chain_store';
 import { BigInteger } from 'big-integer';
@@ -9,7 +9,6 @@ import { GODcoin } from '../constants';
 import { EventEmitter } from 'events';
 import * as bigInt from 'big-integer';
 import * as Codec from 'level-codec';
-import { BatchIndex } from './batch';
 import * as assert from 'assert';
 import { Lock } from '../lock';
 import * as Long from 'long';
