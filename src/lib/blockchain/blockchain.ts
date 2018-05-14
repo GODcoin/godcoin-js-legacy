@@ -1,7 +1,7 @@
 import { Asset, AssetSymbol, EMPTY_GOLD, EMPTY_SILVER } from '../asset';
-import { Indexer, IndexProp, BalanceMap } from '../indexer';
-import { Tx, TransferTx, RewardTx } from '../transactions';
+import { Tx, TransferTx, RewardTx, BondTx } from '../transactions';
 import { PrivateKey, KeyPair, PublicKey } from '../crypto';
+import { Indexer, IndexProp } from '../indexer';
 import { Block, SignedBlock } from './block';
 import { ChainStore } from './chain_store';
 import { BigInteger } from 'big-integer';
@@ -25,11 +25,11 @@ export class Blockchain extends EventEmitter {
   private get indexDir() { return path.join(this.dir, 'index'); }
   private get logDir() { return path.join(this.dir, 'blklog'); }
 
-  private readonly balances: BalanceMap;
   private readonly lock = new Lock();
   private genesisBlock!: SignedBlock;
   private reindex = false;
 
+  private readonly batchIndex: BatchIndex;
   private readonly store: ChainStore;
   readonly indexer: Indexer;
 
@@ -60,7 +60,7 @@ export class Blockchain extends EventEmitter {
     if (reindex && !logDirExists) reindex = false;
     this.indexer = new Indexer(this.indexDir);
     this.store = new ChainStore(this.logDir, this.indexer);
-    this.balances = new BalanceMap(this.indexer, this.getBalance.bind(this));
+    this.batchIndex = new BatchIndex(this.indexer, this.store, this.getBalance.bind(this));
   }
 
   async start(): Promise<void> {
@@ -125,17 +125,15 @@ export class Blockchain extends EventEmitter {
     try {
       await this.lock.lock();
       if (!this.store.blockHead && block.height.eq(0)) {
-        // Write the genesis block directly
         this.genesisBlock = block;
-        await this.store.write(block);
       } else {
         assert(this.store.blockHead.height.add(1).eq(block.height), 'unexpected height');
         assert(this.isBondValid(block.signature_pair.public_key), 'invalid bond');
         block.validate(this.head);
         await this.store.write(block);
       }
-      await this.balances.update(block);
-      await this.balances.write();
+      await this.batchIndex.index(block);
+      await this.batchIndex.flush();
       await this.cacheNetworkFee();
       this.emit('block', block);
     } finally {
@@ -169,7 +167,8 @@ export class Blockchain extends EventEmitter {
 
     if (additionalTxs) {
       for (const tx of additionalTxs) {
-        if (tx instanceof TransferTx && tx.data.from.equals(addr)) ++txCount;
+        if (tx instanceof TransferTx && tx.data.from.equals(addr)
+            || tx instanceof BondTx && tx.data.staker.equals(addr)) ++txCount;
       }
     }
 
@@ -177,7 +176,8 @@ export class Blockchain extends EventEmitter {
       ++delta;
       const block = (await this.getBlock(i))!;
       for (const tx of block.transactions) {
-        if (tx instanceof TransferTx && tx.data.from.equals(addr)) {
+        if (tx instanceof TransferTx && tx.data.from.equals(addr)
+            || tx instanceof BondTx && tx.data.staker.equals(addr)) {
           ++txCount;
           delta = 0;
         }
@@ -213,6 +213,14 @@ export class Blockchain extends EventEmitter {
             } else {
               throw new Error('unhandled symbol: ' + tx.data.amount.symbol);
             }
+          }
+        } else if (tx instanceof BondTx && tx.data.minter.equals(addr)) {
+          if (tx.data.bond_fee.symbol === AssetSymbol.GOLD) {
+            bal[0] = bal[0].sub(tx.data.bond_fee).sub(tx.data.fee);
+          } else if (tx.data.bond_fee.symbol === AssetSymbol.SILVER) {
+            bal[1] = bal[1].sub(tx.data.bond_fee).sub(tx.data.fee);
+          } else {
+            throw new Error('unhandled symbol: ' + tx.data.bond_fee.symbol);
           }
         }
       }

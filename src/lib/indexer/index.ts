@@ -4,8 +4,6 @@ import * as assert from 'assert';
 import * as level from 'level';
 import * as Long from 'long';
 
-export * from './balance_map';
-
 export namespace IndexProp {
   export const NAMESPACE_MAIN = Buffer.from([0]);
   export const NAMESPACE_BLOCK = Buffer.from([1]);

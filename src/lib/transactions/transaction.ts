@@ -13,7 +13,8 @@ const debug = newDebug('godcoin:tx');
 
 export enum TxType {
   REWARD = 0,
-  TRANSFER = 1
+  TRANSFER = 1,
+  BOND = 2
 }
 
 export interface TxData {
