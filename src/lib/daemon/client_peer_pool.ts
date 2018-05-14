@@ -6,11 +6,14 @@ import {
 } from '../client_peer';
 import { SignedBlock } from '../blockchain';
 import * as ByteBuffer from 'bytebuffer';
+import { EventEmitter } from 'events';
 
-export class ClientPeerPool {
+export class ClientPeerPool extends EventEmitter {
 
   private clients: ClientPeer[] = [];
   private index = 0;
+
+  private connectedCount = 0;
 
   get count() { return this.clients.length; }
 
@@ -22,10 +25,17 @@ export class ClientPeerPool {
   async start() {
     this.index = 0;
     for (const client of this.clients) {
-      const connected = await client.start();
-      if (connected) {
+      client.net.on('open', () => {
         console.log(`[${client.net.nodeUrl}] Successfully connected to peer`);
-      }
+        if (this.connectedCount++ === 0) this.emit('open');
+      });
+
+      client.net.on('close', () => {
+        console.log(`[${client.net.nodeUrl}] Disconnected from peer`);
+        if (--this.connectedCount === 0) this.emit('close');
+      });
+
+      await client.start();
     }
   }
 
