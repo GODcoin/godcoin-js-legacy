@@ -69,6 +69,8 @@ export class Daemon {
             await this.blockchain.addBlock(block);
             console.log(`Received block at height ${height} with ${len} transaction${len === 1 ? '' : 's'}`);
           }
+        } catch (e) {
+          console.log('Failed to process block during subscription', e);
         } finally {
           lock.unlock();
         }
