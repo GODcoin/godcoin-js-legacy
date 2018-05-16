@@ -25,4 +25,12 @@ export namespace GODcoin {
   export const NETWORK_FEE_SILVER_MULT = Asset.fromString('1.00200000 SILVER');
   export const NETWORK_FEE_AVG_WINDOW  = 10;
 
+  export const BOND_FEE = Asset.fromString('5.00000000 GOLD');
+
+  /*
+  * Miscellaneous constants
+  */
+
+  export const MAX_PRECISION = 8;
+  export const MAX_ASSET_STR_LEN = 32;
 }

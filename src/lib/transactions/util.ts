@@ -1,9 +1,9 @@
 import { Asset, AssetSymbol } from '../asset';
+import { GODcoin } from '../constants';
 import * as assert from 'assert';
 
-export const MAX_DECIMALS = 8;
 
 export function checkAsset(name: string, amt: Asset, symbol?: AssetSymbol) {
   if (symbol) assert(amt.symbol === symbol, `${name} must be in ${symbol}`);
-  assert(amt.decimals <= MAX_DECIMALS, `${name} can have a maximum of 8 decimals`);
+  assert(amt.decimals <= GODcoin.MAX_PRECISION, `${name} can have a maximum of ${GODcoin.MAX_PRECISION} decimals`);
 }

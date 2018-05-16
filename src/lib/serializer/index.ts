@@ -1,7 +1,9 @@
 import { PublicKey, SigPair } from '../crypto';
 import * as ByteBuffer from 'bytebuffer';
+import { GODcoin } from '../constants';
 import * as newDebug from 'debug';
 import { Asset } from '../asset';
+import * as assert from 'assert';
 import * as Long from 'long';
 
 const debug = newDebug('godcoin:serializer');
@@ -65,7 +67,9 @@ export class TypeSerializer {
     if (typeof(value) === 'string') {
       value = Asset.fromString(value);
     }
-    TypeSerializer.string(buf, value.toString());
+    const str = value.toString();
+    assert(value.decimals <= GODcoin.MAX_ASSET_STR_LEN);
+    TypeSerializer.string(buf, str);
   }
 
   static object(fields: ObjectType[]): Serializer {
@@ -139,6 +143,7 @@ export class TypeDeserializer {
 
   static asset(buf: ByteBuffer): Asset {
     const asset = TypeDeserializer.string(buf) as string;
+    assert(asset.length <= GODcoin.MAX_ASSET_STR_LEN, 'asset string is too large');
     return Asset.fromString(asset);
   }
 
