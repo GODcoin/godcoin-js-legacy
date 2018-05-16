@@ -15,6 +15,7 @@ export interface BondTxData extends TxData {
   type: TxType.BOND;
   minter: PublicKey; // Key that signs blocks
   staker: PublicKey; // Hot wallet that receives rewards and stakes its balance
+  stake_amt: Asset;
   bond_fee: Asset;
 }
 
@@ -23,6 +24,7 @@ export class BondTx extends Tx {
   static readonly SERIALIZER_FIELDS: ObjectType[] = [
     ['minter', TS.publicKey],
     ['staker', TS.publicKey],
+    ['stake_amt', TS.asset],
     ['bond_fee', TS.asset]
   ];
   static readonly SERIALIZER = TS.object(BondTx.SERIALIZER_FIELDS);
@@ -35,6 +37,7 @@ export class BondTx extends Tx {
   validate(): void {
     super.validate();
     const data = this.data;
+    checkAsset('stake_amt', data.stake_amt, AssetSymbol.GOLD);
     checkAsset('bond_fee', data.bond_fee, AssetSymbol.GOLD);
 
     const buf = this.serialize(false);
