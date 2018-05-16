@@ -38,6 +38,7 @@ export class BondTx extends Tx {
     const data = this.data;
     checkAsset('stake_amt', data.stake_amt, AssetSymbol.GOLD);
     checkAsset('bond_fee', data.bond_fee, AssetSymbol.GOLD);
+    assert(data.stake_amt.amount.gt(0), 'stake_amt must be greater than zero');
 
     const buf = this.serialize(false);
 
