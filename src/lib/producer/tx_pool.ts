@@ -30,13 +30,13 @@ export class TxPool {
       tx.checkExpiry();
       assert(!(await this.indexer.hasTx(txBuf)), 'duplicate tx');
       tx.validate();
-      if (tx instanceof TransferTx) {
-        {
-          const timeTx = tx.data.timestamp.getTime();
-          const timeHead = this.blockchain.head.timestamp.getTime() - 5000;
-          assert(timeTx > timeHead, 'timestamp cannot be behind 5 seconds of the block head time');
-        }
+      {
+        const timeTx = tx.data.timestamp.getTime();
+        const timeHead = this.blockchain.head.timestamp.getTime() - 3000;
+        assert(timeTx > timeHead, 'timestamp cannot be behind 3 seconds of the block head time');
+      }
 
+      if (tx instanceof TransferTx) {
         let bal: Asset|undefined;
         let fee: Asset|undefined;
         if (tx.data.amount.symbol === AssetSymbol.GOLD) {
