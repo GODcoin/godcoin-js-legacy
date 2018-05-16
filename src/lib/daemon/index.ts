@@ -3,7 +3,7 @@ import { ClientPeerPool, EndOfClients } from './client_peer_pool';
 import { RewardTx, TxType } from '../transactions';
 import { KeyPair, PrivateKey } from '../crypto';
 import { Asset, AssetSymbol } from '../asset';
-import { Minter, TxPool } from '../producer';
+import { LocalMinter, TxPool } from '../producer';
 import * as bigInt from 'big-integer';
 import { Indexer } from '../indexer';
 import { GODcoinEnv } from '../env';
@@ -30,7 +30,7 @@ export class Daemon {
   readonly peerPool: ClientPeerPool;
   private running = false;
   private server?: Server;
-  private minter?: Minter;
+  private minter?: LocalMinter;
 
   constructor(readonly opts: DaemonOpts) {
     const dir = path.join(GODcoinEnv.GODCOIN_HOME, 'blockchain', 'data');
@@ -118,7 +118,7 @@ export class Daemon {
     }
 
     if (this.opts.signingKeys) {
-      this.minter = new Minter(this.blockchain, this.txPool, this.opts.signingKeys);
+      this.minter = new LocalMinter(this.blockchain, this.txPool, this.opts.signingKeys);
       if (!(this.blockchain.head || this.opts.peers.length)) {
         await this.minter.createGenesisBlock();
       }

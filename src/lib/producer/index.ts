@@ -1,2 +1,2 @@
 export * from './tx_pool';
-export * from './minter';
+export * from './local_minter';

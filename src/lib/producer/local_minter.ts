@@ -10,7 +10,7 @@ import * as Long from 'long';
 const REWARD_GOLD = new Asset(bigInt(1), 0, AssetSymbol.GOLD);
 const REWARD_SILVER = new Asset(bigInt(100), 0, AssetSymbol.SILVER);
 
-export class Minter {
+export class LocalMinter {
 
   private readonly blockchain: Blockchain;
   private readonly keys: KeyPair;

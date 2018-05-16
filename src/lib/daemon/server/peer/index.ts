@@ -1,6 +1,6 @@
 import { Blockchain, SignedBlock } from '../../../blockchain';
 import { ApiError, ApiErrorCode, check } from './api_error';
-import { Minter, TxPool } from '../../../producer';
+import { LocalMinter, TxPool } from '../../../producer';
 import { DisconnectedError } from '../../..';
 import { PublicKey } from '../../../crypto';
 import { PeerNet } from './net';
@@ -10,7 +10,7 @@ export * from './net';
 export interface PeerOptions {
   blockchain: Blockchain;
   pool: TxPool;
-  minter?: Minter;
+  minter?: LocalMinter;
   net: PeerNet;
 }
 

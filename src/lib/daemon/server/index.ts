@@ -1,4 +1,4 @@
-import { Minter, TxPool } from '../../producer';
+import { LocalMinter, TxPool } from '../../producer';
 import { Blockchain } from '../../blockchain';
 import { Peer, PeerNet } from './peer';
 import { GODcoinEnv } from '../../env';
