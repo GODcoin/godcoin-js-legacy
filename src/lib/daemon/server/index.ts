@@ -1,5 +1,5 @@
-import { LocalMinter, TxPool } from '../../producer';
 import { Blockchain } from '../../blockchain';
+import { TxPool } from '../../producer';
 import { Peer, PeerNet } from './peer';
 import { GODcoinEnv } from '../../env';
 import * as WebSocket from 'uws';

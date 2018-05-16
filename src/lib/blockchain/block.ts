@@ -5,8 +5,6 @@ import {
 } from '../serializer';
 import {
   doubleSha256,
-  PublicKey,
-  PrivateKey,
   KeyPair,
   SigPair
 } from '../crypto';
@@ -14,7 +12,6 @@ import { Tx, deserialize } from '../transactions';
 import * as ByteBuffer from 'bytebuffer';
 import * as assert from 'assert';
 import * as Long from 'long';
-import * as bs58 from 'bs58';
 
 export interface BlockOpts {
   height: Long;

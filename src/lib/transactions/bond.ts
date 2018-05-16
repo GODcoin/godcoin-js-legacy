@@ -7,7 +7,6 @@ import { Tx, TxData, TxType } from './transaction';
 import { Asset, AssetSymbol } from '../asset';
 import * as ByteBuffer from 'bytebuffer';
 import { PublicKey } from '../crypto';
-import * as bigInt from 'big-integer';
 import { checkAsset } from './util';
 import * as assert from 'assert';
 

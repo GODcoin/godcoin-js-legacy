@@ -1,18 +1,14 @@
-import { TypeSerializer as TS } from '../serializer';
 import * as ByteBuffer from 'bytebuffer';
 import { SignedBlock } from './block';
 import { Indexer } from '../indexer';
 import * as crc32 from 'sse4_crc32';
 import * as assert from 'assert';
-import * as path from 'path';
 import * as util from 'util';
 import * as Long from 'long';
 import * as fs from 'fs';
 
 const fsOpen = util.promisify(fs.open);
 const fsClose = util.promisify(fs.close);
-const fsUnlink = util.promisify(fs.unlink);
-const fsExists = util.promisify(fs.exists);
 const fsWrite = util.promisify(fs.write);
 const fsRead = util.promisify(fs.read);
 const fsStat = util.promisify(fs.stat);

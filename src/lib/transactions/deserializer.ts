@@ -2,9 +2,9 @@ import {
   TypeDeserializer as TD,
   TypeSerializer as TS
 } from '../serializer';
-import { TransferTx, TransferTxData } from './transfer';
 import { Tx, TxType, TxData } from './transaction';
-import { RewardTx, RewardTxData } from './reward';
+import { TransferTx } from './transfer';
+import { RewardTx } from './reward';
 import * as assert from 'assert';
 
 export function deserialize<T extends Tx>(buf: ByteBuffer, includeSigs = true): T {

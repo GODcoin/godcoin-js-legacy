@@ -1,5 +1,4 @@
 import { ApiErrorCode, WsCloseCode, ApiError } from './api_error';
-import { EventEmitter } from 'events';
 import * as WebSocket from 'uws';
 import * as borc from 'borc';
 
@@ -10,6 +9,7 @@ export class PeerNet {
   private readonly ws: WebSocket;
   readonly ip: string;
 
+  // TODO: implement ping logic
   private pingTimer?: NodeJS.Timer;
   private lastPing = Date.now();
 

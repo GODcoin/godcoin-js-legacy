@@ -1,9 +1,6 @@
 import { SignedBlock } from '../blockchain';
 import * as ByteBuffer from 'bytebuffer';
-import { PublicKey } from '../crypto';
 import { ClientNet } from './net';
-import * as WebSocket from 'uws';
-import { Asset } from '../asset';
 
 export class ClientPeer {
 

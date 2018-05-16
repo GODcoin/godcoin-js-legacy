@@ -1,8 +1,8 @@
-import { RewardTx, TxType, TransferTx, Tx } from '../transactions';
-import { Blockchain, SignedBlock, Block } from '../blockchain';
 import { Asset, AssetSymbol, EMPTY_GOLD } from '../asset';
-import { KeyPair, PublicKey } from '../crypto';
+import { RewardTx, TxType } from '../transactions';
+import { Blockchain, Block } from '../blockchain';
 import * as bigInt from 'big-integer';
+import { KeyPair } from '../crypto';
 import { TxPool } from './tx_pool';
 import * as assert from 'assert';
 import * as Long from 'long';

@@ -1,5 +1,4 @@
 import * as readline from 'readline';
-import * as path from 'path';
 
 export function hookSigInt(callback: () => void, rli?: readline.ReadLine) {
   let force = false;
