@@ -4,10 +4,11 @@ import {
   ObjectType
 } from '../serializer';
 import { Tx, TxData, TxType } from './transaction';
+import { Asset, AssetSymbol } from '../asset';
 import * as ByteBuffer from 'bytebuffer';
 import { PublicKey } from '../crypto';
 import * as bigInt from 'big-integer';
-import { Asset, AssetSymbol } from '../asset';
+import { checkAsset } from './util';
 import * as assert from 'assert';
 
 export interface BondTxData extends TxData {
@@ -33,8 +34,9 @@ export class BondTx extends Tx {
 
   validate(): void {
     super.validate();
-    assert.equal(this.data.bond_fee.symbol, AssetSymbol.GOLD, 'fee must be paid with GOLD');
-    assert(this.data.bond_fee.decimals <= 8, 'bond_fee can have a maximum of 8 decimals');
+    const data = this.data;
+    checkAsset('bond_fee', data.bond_fee, AssetSymbol.GOLD);
+
     const buf = this.serialize(false);
 
     assert(this.data.signature_pairs.length === 2, 'transaction must be signed by the minter and staker');

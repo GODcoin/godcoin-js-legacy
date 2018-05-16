@@ -5,6 +5,7 @@ import {
 } from '../serializer';
 import { PrivateKey, PublicKey, SigPair } from '../crypto';
 import * as ByteBuffer from 'bytebuffer';
+import { checkAsset } from './util';
 import * as newDebug from 'debug';
 import { Asset } from '../asset';
 import * as assert from 'assert';
@@ -44,7 +45,7 @@ export abstract class Tx {
   validate(): void {
     assert(this.data.timestamp.getTime() < Date.now(), 'timestamp cannot be in the future');
     assert(this.data.fee.amount.gt(0), 'fee must be greater than zero');
-    assert(this.data.fee.decimals <= 8, 'fee can have a maximum of 8 decimals');
+    checkAsset('fee', this.data.fee);
   }
 
   sign(key: PrivateKey): SigPair {

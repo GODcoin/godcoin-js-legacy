@@ -7,6 +7,7 @@ import { Tx, TxData, TxType } from './transaction';
 import * as ByteBuffer from 'bytebuffer';
 import { PublicKey } from '../crypto';
 import * as bigInt from 'big-integer';
+import { checkAsset } from './util';
 import { Asset } from '../asset';
 import * as assert from 'assert';
 
@@ -37,7 +38,7 @@ export class TransferTx extends Tx {
     super.validate();
     assert.equal(this.data.amount.symbol, this.data.fee.symbol, 'fee must be paid with the same asset');
     assert(this.data.amount.amount.geq(0), 'amount must be greater than or equal to zero');
-    assert(this.data.amount.decimals <= 8, 'amount can have a maximum of 8 decimals');
+    checkAsset('amount', this.data.amount, this.data.fee.symbol);
     if (this.data.memo) {
       assert(this.data.memo.length <= 512, 'maximum memo length is 512 bytes');
     }
