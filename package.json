@@ -55,7 +55,7 @@
     "@types/del": "^3.0.1",
     "@types/mkdirp": "^0.5.2",
     "@types/mocha": "^5.1.1",
-    "@types/node": "^10.0.8",
+    "@types/node": "^10.1.0",
     "@types/uws": "^0.13.2",
     "@types/yargs": "^11.0.0",
     "benchmark": "^2.1.4",
@@ -67,7 +67,7 @@
     "gulp-typescript": "^4.0.2",
     "merge2": "^1.2.2",
     "mocha": "^5.1.1",
-    "nyc": "^11.7.3",
+    "nyc": "^11.8.0",
     "ts-node": "^6.0.3",
     "typescript": "^2.8.3"
   }
