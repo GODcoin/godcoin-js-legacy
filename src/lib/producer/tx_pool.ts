@@ -2,10 +2,10 @@ import { deserialize, Tx, TransferTx, BondTx } from '../transactions';
 import { AssetSymbol, Asset } from '../asset';
 import { Blockchain } from '../blockchain';
 import * as ByteBuffer from 'bytebuffer';
+import { GODcoin } from '../constants';
 import { PublicKey } from '../crypto';
 import { Indexer } from '../indexer';
 import * as assert from 'assert';
-import * as crypto from 'crypto';
 import { Lock } from '../lock';
 
 /**
@@ -26,15 +26,15 @@ export class TxPool {
     assert(this.writable, 'pool is read only');
     await this.lock.lock();
     try {
-      const tx = deserialize<Tx>(ByteBuffer.wrap(txBuf));
-      tx.checkExpiry();
       assert(!(await this.indexer.hasTx(txBuf)), 'duplicate tx');
-      tx.validate();
-      {
+      const tx = deserialize<Tx>(ByteBuffer.wrap(txBuf));
+      { // Validate time
+        tx.checkExpiry();
         const timeTx = tx.data.timestamp.getTime();
         const timeHead = this.blockchain.head.timestamp.getTime() - 3000;
         assert(timeTx > timeHead, 'timestamp cannot be behind 3 seconds of the block head time');
       }
+      tx.validate();
 
       if (tx instanceof TransferTx) {
         let bal: Asset|undefined;
@@ -48,17 +48,24 @@ export class TxPool {
         }
         assert(bal, 'unknown balance symbol ' + tx.data.amount.symbol);
         assert(tx.data.fee.geq(fee!), 'fee amount too small, expected ' + fee!.toString());
+
         const remaining = bal!.sub(tx.data.amount).sub(tx.data.fee);
         assert(remaining.amount.geq(0), 'insufficient balance');
-        await this.indexer.addTx(txBuf, tx.data.timestamp!.getTime() + 60000);
-        return [this.blockchain.head.height.add(1), this.txs.push(tx) - 1];
       } else if (tx instanceof BondTx) {
-        assert(tx.data.bond_fee.amount.eq(5), 'insufficient bond_fee');
-        await this.indexer.addTx(txBuf, tx.data.timestamp!.getTime() + 60000);
-        return [this.blockchain.head.height.add(1), this.txs.push(tx) - 1];
+        // TODO: handle stake amount modifications
+        const bal = (await this.blockchain.getBalance(tx.data.staker, this.txs))[0];
+        const fee = (await this.blockchain.getTotalFee(tx.data.staker, this.txs))[0];
+        assert(tx.data.fee.geq(fee), 'fee amount too small, expected ' + fee.toString());
+
+        assert(tx.data.bond_fee.eq(GODcoin.BOND_FEE), 'invalid bond_fee');
+        const remaining = bal.sub(fee).sub(tx.data.bond_fee).sub(tx.data.stake_amt);
+        assert(remaining.amount.geq(0), 'insufficient balance');
+      } else {
+        throw new Error('invalid transaction');
       }
 
-      throw new Error('invalid transaction');
+      await this.indexer.addTx(txBuf, tx.data.timestamp!.getTime() + 60000);
+      return [this.blockchain.head.height.add(1), this.txs.push(tx) - 1];
     } finally {
       this.lock.unlock();
     }

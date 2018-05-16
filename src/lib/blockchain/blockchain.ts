@@ -208,14 +208,8 @@ export class Blockchain extends EventEmitter {
               throw new Error('unhandled symbol: ' + tx.data.amount.symbol);
             }
           }
-        } else if (tx instanceof BondTx && tx.data.minter.equals(addr)) {
-          if (tx.data.bond_fee.symbol === AssetSymbol.GOLD) {
-            bal[0] = bal[0].sub(tx.data.bond_fee).sub(tx.data.fee);
-          } else if (tx.data.bond_fee.symbol === AssetSymbol.SILVER) {
-            bal[1] = bal[1].sub(tx.data.bond_fee).sub(tx.data.fee);
-          } else {
-            throw new Error('unhandled symbol: ' + tx.data.bond_fee.symbol);
-          }
+        } else if (tx instanceof BondTx && tx.data.staker.equals(addr)) {
+          bal[0] = bal[0].sub(tx.data.fee).sub(tx.data.bond_fee).sub(tx.data.stake_amt);
         }
       }
     }

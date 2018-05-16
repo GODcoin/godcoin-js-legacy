@@ -85,14 +85,8 @@ export class BatchIndex {
           }
         }
       } else if (tx instanceof BondTx) {
-        const stakerBal = await this.getBal(tx.data.staker);
-        if (tx.data.bond_fee.symbol === AssetSymbol.GOLD) {
-          stakerBal[0] = stakerBal[0].sub(tx.data.bond_fee).sub(tx.data.fee);
-        } else if (tx.data.bond_fee.symbol === AssetSymbol.SILVER) {
-          stakerBal[1] = stakerBal[1].sub(tx.data.bond_fee).sub(tx.data.fee);
-        } else {
-          throw new Error('unhandled symbol: ' + tx.data.bond_fee.symbol);
-        }
+        const bal = await this.getBal(tx.data.staker);
+        bal[0] = bal[0].sub(tx.data.fee).sub(tx.data.bond_fee).sub(tx.data.stake_amt);
       }
     }
   }
