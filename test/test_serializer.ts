@@ -1,8 +1,7 @@
 import {
-  Tx,
-  TxType,
   TransferTx,
   RewardTx,
+  TxType,
   deserialize
 } from '../src/lib/transactions';
 import {
@@ -21,20 +20,20 @@ it('should serialize primitives', () => {
   const buf = new ByteBuffer(ByteBuffer.DEFAULT_CAPACITY,
                               ByteBuffer.BIG_ENDIAN);
   const date = new Date(Math.floor(new Date('2018-01-01').getTime() / 1000) * 1000);
-  TS.date(buf, date.toString());
+  TS.date(buf, date);
   buf.flip();
   expect(TD.date(buf).toUTCString()).to.eq(date.toUTCString());
 
   buf.clear();
   const keys = generateKeyPair();
-  TS.publicKey(buf, keys.publicKey.toWif());
+  TS.publicKey(buf, keys.publicKey);
   buf.flip();
   expect(TD.publicKey(buf).toWif()).to.eq(keys.publicKey.toWif());
 
   buf.clear();
-  const asset = '2 GOLD';
+  const asset = Asset.fromString('2 GOLD');
   TS.asset(buf, asset);
-  expect(TD.asset(buf.flip()).toString()).to.eq(asset);
+  expect(TD.asset(buf.flip()).toString()).to.eq(asset.toString());
 });
 
 it('should serialize transfer transactions', () => {

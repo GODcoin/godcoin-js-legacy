@@ -48,13 +48,11 @@ export class TypeSerializer {
     buf.append(value);
   }
 
-  static date(buf: ByteBuffer, value: Date|string) {
-    if (typeof(value) === 'string') value = new Date(value);
+  static date(buf: ByteBuffer, value: Date) {
     buf.writeUint32(Math.floor(value.getTime() / 1000));
   }
 
-  static publicKey(buf: ByteBuffer, value: PublicKey|string) {
-    if (typeof(value) === 'string') value = PublicKey.fromWif(value);
+  static publicKey(buf: ByteBuffer, value: PublicKey) {
     TypeSerializer.buffer(buf, value.buffer);
   }
 
@@ -63,10 +61,7 @@ export class TypeSerializer {
     TypeSerializer.buffer(buf, value.signature);
   }
 
-  static asset(buf: ByteBuffer, value: Asset|string) {
-    if (typeof(value) === 'string') {
-      value = Asset.fromString(value);
-    }
+  static asset(buf: ByteBuffer, value: Asset) {
     const str = value.toString();
     assert(value.decimals <= GODcoin.MAX_ASSET_STR_LEN);
     TypeSerializer.string(buf, str);
