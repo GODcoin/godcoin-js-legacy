@@ -10,11 +10,14 @@ import { PublicKey } from '../crypto';
 import { checkAsset } from './util';
 import * as assert from 'assert';
 
-export interface BondTxData extends TxData {
-  type: TxType.BOND;
+export interface Bond {
   minter: PublicKey; // Key that signs blocks
   staker: PublicKey; // Hot wallet that receives rewards and stakes its balance
   stake_amt: Asset;
+}
+
+export interface BondTxData extends TxData, Bond {
+  type: TxType.BOND;
   bond_fee: Asset;
 }
 
