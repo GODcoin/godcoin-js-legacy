@@ -6,6 +6,7 @@ import { Tx, TxType, TxData } from './transaction';
 import { TransferTx } from './transfer';
 import { RewardTx } from './reward';
 import * as assert from 'assert';
+import { BondTx } from './bond';
 
 export function deserialize<T extends Tx>(buf: ByteBuffer, includeSigs = true): T {
   const txData = deserializePartial(buf, includeSigs);
@@ -14,6 +15,8 @@ export function deserialize<T extends Tx>(buf: ByteBuffer, includeSigs = true): 
     tx = new RewardTx(RewardTx.deserialize(buf, txData));
   } else if (txData.type === TxType.TRANSFER) {
     tx = new TransferTx(TransferTx.deserialize(buf, txData));
+  } else if (txData.type === TxType.BOND) {
+    tx = new BondTx(BondTx.deserialize(buf, txData));
   }
   assert(tx, 'unhandled type: ' + txData.type);
   return tx as any;
