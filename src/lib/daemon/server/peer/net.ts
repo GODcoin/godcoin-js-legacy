@@ -9,9 +9,8 @@ export class PeerNet {
   private readonly ws: WebSocket;
   readonly ip: string;
 
-  // TODO: implement ping logic
   private pingTimer?: NodeJS.Timer;
-  private lastPing = Date.now();
+  private lastPing = 0;
 
   constructor(ws: WebSocket, ip: string) {
     this.ws = ws;
@@ -19,9 +18,12 @@ export class PeerNet {
   }
 
   init(cb: MessageCallback): void {
+    this.startPingTimer();
+
     this.ws.on('close', () => {
       console.log(`[${this.ip}] Peer has disconnected`);
       this.ws.removeAllListeners();
+      if (this.pingTimer) clearInterval(this.pingTimer);
     });
 
     this.ws.on('message', async data => {
@@ -49,6 +51,11 @@ export class PeerNet {
       } catch (e) {
         console.log(`[${this.ip}] Failed to process message`, e);
       }
+    });
+
+    this.ws.on('ping', data => {
+      this.lastPing = Date.now();
+      this.ws.pong(data);
     });
   }
 
@@ -79,5 +86,18 @@ export class PeerNet {
         resolve();
       });
     });
+  }
+
+  private async startPingTimer() {
+    if (this.pingTimer) return;
+    this.lastPing = Date.now();
+    this.pingTimer = setInterval(() => {
+      const now = Date.now();
+      if (now - this.lastPing > 3000) {
+        this.close();
+        return;
+      }
+      this.ws.ping();
+    }, 3000);
   }
 }
