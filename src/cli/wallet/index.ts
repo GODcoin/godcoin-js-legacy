@@ -2,7 +2,6 @@ import {
   generateKeyPair,
   hookSigInt,
   GODcoinEnv,
-  GODcoin,
   PublicKey,
   PrivateKey,
   ClientNet,

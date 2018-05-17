@@ -10,7 +10,7 @@ export class PeerNet {
   readonly ip: string;
 
   private pingTimer?: NodeJS.Timer;
-  private lastPing = 0;
+  private lastPong = 0;
 
   constructor(ws: WebSocket, ip: string) {
     this.ws = ws;
@@ -53,9 +53,8 @@ export class PeerNet {
       }
     });
 
-    this.ws.on('ping', data => {
-      this.lastPing = Date.now();
-      this.ws.pong(data);
+    this.ws.on('pong', () => {
+      this.lastPong = Date.now();
     });
   }
 
@@ -88,12 +87,12 @@ export class PeerNet {
     });
   }
 
-  private async startPingTimer() {
+  private startPingTimer() {
     if (this.pingTimer) return;
-    this.lastPing = Date.now();
+    this.lastPong = Date.now();
     this.pingTimer = setInterval(() => {
       const now = Date.now();
-      if (now - this.lastPing > 3000) {
+      if (now - this.lastPong > 4000) {
         this.close();
         return;
       }

@@ -7,11 +7,14 @@ import * as borc from 'borc';
 export class ClientNet extends EventEmitter {
 
   private readonly openLock = new Lock();
-  private timer?: NodeJS.Timer;
+  private openTimer?: NodeJS.Timer;
   private running = false;
 
-  private requests: {[key: number]: PromiseLike} = {};
+  private pingTimer?: NodeJS.Timer;
+  private lastPing = 0;
   private ws!: WebSocket;
+
+  private requests: {[key: number]: PromiseLike} = {};
   private id = 0;
 
   get isOpen(): boolean {
@@ -28,6 +31,7 @@ export class ClientNet extends EventEmitter {
   async start(): Promise<boolean> {
     assert(!this.running, 'client network already started');
     this.running = true;
+    this.startPingTimer();
     return await this.startOpenTimer(0);
   }
 
@@ -36,9 +40,13 @@ export class ClientNet extends EventEmitter {
     this.running = false;
     this.removeAllListeners();
 
-    if (this.timer) {
-      clearTimeout(this.timer);
-      this.timer = undefined;
+    if (this.openTimer) {
+      clearTimeout(this.openTimer);
+      this.openTimer = undefined;
+    }
+    if (this.pingTimer) {
+      clearInterval(this.pingTimer);
+      this.pingTimer = undefined;
     }
     await this.openLock.lock();
     if (this.ws) this.ws.close();
@@ -89,6 +97,7 @@ export class ClientNet extends EventEmitter {
       this.ws.on('open', () => {
         completed = true;
         this.openLock.unlock();
+        this.lastPing = Date.now();
         resolve();
         this.emit('open');
       });
@@ -117,8 +126,8 @@ export class ClientNet extends EventEmitter {
         reject(err);
       });
 
-      this.ws.on('ping', () => {
-        this.ws.pong();
+      this.ws.on('ping', (data) => {
+        this.lastPing = Date.now();
       });
 
       this.ws.on('message', data => {
@@ -138,8 +147,8 @@ export class ClientNet extends EventEmitter {
 
   private async startOpenTimer(tries = 1): Promise<boolean> {
     return new Promise<boolean>(resolve => {
-      if (this.timer) clearTimeout(this.timer);
-      this.timer = setTimeout(async () => {
+      if (this.openTimer) clearTimeout(this.openTimer);
+      this.openTimer = setTimeout(async () => {
         try {
           await this.open();
           resolve(true);
@@ -150,6 +159,14 @@ export class ClientNet extends EventEmitter {
         }
       }, tries === 0 ? 0 : Math.min(10000, Math.floor(Math.pow(2, tries) * 700 * Math.random())));
     });
+  }
+
+  private startPingTimer() {
+    if (this.pingTimer) return;
+    this.pingTimer = setInterval(() => {
+      const now = Date.now();
+      if (now - this.lastPing > 4000 && this.isOpen) this.ws.close();
+    }, 4000);
   }
 }
 
