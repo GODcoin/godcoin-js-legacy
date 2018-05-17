@@ -47,10 +47,10 @@ export class BatchIndex {
           key: Buffer.concat([IndexProp.NAMESPACE_BLOCK, buf]),
           value: pos
         });
-        if (this.ops.length >= 1000) await this.flushOps();
       } else {
         await this.store.write(block);
       }
+      if (this.ops.length >= 1000) await this.flushOps();
       if (block.height.mod(1000).eq(0) && process.env.NODE_ENV !== 'TEST') {
         console.log('=> Indexed block:', block.height.toString());
       }
@@ -87,6 +87,9 @@ export class BatchIndex {
       } else if (tx instanceof BondTx) {
         const bal = await this.getBal(tx.data.staker);
         bal[0] = bal[0].sub(tx.data.fee).sub(tx.data.bond_fee).sub(tx.data.stake_amt);
+        // Bonds don't happen often so it's safe to immediately flush without a
+        // loss of performance
+        await this.indexer.setBond(tx.data);
       }
     }
   }

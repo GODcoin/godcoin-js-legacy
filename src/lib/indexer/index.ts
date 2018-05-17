@@ -1,3 +1,5 @@
+import * as sodium from 'libsodium-wrappers';
+import { Bond } from '../transactions';
 import { PublicKey } from '../crypto';
 import { Asset } from '../asset';
 import * as assert from 'assert';
@@ -11,6 +13,7 @@ export namespace IndexProp {
   export const NAMESPACE_BLOCK = Buffer.from([1]);
   export const NAMESPACE_TX = Buffer.from([2]);
   export const NAMESPACE_BAL = Buffer.from([3]);
+  export const NAMESPACE_BOND = Buffer.from([4]);
 
   export const KEY_CURRENT_BLOCK_HEIGHT = Buffer.from('CURRENT_BLOCK_HEIGHT');
 }
@@ -44,14 +47,6 @@ export class Indexer {
     });
   }
 
-  async getBalance(key: PublicKey): Promise<[Asset,Asset]|undefined> {
-    const bal = await this.getProp(IndexProp.NAMESPACE_BAL, key.buffer, {
-      valueEncoding: 'json'
-    });
-    if (!bal) return;
-    return [Asset.fromString(bal[0]), Asset.fromString(bal[1])];
-  }
-
   async hasTx(txBuf: Buffer): Promise<boolean> {
     const tx = await this.getProp(IndexProp.NAMESPACE_TX, txBuf);
     return tx !== undefined;
@@ -72,6 +67,32 @@ export class Indexer {
         console.log('Failed to prune TX', tx.toString('hex'), e);
       }
     }, expiry - Date.now()).unref();
+  }
+
+  async getBond(minter: PublicKey): Promise<Bond|undefined> {
+    const bondBuf: Buffer = await this.getProp(IndexProp.NAMESPACE_BOND, minter.buffer);
+    if (!bondBuf) return;
+    const staker = new PublicKey(bondBuf.slice(0, sodium.crypto_sign_PUBLICKEYBYTES))
+    const amt = Asset.fromString(bondBuf.slice(sodium.crypto_sign_PUBLICKEYBYTES).toString('utf8'));
+    return {
+      minter,
+      staker,
+      stake_amt: amt
+    };
+  }
+
+  async setBond(bond: Bond): Promise<void> {
+    const amt = Buffer.from(bond.stake_amt.toString(), 'utf8');
+    const val = Buffer.concat([bond.staker.buffer, amt]);
+    await this.setProp(IndexProp.NAMESPACE_BOND, bond.minter.buffer, val);
+  }
+
+  async getBalance(key: PublicKey): Promise<[Asset,Asset]|undefined> {
+    const bal = await this.getProp(IndexProp.NAMESPACE_BAL, key.buffer, {
+      valueEncoding: 'json'
+    });
+    if (!bal) return;
+    return [Asset.fromString(bal[0]), Asset.fromString(bal[1])];
   }
 
   async getBlockPos(height: Long): Promise<Long|undefined> {
