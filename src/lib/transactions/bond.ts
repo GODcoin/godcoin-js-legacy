@@ -39,6 +39,10 @@ export class BondTx extends Tx {
   validate(): void {
     super.validate();
     const data = this.data;
+    // For security, only allow unique minter and staker keys to help prevent
+    // accidentally using hot wallets for minting
+    assert(!data.minter.equals(data.staker), 'minter and staker keys must be unique');
+
     checkAsset('stake_amt', data.stake_amt, AssetSymbol.GOLD);
     checkAsset('bond_fee', data.bond_fee, AssetSymbol.GOLD);
     assert(data.stake_amt.amount.gt(0), 'stake_amt must be greater than zero');
