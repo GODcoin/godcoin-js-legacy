@@ -2,6 +2,7 @@ import { RewardTx, TxType, BondTx } from '../transactions';
 import { Asset, AssetSymbol, EMPTY_GOLD } from '../asset';
 import { KeyPair, generateKeyPair } from '../crypto';
 import { Blockchain, Block } from '../blockchain';
+import { GODcoin } from '../constants';
 import * as bigInt from 'big-integer';
 import { TxPool } from './tx_pool';
 import * as assert from 'assert';
@@ -84,7 +85,7 @@ export class LocalMinter {
         console.log('Failed to produce block', e);
       }
       this.startTimer();
-    }, 3000);
+    }, GODcoin.BLOCK_PROD_TIME);
   }
 
   private async produceBlock() {

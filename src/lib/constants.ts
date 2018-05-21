@@ -31,6 +31,8 @@ export namespace GODcoin {
   * Miscellaneous constants
   */
 
+  export const BLOCK_PROD_TIME = 3000;
+
   export const MAX_PRECISION = 8;
   export const MAX_ASSET_STR_LEN = 32;
 }
