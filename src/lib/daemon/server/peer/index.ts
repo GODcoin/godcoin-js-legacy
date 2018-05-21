@@ -35,10 +35,6 @@ export class Peer {
   private async processMessage(map: any): Promise<any> {
     const method = map.method;
     switch (method) {
-      case 'block_proposal': {
-        // TODO: handle minter block proposals
-        return;
-      }
       case 'broadcast': {
         const tx: Buffer = map.tx;
         check(tx, ApiErrorCode.INVALID_PARAMS, 'missing tx');
