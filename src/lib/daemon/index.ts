@@ -1,9 +1,10 @@
 import { Blockchain, Block, ChainStore, SignedBlock } from '../blockchain';
 import { ClientPeerPool, EndOfClients } from './client_peer_pool';
 import { RewardTx, TxType } from '../transactions';
+import { LocalMinter, TxPool } from '../producer';
 import { KeyPair, PrivateKey } from '../crypto';
 import { Asset, AssetSymbol } from '../asset';
-import { LocalMinter, TxPool } from '../producer';
+import { Synchronizer } from './synchronizer';
 import * as bigInt from 'big-integer';
 import { Indexer } from '../indexer';
 import { GODcoinEnv } from '../env';
@@ -25,26 +26,29 @@ export interface DaemonOpts {
 
 export class Daemon {
 
-  readonly blockchain: Blockchain;
-  readonly txPool: TxPool;
-  readonly peerPool: ClientPeerPool;
   private running = false;
-  private server?: Server;
+
+  readonly blockchain: Blockchain;
+  private sync: Synchronizer;
   private minter?: LocalMinter;
+
+  private server?: Server;
+  readonly peerPool: ClientPeerPool;
 
   constructor(readonly opts: DaemonOpts) {
     const dir = path.join(GODcoinEnv.GODCOIN_HOME, 'blockchain', 'data');
     mkdirp.sync(dir);
 
     this.blockchain = new Blockchain(dir, opts.reindex);
-    this.txPool = new TxPool(this.blockchain, this.opts.signingKeys !== undefined);
     this.peerPool = new ClientPeerPool();
+    this.sync = new Synchronizer(this.blockchain, this.peerPool);
   }
 
   async start(): Promise<void> {
+    if (this.running) return;
     this.running = true;
-    await this.blockchain.start();
 
+    await this.blockchain.start();
     if (this.blockchain.head) {
       const height = this.blockchain.head.height.toString();
       console.log(`Using existing blockchain at height ${height}`);
@@ -56,69 +60,12 @@ export class Daemon {
       for (const peer of this.opts.peers) this.peerPool.addNode(peer);
       await this.peerPool.start();
 
-      const lock = new Lock();
-      let blocks: SignedBlock[]|undefined = [];
-      await this.peerPool.subscribeBlock(async block => {
-        await lock.lock();
-        try {
-          if (blocks) {
-            blocks.push(block);
-          } else {
-            const height = block.height.toString();
-            const len = block.transactions.length;
-            await this.blockchain.addBlock(block);
-            console.log(`Received block at height ${height} with ${len} transaction${len === 1 ? '' : 's'}`);
-          }
-        } catch (e) {
-          console.log('Failed to process block during subscription', e);
-        } finally {
-          lock.unlock();
-        }
-      });
-
-      const sync = async () => {
-        try {
-          await lock.lock();
-          await this.synchronizeChain();
-          if (blocks) {
-            for (const b of blocks) {
-              if (b.height.gt(this.blockchain.head.height)) {
-                await this.blockchain.addBlock(b);
-              }
-            }
-            blocks = undefined;
-          }
-        } catch (e) {
-          console.log('Failed to synchronize blockchain');
-        } finally {
-          lock.unlock();
-        }
-      };
-
-      this.peerPool.on('open', async () => {
-        console.log('Resuming synchronization...');
-        await sync();
-        console.log('Synchronized at height', this.blockchain.head.height.toString());
-      });
-
-      this.peerPool.on('close', async () => {
-        try {
-          await lock.lock();
-          console.log('Synchronization paused until more clients are connected in the peer pool');
-          blocks = [];
-        } finally {
-          lock.unlock();
-        }
-      });
-
-      await sync();
-      const height = this.blockchain.head.height;
-      console.log('Synchronization completed at height', height.toString());
-      lock.unlock();
+      await this.sync.start();
     }
 
+    const txPool = new TxPool(this.blockchain, this.opts.signingKeys !== undefined);
     if (this.opts.signingKeys) {
-      this.minter = new LocalMinter(this.blockchain, this.txPool, this.opts.signingKeys);
+      this.minter = new LocalMinter(this.blockchain, txPool, this.opts.signingKeys);
       if (!(this.blockchain.head || this.opts.peers.length)) {
         await this.minter.createGenesisBlock();
       }
@@ -127,7 +74,7 @@ export class Daemon {
     if (this.opts.listen) {
       this.server = new Server({
         blockchain: this.blockchain,
-        pool: this.txPool,
+        pool: txPool,
         bindAddress: this.opts.bind,
         port: this.opts.port
       });
@@ -139,7 +86,8 @@ export class Daemon {
 
   async stop(): Promise<void> {
     this.running = false;
-    this.peerPool.stop();
+    await this.sync.stop();
+    await this.peerPool.stop();
     if (this.server) {
       this.server.stop();
       this.server = undefined;
@@ -151,37 +99,4 @@ export class Daemon {
       this.minter = undefined;
     }
   }
-
-  private async synchronizeChain(): Promise<void> {
-    let height = this.blockchain.head ? this.blockchain.head.height : undefined;
-    let batch = this.blockchain.prepareBatch();
-    while (this.running) {
-      try {
-        const min = height ? height.add(1) : Long.fromNumber(0, true);
-        const max = height ? height.add(100) : min.add(100);
-        const range = await this.peerPool.getBlockRange(min.toNumber(), max.toNumber());
-        height = max;
-
-        if (range.blocks.length) {
-          for (const block of range.blocks) {
-            if (this.running) {
-              if (this.blockchain.head) block.validate(this.blockchain.head);
-              await batch.index(block);
-            }
-          }
-        }
-        if (range.range_outside_height) break;
-      } catch (e) {
-        if (e instanceof EndOfClients) {
-          await new Promise(r => setTimeout(r, 3000).unref());
-          continue;
-        }
-        await batch.flush();
-        throw e;
-      }
-    }
-    await batch.flush();
-    await this.blockchain.reload();
-  }
-
 }
