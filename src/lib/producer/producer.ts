@@ -112,11 +112,11 @@ export class Producer {
     }, schedule);
   }
 
-  private startMissedBlockTimer(expectedHeight: Long) {
+  private startMissedBlockTimer(minter: PublicKey, height: Long) {
     this.timer = setTimeout(async () => {
       await this.lock.lock();
-      if (this.blockchain.head.height.neq(expectedHeight)) {
-        console.log('Minter missed block');
+      if (this.blockchain.head.height.neq(height)) {
+        console.log(`Minter (${minter.toWif()}) missed block`);
         ++this.missed;
         this.tryProducingBlock();
       }
@@ -127,17 +127,17 @@ export class Producer {
   private async tryProducingBlock() {
     await this.lock.lock();
     const head = this.blockchain.head;
+    const bond = this.scheduler.nextMinter(head, this.missed);
     try {
-      const bond = this.scheduler.nextMinter(head, this.missed);
       if (this.minter && bond.minter.equals(this.minter.keys.publicKey)) {
         await this.minter.produceBlock();
         this.startTimer();
       } else {
-        this.startMissedBlockTimer(head.height.add(1));
+        this.startMissedBlockTimer(bond.minter, head.height.add(1));
       }
     } catch (e) {
       console.log('Failed to produce a block', e);
-      this.startMissedBlockTimer(head.height.add(1));
+      this.startMissedBlockTimer(bond.minter, head.height.add(1));
     } finally {
       this.lock.unlock();
     }
