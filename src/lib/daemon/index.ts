@@ -1,18 +1,11 @@
-import { Blockchain, Block, ChainStore, SignedBlock } from '../blockchain';
-import { ClientPeerPool, EndOfClients } from './client_peer_pool';
-import { RewardTx, TxType } from '../transactions';
-import { LocalMinter, TxPool } from '../producer';
-import { KeyPair, PrivateKey } from '../crypto';
-import { Asset, AssetSymbol } from '../asset';
+import { Producer, LocalMinter, TxPool } from '../producer';
+import { ClientPeerPool } from './client_peer_pool';
 import { Synchronizer } from './synchronizer';
-import * as bigInt from 'big-integer';
-import { Indexer } from '../indexer';
+import { Blockchain } from '../blockchain';
 import { GODcoinEnv } from '../env';
+import { KeyPair } from '../crypto';
 import { Server } from './server';
-import * as assert from 'assert';
 import * as mkdirp from 'mkdirp';
-import { Lock } from '../lock';
-import * as Long from 'long';
 import * as path from 'path';
 
 export interface DaemonOpts {
@@ -29,8 +22,11 @@ export class Daemon {
   private running = false;
 
   readonly blockchain: Blockchain;
-  private sync: Synchronizer;
-  private minter?: LocalMinter;
+  readonly minter?: LocalMinter;
+
+  private readonly txPool: TxPool;
+  private readonly sync: Synchronizer;
+  private readonly producer: Producer;
 
   private server?: Server;
   readonly peerPool: ClientPeerPool;
@@ -41,7 +37,15 @@ export class Daemon {
 
     this.blockchain = new Blockchain(dir, opts.reindex);
     this.peerPool = new ClientPeerPool();
-    this.sync = new Synchronizer(this.blockchain, this.peerPool);
+    this.producer = new Producer(this.blockchain);
+    this.sync = new Synchronizer(this.blockchain, this.peerPool, this.producer);
+
+    const isMinter = this.opts.signingKeys !== undefined;
+    this.txPool = new TxPool(this.blockchain, isMinter);
+    if (isMinter) {
+      this.minter = new LocalMinter(this.blockchain, this.txPool, this.opts.signingKeys);
+      this.producer.minter = this.minter;
+    }
   }
 
   async start(): Promise<void> {
@@ -56,36 +60,33 @@ export class Daemon {
       console.log('Block log is empty or missing');
     }
 
+    if (this.minter && !(this.blockchain.head || this.opts.peers.length)) {
+      await this.minter.createGenesisBlock();
+    }
+
+    await this.producer.start();
     if (this.opts.peers.length) {
       for (const peer of this.opts.peers) this.peerPool.addNode(peer);
       await this.peerPool.start();
 
       await this.sync.start();
     }
-
-    const txPool = new TxPool(this.blockchain, this.opts.signingKeys !== undefined);
-    if (this.opts.signingKeys) {
-      this.minter = new LocalMinter(this.blockchain, txPool, this.opts.signingKeys);
-      if (!(this.blockchain.head || this.opts.peers.length)) {
-        await this.minter.createGenesisBlock();
-      }
-    }
+    await this.producer.startTimer();
 
     if (this.opts.listen) {
       this.server = new Server({
         blockchain: this.blockchain,
-        pool: txPool,
+        pool: this.txPool,
         bindAddress: this.opts.bind,
         port: this.opts.port
       });
       this.server.start();
     }
-
-    if (this.minter) this.minter.start();
   }
 
   async stop(): Promise<void> {
     this.running = false;
+    await this.producer.stop();
     await this.sync.stop();
     await this.peerPool.stop();
     if (this.server) {
@@ -94,9 +95,5 @@ export class Daemon {
     }
 
     await this.blockchain.stop();
-    if (this.minter) {
-      this.minter.stop();
-      this.minter = undefined;
-    }
   }
 }

@@ -1,5 +1,6 @@
 import { ClientPeerPool, EndOfClients } from './client_peer_pool';
 import { SignedBlock, Blockchain } from '../blockchain';
+import { Producer } from '../producer';
 import { Lock } from '../lock';
 import * as Long from 'long';
 
@@ -9,7 +10,8 @@ export class Synchronizer {
   private lock = new Lock();
 
   constructor(readonly blockchain: Blockchain,
-              readonly pool: ClientPeerPool) {
+              readonly pool: ClientPeerPool,
+              readonly producer: Producer) {
   }
 
   async start() {
@@ -27,7 +29,7 @@ export class Synchronizer {
         const height = block.height.toString();
         const len = block.transactions.length;
         if (block.height.gt(this.blockchain.head.height)) {
-          await this.blockchain.addBlock(block);
+          await this.producer.onBlock(block);
           console.log(`Received block at height ${height} with ${len} transaction${len === 1 ? '' : 's'}`);
         }
       } catch (e) {

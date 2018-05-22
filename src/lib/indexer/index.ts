@@ -32,18 +32,23 @@ export class Indexer {
   }
 
   async init(): Promise<void> {
-    this.db.createReadStream({
-      gte: IndexProp.NAMESPACE_TX,
-      lte: IndexProp.NAMESPACE_TX
-    }).on('data', data => {
-      const key = data.key as Buffer;
-      const value = data.value as Buffer;
-      const expiry = value.readDoubleBE(0);
-      assert(key.slice(0, IndexProp.NAMESPACE_TX.length).equals(IndexProp.NAMESPACE_TX));
+    await new Promise((resolve, reject) => {
+      this.db.createReadStream({
+        gte: IndexProp.NAMESPACE_TX,
+        lt: Buffer.from([IndexProp.NAMESPACE_TX[0] + 1])
+      }).on('data', data => {
+        const key = data.key as Buffer;
+        const value = data.value as Buffer;
+        const expiry = value.readDoubleBE(0);
+        assert(key.slice(0, IndexProp.NAMESPACE_TX.length).equals(IndexProp.NAMESPACE_TX));
 
-      this.expireTxTimeout(key.slice(IndexProp.NAMESPACE_TX.length), expiry);
-    }).on('error', err => {
-      console.log('Failed to prune the tx log', err);
+        this.expireTxTimeout(key.slice(IndexProp.NAMESPACE_TX.length), expiry);
+      }).on('end', () => {
+        resolve();
+      }).on('error', err => {
+        console.log('Failed to prune the tx log', err);
+        reject(err);
+      });
     });
   }
 
@@ -72,7 +77,7 @@ export class Indexer {
   async getBond(minter: PublicKey): Promise<Bond|undefined> {
     const bondBuf: Buffer = await this.getProp(IndexProp.NAMESPACE_BOND, minter.buffer);
     if (!bondBuf) return;
-    const staker = new PublicKey(bondBuf.slice(0, sodium.crypto_sign_PUBLICKEYBYTES))
+    const staker = new PublicKey(bondBuf.slice(0, sodium.crypto_sign_PUBLICKEYBYTES));
     const amt = Asset.fromString(bondBuf.slice(sodium.crypto_sign_PUBLICKEYBYTES).toString('utf8'));
     return {
       minter,

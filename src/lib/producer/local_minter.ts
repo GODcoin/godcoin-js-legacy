@@ -13,32 +13,12 @@ const REWARD_SILVER = new Asset(bigInt(100), 0, AssetSymbol.SILVER);
 
 export class LocalMinter {
 
-  private readonly blockchain: Blockchain;
-  private readonly keys: KeyPair;
-  private running = false;
-  private timer?: NodeJS.Timer;
-
-  readonly pool: TxPool;
-
-  constructor(blockchain: Blockchain, pool: TxPool, keys: KeyPair) {
+  constructor(private readonly blockchain: Blockchain,
+              private readonly pool: TxPool,
+              readonly keys: KeyPair) {
     this.blockchain = blockchain;
     this.keys = keys;
     this.pool = pool;
-  }
-
-  start() {
-    if (this.running) return;
-    console.log('Started block production');
-    this.running = true;
-    this.startTimer();
-  }
-
-  stop() {
-    this.running = false;
-    if (this.timer) {
-      clearTimeout(this.timer);
-      this.timer = undefined;
-    }
   }
 
   async createGenesisBlock() {
@@ -76,19 +56,7 @@ export class LocalMinter {
     await this.blockchain.addBlock(genesisBlock);
   }
 
-  private startTimer() {
-    this.timer = setTimeout(async () => {
-      if (!this.running) return;
-      try {
-        await this.produceBlock();
-      } catch (e) {
-        console.log('Failed to produce block', e);
-      }
-      this.startTimer();
-    }, GODcoin.BLOCK_PROD_TIME);
-  }
-
-  private async produceBlock() {
+  async produceBlock() {
     const head = this.blockchain.head;
 
     const bond = await this.blockchain.indexer.getBond(head.signature_pair.public_key);
