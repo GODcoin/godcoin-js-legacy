@@ -1,6 +1,7 @@
-import { ClientPeerPool, EndOfClients } from './client_peer_pool';
 import { SignedBlock, Blockchain } from '../blockchain';
+import { ClientPeerPool } from './client_peer_pool';
 import { Producer } from '../producer';
+import { EndOfClients } from '../net';
 import { Lock } from '../lock';
 import * as Long from 'long';
 

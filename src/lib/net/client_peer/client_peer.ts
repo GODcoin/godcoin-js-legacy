@@ -1,4 +1,4 @@
-import { SignedBlock } from '../blockchain';
+import { SignedBlock } from '../../blockchain';
 import * as ByteBuffer from 'bytebuffer';
 import { ClientNet } from './net';
 

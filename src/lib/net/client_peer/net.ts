@@ -1,7 +1,8 @@
+import { DisconnectedError } from '../errors';
 import { EventEmitter } from 'events';
+import { Lock } from '../../lock';
 import * as WebSocket from 'uws';
 import * as assert from 'assert';
-import { Lock } from '../lock';
 import * as borc from 'borc';
 
 export class ClientNet extends EventEmitter {
@@ -167,12 +168,6 @@ export class ClientNet extends EventEmitter {
       const now = Date.now();
       if (now - this.lastPing > 4000 && this.isOpen) this.ws.close();
     }, 4000);
-  }
-}
-
-export class DisconnectedError extends Error {
-  constructor() {
-    super('disconnected');
   }
 }
 

@@ -1,4 +1,4 @@
-import { ApiErrorCode, WsCloseCode, ApiError } from './api_error';
+import { ApiErrorCode, WsCloseCode, ApiError } from '../errors';
 import * as WebSocket from 'uws';
 import * as borc from 'borc';
 

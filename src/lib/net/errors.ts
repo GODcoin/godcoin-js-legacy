@@ -11,8 +11,19 @@ export enum ApiErrorCode {
   INVALID_PARAMS = 1002
 }
 
-export class ApiError extends Error {
+export class DisconnectedError extends Error {
+  constructor() {
+    super('disconnected');
+  }
+}
 
+export class EndOfClients extends Error {
+  constructor() {
+    super('end of clients');
+  }
+}
+
+export class ApiError extends Error {
   constructor(readonly code: ApiErrorCode, msg: string) {
     super(msg);
   }

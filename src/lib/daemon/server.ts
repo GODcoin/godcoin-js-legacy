@@ -1,7 +1,7 @@
-import { Blockchain } from '../../blockchain';
-import { TxPool } from '../../producer';
-import { Peer, PeerNet } from './peer';
-import { GODcoinEnv } from '../../env';
+import { Blockchain } from '../blockchain';
+import { Peer, PeerNet } from '../net';
+import { TxPool } from '../producer';
+import { GODcoinEnv } from '../env';
 import * as WebSocket from 'uws';
 import * as http from 'http';
 

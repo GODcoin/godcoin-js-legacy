@@ -1,5 +1,4 @@
 export * from './transactions';
-export * from './client_peer';
 export * from './blockchain';
 export * from './serializer';
 export * from './constants';
@@ -8,4 +7,5 @@ export * from './indexer';
 export * from './daemon';
 export * from './crypto';
 export * from './asset';
+export * from './net';
 export * from './env';

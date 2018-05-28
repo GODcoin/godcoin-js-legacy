@@ -1,9 +1,10 @@
 import {
   DisconnectedError,
+  EndOfClients,
   BlockRange,
   ClientPeer,
   ClientNet
-} from '../client_peer';
+} from '../net';
 import { SignedBlock } from '../blockchain';
 import * as ByteBuffer from 'bytebuffer';
 import { EventEmitter } from 'events';
@@ -96,10 +97,4 @@ export class ClientPeerPool extends EventEmitter {
     throw new EndOfClients();
   }
 
-}
-
-export class EndOfClients extends Error {
-  constructor() {
-    super('end of clients');
-  }
 }

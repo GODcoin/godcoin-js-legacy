@@ -1,16 +1,16 @@
 import {
   generateKeyPair,
+  SignedBlock,
+  AssetSymbol,
   hookSigInt,
   GODcoinEnv,
-  PublicKey,
-  PrivateKey,
-  ClientNet,
-  SignedBlock,
-  Asset,
-  AssetSymbol,
   TransferTx,
+  ClientPeer,
+  PrivateKey,
+  PublicKey,
+  ClientNet,
   TxType,
-  ClientPeer
+  Asset
 } from '../../lib';
 import { WalletDb, WalletIndexProp } from './db';
 import * as ByteBuffer from 'bytebuffer';

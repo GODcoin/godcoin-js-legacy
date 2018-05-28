@@ -1,8 +1,7 @@
-import { Blockchain, SignedBlock } from '../../../blockchain';
-import { ApiError, ApiErrorCode, check } from './api_error';
-import { DisconnectedError } from '../../../client_peer';
-import { LocalMinter, TxPool } from '../../../producer';
-import { PublicKey } from '../../../crypto';
+import { DisconnectedError, ApiError, ApiErrorCode, check } from '../../net';
+import { Blockchain, SignedBlock } from '../../blockchain';
+import { LocalMinter, TxPool } from '../../producer';
+import { PublicKey } from '../../crypto';
 import { PeerNet } from './net';
 
 export * from './net';
