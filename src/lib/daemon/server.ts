@@ -1,5 +1,5 @@
+import { ServerNet, ServerPeer } from '../net';
 import { Blockchain } from '../blockchain';
-import { Peer, PeerNet } from '../net';
 import { TxPool } from '../producer';
 import { GODcoinEnv } from '../env';
 import * as WebSocket from 'uws';
@@ -48,13 +48,12 @@ export class Server {
           if (typeof(tmp) === 'string') ip = tmp.split(',')[0];
           else if (tmp) ip = tmp[0].split(',')[0];
         }
-        console.log(`[${ip}] Peer has connected`);
-        const peerNet = new PeerNet(ws, ip);
-        const peer = new Peer({
+        const net = new ServerNet({
+          nodeUrl: ip,
           blockchain: this.blockchain,
-          pool: this.pool,
-          net: peerNet
-        });
+          pool: this.pool
+        }, ws);
+        const peer = new ServerPeer(net);
         peer.init();
       });
     });

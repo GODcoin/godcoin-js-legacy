@@ -28,7 +28,11 @@ export class Wallet {
   private db!: WalletDb;
 
   constructor(nodeUrl: string) {
-    this.client = new ClientPeer(new ClientNet(nodeUrl));
+    this.client = new ClientPeer(new ClientNet({
+      nodeUrl,
+      blockchain: undefined!,
+      pool: undefined!
+    }));
   }
 
   async start() {

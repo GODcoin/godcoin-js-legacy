@@ -1,41 +1,35 @@
-import { SignedBlock } from '../../blockchain';
+import { Blockchain, SignedBlock } from '../blockchain';
+import { TxPool, LocalMinter } from '../producer';
 import * as ByteBuffer from 'bytebuffer';
-import { ClientNet } from './net';
+import * as rpc from './rpc_model';
+import { Net } from './net';
 
-export class ClientPeer {
+export class Peer {
 
-  constructor(readonly net: ClientNet) {}
+  constructor(readonly net: Net) {}
 
-  start(): Promise<boolean> {
-    return this.net.start();
-  }
-
-  stop(): Promise<void> {
-    return this.net.stop();
-  }
-
-  async broadcast(tx: Buffer): Promise<BroadcastResult> {
-    return await this.net.send({
+  async broadcast(tx: Buffer): Promise<rpc.BroadcastResult> {
+    return await this.net.invokeRpc({
       method: 'broadcast',
       tx
     });
   }
 
   async subscribeBlock(): Promise<SignedBlock> {
-    const data = (await this.net.send({
+    const data = (await this.net.invokeRpc({
       method: 'subscribe_block'
     })).block;
     return SignedBlock.fullyDeserialize(ByteBuffer.wrap(data));
   }
 
-  async getProperties(): Promise<NetworkProperties> {
-    return await this.net.send({
+  async getProperties(): Promise<rpc.NetworkProperties> {
+    return await this.net.invokeRpc({
       method: 'get_properties'
     });
   }
 
   async getBlock(height: number): Promise<SignedBlock|undefined> {
-    const data = await this.net.send({
+    const data = await this.net.invokeRpc({
       method: 'get_block',
       height
     });
@@ -44,8 +38,8 @@ export class ClientPeer {
     return SignedBlock.fullyDeserialize(buf);
   }
 
-  async getBlockRange(minHeight: number, maxHeight: number): Promise<BlockRange> {
-    const data = await this.net.send({
+  async getBlockRange(minHeight: number, maxHeight: number): Promise<rpc.BlockRange> {
+    const data = await this.net.invokeRpc({
       method: 'get_block_range',
       min_height: minHeight,
       max_height: maxHeight
@@ -63,31 +57,17 @@ export class ClientPeer {
   }
 
   async getBalance(address: string): Promise<[string,string]> {
-    return (await this.net.send({
+    return (await this.net.invokeRpc({
       method: 'get_balance',
       address
     })).balance;
   }
 
   async getTotalFee(address: string): Promise<[string,string]> {
-    return (await this.net.send({
+    return (await this.net.invokeRpc({
       method: 'get_total_fee',
       address
     })).fee;
   }
-}
 
-export interface BroadcastResult {
-  ref_block: string;
-  ref_tx_pos: number;
-}
-
-export interface NetworkProperties {
-  block_height: string;
-  network_fee: [ string /* gold */, string /* silver */ ];
-}
-
-export interface BlockRange {
-  range_outside_height: boolean;
-  blocks: SignedBlock[];
 }

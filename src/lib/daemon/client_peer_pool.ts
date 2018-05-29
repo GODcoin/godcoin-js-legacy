@@ -3,7 +3,8 @@ import {
   EndOfClients,
   BlockRange,
   ClientPeer,
-  ClientNet
+  ClientNet,
+  NetOpts
 } from '../net';
 import { SignedBlock } from '../blockchain';
 import * as ByteBuffer from 'bytebuffer';
@@ -18,8 +19,8 @@ export class ClientPeerPool extends EventEmitter {
 
   get count() { return this.clients.length; }
 
-  async addNode(nodeUrl: string) {
-    const peer = new ClientPeer(new ClientNet(nodeUrl));
+  async addNode(opts: NetOpts) {
+    const peer = new ClientPeer(new ClientNet(opts));
     this.clients.push(peer);
   }
 
@@ -27,12 +28,10 @@ export class ClientPeerPool extends EventEmitter {
     this.index = 0;
     for (const client of this.clients) {
       client.net.on('open', () => {
-        console.log(`[${client.net.nodeUrl}] Successfully connected to peer`);
         if (this.connectedCount++ === 0) this.emit('open');
       });
 
       client.net.on('close', () => {
-        console.log(`[${client.net.nodeUrl}] Disconnected from peer`);
         if (--this.connectedCount === 0) this.emit('close');
       });
 
@@ -59,7 +58,7 @@ export class ClientPeerPool extends EventEmitter {
         try {
           await client.subscribeBlock();
         } catch (e) {
-          console.log(`[${client.net.nodeUrl}] Failed to subscribe to incoming blocks`, e);
+          console.log(`[${client.net.opts.nodeUrl}] Failed to subscribe to incoming blocks`, e);
         }
       });
 
@@ -71,7 +70,7 @@ export class ClientPeerPool extends EventEmitter {
           cb(b);
         }
       } catch (e) {
-        console.log(`[${client.net.nodeUrl}] Failed to subscribe to incoming blocks`, e);
+        console.log(`[${client.net.opts.nodeUrl}] Failed to subscribe to incoming blocks`, e);
       }
     }
   }
