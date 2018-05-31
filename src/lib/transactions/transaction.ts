@@ -81,7 +81,11 @@ export abstract class Tx {
   toString(): string {
     const data: any = {};
     Object.getOwnPropertyNames(this.data).forEach(name => {
-      data[name] = Tx.stringify(this.data[name]);
+      if (name === 'type') {
+        data[name] = TxType[this.data[name]];
+      } else {
+        data[name] = Tx.stringify(this.data[name]);
+      }
     });
     return JSON.stringify(data, undefined, 2);
   }
@@ -97,7 +101,7 @@ export abstract class Tx {
       return obj.toString('hex');
     } else if (obj instanceof PublicKey) {
       return obj.toWif();
-    } else if (obj.public_key && obj.signature) {
+    } else if (obj && obj.public_key && obj.signature) {
       return {
         public_key: obj.public_key.toWif(),
         signature: obj.signature.toString('hex')
