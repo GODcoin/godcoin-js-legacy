@@ -95,6 +95,7 @@ export class Wallet {
 
     switch (args[0]) {
       case 'new': {
+        (this.rl as any).history.shift();
         if (this.state === WalletState.UNLOCKED) {
           write('Wallet already unlocked');
           break;
@@ -122,6 +123,7 @@ export class Wallet {
         break;
       }
       case 'unlock': {
+        (this.rl as any).history.shift();
         if (this.state === WalletState.NEW) {
           write('Wallet is not initialized, create a new wallet with `new <password>`');
           break;
