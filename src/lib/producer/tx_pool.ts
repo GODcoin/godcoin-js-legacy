@@ -4,6 +4,7 @@ import { Blockchain } from '../blockchain';
 import * as ByteBuffer from 'bytebuffer';
 import { GODcoin } from '../constants';
 import { PublicKey } from '../crypto';
+import { EventEmitter } from 'events';
 import { Indexer } from '../indexer';
 import * as assert from 'assert';
 import { Lock } from '../lock';
@@ -11,7 +12,7 @@ import { Lock } from '../lock';
 /**
  * Transaction pool as received by peers
  */
-export class TxPool {
+export class TxPool extends EventEmitter {
 
   private readonly lock = new Lock();
   private readonly indexer: Indexer;
@@ -19,10 +20,11 @@ export class TxPool {
 
   constructor(readonly blockchain: Blockchain,
               readonly writable: boolean) {
+    super();
     this.indexer = this.blockchain.indexer;
   }
 
-  async push(txBuf: Buffer): Promise<[Long, number]> {
+  async push(txBuf: Buffer, nodeOrigin?: string): Promise<[Long, number]> {
     assert(this.writable, 'pool is read only');
     await this.lock.lock();
     try {
@@ -65,6 +67,7 @@ export class TxPool {
       }
 
       await this.indexer.addTx(txBuf, tx.data.timestamp!.getTime() + 60000);
+      this.emit('tx', tx, nodeOrigin);
       return [this.blockchain.head.height.add(1), this.txs.push(tx) - 1];
     } finally {
       this.lock.unlock();

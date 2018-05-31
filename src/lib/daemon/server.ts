@@ -42,6 +42,7 @@ export class Server {
     });
     this.server.on('upgrade', (req: http.IncomingMessage, socket, head) => {
       let ip = req.connection.remoteAddress!;
+      let port = req.connection.remotePort!;
       this.ws.handleUpgrade(req, socket, head, ws => {
         if (GODcoinEnv.GODCOIN_TRUST_PROXY) {
           const tmp = req.headers['x-forwarded-for'];
@@ -49,7 +50,7 @@ export class Server {
           else if (tmp) ip = tmp[0].split(',')[0];
         }
         const net = new ServerNet({
-          nodeUrl: ip,
+          nodeUrl: ip + ':' + port,
           blockchain: this.blockchain,
           pool: this.pool
         }, ws);

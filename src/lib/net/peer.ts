@@ -15,6 +15,12 @@ export class Peer {
     });
   }
 
+  async subscribeTx(): Promise<void> {
+    await this.net.invokeRpc({
+      method: 'subscribe_tx'
+    });
+  }
+
   async subscribeBlock(): Promise<SignedBlock> {
     const data = (await this.net.invokeRpc({
       method: 'subscribe_block'

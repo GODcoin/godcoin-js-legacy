@@ -9,6 +9,7 @@ import { Blockchain, SignedBlock } from '../blockchain';
 import { TxPool, LocalMinter } from '../producer';
 import { EventEmitter } from 'events';
 import { PublicKey } from '../crypto';
+import { Tx } from '../transactions';
 import * as WebSocket from 'uws';
 import * as borc from 'borc';
 
@@ -27,6 +28,7 @@ export abstract class Net extends EventEmitter {
   private id = 0;
 
   private blockHandler?: (block: SignedBlock) => void;
+  private txHandler?: (block: Tx, nodeOrigin: string) => void;
 
   constructor(readonly opts: NetOpts) {
     super();
@@ -100,6 +102,16 @@ export abstract class Net extends EventEmitter {
         req.reject(new DisconnectedError());
       });
     }
+
+    if (this.blockHandler) {
+      this.opts.blockchain.removeListener('block', this.blockHandler);
+      this.blockHandler = undefined;
+    }
+
+    if (this.txHandler) {
+      this.opts.pool.removeListener('tx', this.txHandler);
+      this.txHandler = undefined;
+    }
   }
 
   protected async onMessage(data: any): Promise<void> {
@@ -157,7 +169,7 @@ export abstract class Net extends EventEmitter {
         let refBlock!: Long;
         let refTxPos!: number;
         if (this.opts.pool.writable) {
-          const data = await this.opts.pool.push(tx);
+          const data = await this.opts.pool.push(tx, this.opts.nodeUrl);
           refBlock = data[0];
           refTxPos = data[1];
           return {
@@ -165,7 +177,6 @@ export abstract class Net extends EventEmitter {
             ref_tx_pos: refTxPos
           };
         }
-        // TODO: broadcast to all clients
         return;
       }
       case 'get_properties': {
@@ -237,10 +248,32 @@ export abstract class Net extends EventEmitter {
           ]
         };
       }
+      case 'subscribe_tx': {
+        // Subscribes to newly broadcasted tx's to be included in a block
+        check(!this.txHandler, ApiErrorCode.MISC, 'already subscribed');
+        this.txHandler = async (tx, nodeOrigin) => {
+          if (this.opts.nodeUrl === nodeOrigin) return;
+          try {
+            await this.sendEvent('tx', {
+              tx: tx.serialize(true).toBuffer()
+            });
+          } catch (e) {
+            if (e instanceof DisconnectedError) {
+              this.opts.pool.removeListener('tx', this.txHandler!);
+              this.txHandler = undefined;
+            } else {
+              console.log(`[${this.opts.nodeUrl}] Failed to push tx to client`, e);
+            }
+          }
+        };
+        setImmediate(() => {
+          this.opts.pool.on('tx', this.txHandler!);
+        });
+        return {};
+      }
       case 'subscribe_block': {
+        // Subscribes to live generated blocks
         check(!this.blockHandler, ApiErrorCode.MISC, 'already subscribed');
-        const id = map.id;
-
         this.blockHandler = async (block: SignedBlock) => {
           try {
             await this.sendEvent('block', {
@@ -251,7 +284,7 @@ export abstract class Net extends EventEmitter {
               this.opts.blockchain.removeListener('block', this.blockHandler!);
               this.blockHandler = undefined;
             } else {
-              console.log(`[${this.opts.nodeUrl}] Failed to push block to client`);
+              console.log(`[${this.opts.nodeUrl}] Failed to push block to client`, e);
             }
           }
         };

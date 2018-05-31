@@ -1,5 +1,6 @@
 import {
   generateKeyPair,
+  deserialize,
   SignedBlock,
   AssetSymbol,
   hookSigInt,
@@ -10,7 +11,8 @@ import {
   PublicKey,
   ClientNet,
   TxType,
-  Asset
+  Asset,
+  Tx
 } from '../../lib';
 import { WalletDb, WalletIndexProp } from './db';
 import * as ByteBuffer from 'bytebuffer';
@@ -329,6 +331,18 @@ export class Wallet {
         write('subscribe_block =>', data.toString());
         break;
       }
+      case 'subscribe_tx': {
+        const handler = (data: any) => {
+          const tx = deserialize<Tx>(ByteBuffer.wrap(data.tx), true);
+          write('subscribe_tx =>', tx.toString());
+        }
+        this.client.net.on('net_event_tx', handler);
+        this.client.net.once('close', () => {
+          this.client.net.removeListener('net_event_tx', handler);
+        });
+        await this.client.subscribeTx();
+        break;
+      }
       default:
         write('Unknown command:', args[0]);
       case 'help':
@@ -349,7 +363,8 @@ export class Wallet {
         Wallet.writeHelp('Available commands:', cmds);
 
         cmds = [];
-        cmds.push(['subscribe_block', 'subscribes to blocks as they are added to the network']);
+        cmds.push(['subscribe_block', 'subscribe to blocks as they are added to the network']);
+        cmds.push(['subscribe_tx', 'subscribe to transactions as they are broadcasted to the network']);
         Wallet.writeHelp('Additional commands:', cmds);
     }
   }
