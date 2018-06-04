@@ -73,6 +73,16 @@ export class Daemon {
       });
       await this.peerPool.start();
       await this.sync.start();
+
+      if (this.minter) {
+        await this.peerPool.subscribeTx(async tx => {
+          try {
+            await this.txPool.push(tx);
+          } catch (e) {
+            console.log('Failed to push tx from peer pool', tx.toString('hex'), e);
+          }
+        });
+      }
     }
     await this.producer.startTimer();
 

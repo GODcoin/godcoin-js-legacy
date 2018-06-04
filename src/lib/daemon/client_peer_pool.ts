@@ -44,6 +44,31 @@ export class ClientPeerPool extends EventEmitter {
     for (const client of this.clients) await client.stop();
   }
 
+  async subscribeTx(cb: (tx: Buffer) => void) {
+    const handler = (data: any) => {
+      cb(Buffer.from(data.tx));
+    };
+
+    for (const client of this.clients) {
+      client.net.on('open', async () => {
+        try {
+          await client.subscribeTx();
+        } catch (e) {
+          console.log(`[${client.net.opts.nodeUrl}] Failed to subscribe to incoming transactions`, e);
+        }
+      });
+
+      client.net.on('net_event_tx', handler);
+      if (client.net.isOpen) {
+        try {
+          await client.subscribeTx();
+        } catch (e) {
+          console.log(`[${client.net.opts.nodeUrl}] Failed to subscribe to incoming transactions`, e);
+        }
+      }
+    }
+  }
+
   async subscribeBlock(cb: (block: SignedBlock) => void) {
     let lastHeight: Long|undefined;
     const handler = (data: any) => {
@@ -63,14 +88,16 @@ export class ClientPeerPool extends EventEmitter {
       });
 
       client.net.on('net_event_block', handler);
-      try {
-        const b = await client.subscribeBlock();
-        if (!lastHeight) {
-          lastHeight = b.height;
-          cb(b);
+      if (client.net.isOpen) {
+        try {
+          const b = await client.subscribeBlock();
+          if (!lastHeight) {
+            lastHeight = b.height;
+            cb(b);
+          }
+        } catch (e) {
+          console.log(`[${client.net.opts.nodeUrl}] Failed to subscribe to incoming blocks`, e);
         }
-      } catch (e) {
-        console.log(`[${client.net.opts.nodeUrl}] Failed to subscribe to incoming blocks`, e);
       }
     }
   }
