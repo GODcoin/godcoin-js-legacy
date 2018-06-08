@@ -5,6 +5,7 @@ import {
 } from '../serializer';
 import { PrivateKey, PublicKey, SigPair } from '../crypto';
 import * as ByteBuffer from 'bytebuffer';
+import { GODcoin } from '../constants';
 import { checkAsset } from './util';
 import * as newDebug from 'debug';
 import { Asset } from '../asset';
@@ -65,7 +66,7 @@ export abstract class Tx {
     const exp = this.data.timestamp.getTime();
     const now = Date.now();
     const delta = now - exp;
-    assert(delta <= 60000, 'tx expired');
+    assert(delta <= GODcoin.TX_EXPIRY_TIME, 'tx expired');
     assert(delta > 0, 'tx timestamp in the future');
   }
 
