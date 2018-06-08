@@ -1,6 +1,3 @@
-import { SignedBlock } from '../../blockchain';
-import * as ByteBuffer from 'bytebuffer';
-import * as rpc from '../rpc_model';
 import { ClientNet } from './net';
 import { Peer } from '../peer';
 

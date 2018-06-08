@@ -1,7 +1,5 @@
-import { ApiErrorCode, WsCloseCode, ApiError } from '../errors';
 import { Net, NetOpts } from '../net';
 import * as WebSocket from 'uws';
-import * as borc from 'borc';
 
 export type MessageCallback = (map: any) => Promise<any>;
 
@@ -48,5 +46,5 @@ export class ServerNet extends Net {
     console.log(`[${this.opts.nodeUrl}] Unexpected error`, err);
   }
 
-  protected onPing(data: any): void {}
+  protected onPing(): void {}
 }

@@ -1,9 +1,7 @@
 import { Net, NetOpts, PromiseLike } from '../net';
-import { DisconnectedError } from '../errors';
 import { Lock } from '../../lock';
 import * as WebSocket from 'uws';
 import * as assert from 'assert';
-import * as borc from 'borc';
 
 export class ClientNet extends Net {
 
@@ -90,21 +88,20 @@ export class ClientNet extends Net {
   }
 
   protected onOpen() {
+    if (this.openPromise) {
+      this.openLock.unlock();
+      this.lastPing = Date.now();
+      this.openPromise.resolve();
+      this.openPromise = undefined;
+    }
     super.onOpen();
-    if (!this.openPromise) return;
-    this.openLock.unlock();
-    this.lastPing = Date.now();
-    this.openPromise.resolve();
-    this.openPromise = undefined;
-    this.emit('open');
   }
 
   protected onClose(code: number, msg: string) {
-    super.onClose(code, msg);
     setImmediate(() => {
       if (this.running) this.startOpenTimer();
     });
-    this.emit('close');
+    super.onClose(code, msg);
   }
 
   protected onPing() {

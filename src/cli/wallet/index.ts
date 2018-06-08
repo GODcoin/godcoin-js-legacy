@@ -324,9 +324,9 @@ export class Wallet {
           const block = SignedBlock.fullyDeserialize(ByteBuffer.wrap(data.block));
           write('subscribe_block =>', block.toString());
         };
-        this.client.net.on('net_event_block', handler);
+        this.client.on('net_event_block', handler);
         this.client.net.once('close', () => {
-          this.client.net.removeListener('net_event_block', handler);
+          this.client.removeListener('net_event_block', handler);
         });
 
         const data = await this.client.subscribeBlock();
@@ -338,9 +338,9 @@ export class Wallet {
           const tx = deserialize<Tx>(ByteBuffer.wrap(data.tx), true);
           write('subscribe_tx =>', tx.toString());
         }
-        this.client.net.on('net_event_tx', handler);
+        this.client.on('net_event_tx', handler);
         this.client.net.once('close', () => {
-          this.client.net.removeListener('net_event_tx', handler);
+          this.client.removeListener('net_event_tx', handler);
         });
         await this.client.subscribeTx();
         break;

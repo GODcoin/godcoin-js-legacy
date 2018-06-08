@@ -58,7 +58,7 @@ export class ClientPeerPool extends EventEmitter {
         }
       });
 
-      client.net.on('net_event_tx', handler);
+      client.on('net_event_tx', handler);
       if (client.net.isOpen) {
         try {
           await client.subscribeTx();
@@ -87,7 +87,7 @@ export class ClientPeerPool extends EventEmitter {
         }
       });
 
-      client.net.on('net_event_block', handler);
+      client.on('net_event_block', handler);
       if (client.net.isOpen) {
         try {
           const b = await client.subscribeBlock();
