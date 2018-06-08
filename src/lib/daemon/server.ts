@@ -49,12 +49,11 @@ export class Server {
           if (typeof(tmp) === 'string') ip = tmp.split(',')[0];
           else if (tmp) ip = tmp[0].split(',')[0];
         }
-        const net = new ServerNet({
-          nodeUrl: ip + ':' + port,
+        const net = new ServerNet(ip + ':' + port, ws);
+        const peer = new ServerPeer({
           blockchain: this.blockchain,
           pool: this.pool
-        }, ws);
-        const peer = new ServerPeer(net);
+        }, net);
         peer.init();
       });
     });

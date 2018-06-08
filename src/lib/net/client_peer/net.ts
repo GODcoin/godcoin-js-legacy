@@ -1,4 +1,4 @@
-import { Net, NetOpts, PromiseLike } from '../net';
+import { Net, PromiseLike } from '../net';
 import { Lock } from '../../lock';
 import * as WebSocket from 'uws';
 import * as assert from 'assert';
@@ -13,8 +13,8 @@ export class ClientNet extends Net {
   private pingTimer?: NodeJS.Timer;
   private lastPing = 0;
 
-  constructor(opts: NetOpts) {
-    super(opts);
+  constructor(nodeUrl: string) {
+    super(nodeUrl);
   }
 
   /**
@@ -56,7 +56,7 @@ export class ClientNet extends Net {
         return resolve();
       }
 
-      this.ws = new WebSocket(this.opts.nodeUrl);
+      this.ws = new WebSocket(this.nodeUrl);
       this.openPromise = { resolve, reject };
     });
   }
@@ -69,7 +69,7 @@ export class ClientNet extends Net {
           await this.open();
           resolve(true);
         } catch (e) {
-          console.log(`[${this.opts.nodeUrl}] Failed to connect to peer`, e);
+          console.log(`[${this.nodeUrl}] Failed to connect to peer`, e);
           resolve(false);
           if (this.running) this.startOpenTimer(++tries);
         }

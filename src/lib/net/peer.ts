@@ -5,7 +5,8 @@ import {
   ApiError,
   check
 } from './errors';
-import { SignedBlock } from '../blockchain';
+import { SignedBlock, Blockchain } from '../blockchain';
+import { LocalMinter, TxPool } from '../producer';
 import { Net, PromiseLike } from './net';
 import * as ByteBuffer from 'bytebuffer';
 import { PublicKey } from '../crypto';
@@ -13,6 +14,12 @@ import { EventEmitter } from 'events';
 import { Tx } from '../transactions';
 import * as rpc from './rpc_model';
 import * as borc from 'borc';
+
+export interface PeerOpts {
+  blockchain: Blockchain;
+  minter?: LocalMinter;
+  pool: TxPool;
+}
 
 export class Peer extends EventEmitter {
 
@@ -22,7 +29,7 @@ export class Peer extends EventEmitter {
   private blockHandler?: (block: SignedBlock) => void;
   private txHandler?: (block: Tx, nodeOrigin: string) => void;
 
-  constructor(readonly net: Net) {
+  constructor(readonly opts: PeerOpts, readonly net: Net) {
     super();
     this.net.on('message', this.onMessage.bind(this));
     this.net.on('close', this.onClose.bind(this));
@@ -157,7 +164,7 @@ export class Peer extends EventEmitter {
       if (map.error) this.requests[id].reject(map);
       else this.requests[id].resolve(map);
     } catch (e) {
-      console.log(`[${this.net.opts.nodeUrl}] Failed to process message`, e);
+      console.log(`[${this.net.nodeUrl}] Failed to process message`, e);
     }
   }
 
@@ -171,8 +178,8 @@ export class Peer extends EventEmitter {
 
         let refBlock!: Long;
         let refTxPos!: number;
-        if (this.net.opts.pool.writable) {
-          const data = await this.net.opts.pool.push(tx, this.net.opts.nodeUrl);
+        if (this.opts.pool.writable) {
+          const data = await this.opts.pool.push(tx, this.net.nodeUrl);
           refBlock = data[0];
           refTxPos = data[1];
           return {
@@ -184,10 +191,10 @@ export class Peer extends EventEmitter {
       }
       case 'get_properties': {
         return {
-          block_height: this.net.opts.blockchain.head.height.toString(),
+          block_height: this.opts.blockchain.head.height.toString(),
           network_fee: [
-            this.net.opts.blockchain.networkFee[0].toString(),
-            this.net.opts.blockchain.networkFee[1].toString()
+            this.opts.blockchain.networkFee[0].toString(),
+            this.opts.blockchain.networkFee[1].toString()
           ]
         };
       }
@@ -195,7 +202,7 @@ export class Peer extends EventEmitter {
         const height: number = map.height;
         check(typeof(height) === 'number', ApiErrorCode.INVALID_PARAMS, 'height must be a number');
         check(height >= 0, ApiErrorCode.INVALID_PARAMS, 'height must be >= 0');
-        const block = await this.net.opts.blockchain.getBlock(height);
+        const block = await this.opts.blockchain.getBlock(height);
         if (block) {
           return {
             block: block.fullySerialize().toBuffer()
@@ -215,7 +222,7 @@ export class Peer extends EventEmitter {
         const blocks: ArrayBuffer[] = [];
         let outsideRange = false;
         for (let i = min; i <= max; ++i) {
-          const block = await this.net.opts.blockchain.getBlock(i);
+          const block = await this.opts.blockchain.getBlock(i);
           if (block) {
             blocks.push(block.fullySerialize().toBuffer());
           } else {
@@ -232,7 +239,7 @@ export class Peer extends EventEmitter {
         const address: string = map.address;
         check(typeof(address) === 'string', ApiErrorCode.INVALID_PARAMS, 'address must be a string');
         const wif = PublicKey.fromWif(address);
-        const fee = await this.net.opts.pool.getTotalFee(wif);
+        const fee = await this.opts.pool.getTotalFee(wif);
         return {
           fee: [
             fee[0].toString(),
@@ -243,7 +250,7 @@ export class Peer extends EventEmitter {
       case 'get_balance': {
         const address: string = map.address;
         check(typeof(address) === 'string', ApiErrorCode.INVALID_PARAMS, 'address must be a string');
-        const balance = await this.net.opts.pool.getBalance(PublicKey.fromWif(address));
+        const balance = await this.opts.pool.getBalance(PublicKey.fromWif(address));
         return {
           balance: [
             balance[0].toString(),
@@ -255,22 +262,22 @@ export class Peer extends EventEmitter {
         // Subscribes to newly broadcasted tx's to be included in a block
         check(!this.txHandler, ApiErrorCode.MISC, 'already subscribed');
         this.txHandler = async (tx, nodeOrigin) => {
-          if (this.net.opts.nodeUrl === nodeOrigin) return;
+          if (this.net.nodeUrl === nodeOrigin) return;
           try {
             await this.net.sendEvent('tx', {
               tx: tx.serialize(true).toBuffer()
             });
           } catch (e) {
             if (e instanceof DisconnectedError) {
-              this.net.opts.pool.removeListener('tx', this.txHandler!);
+              this.opts.pool.removeListener('tx', this.txHandler!);
               this.txHandler = undefined;
             } else {
-              console.log(`[${this.net.opts.nodeUrl}] Failed to push tx to client`, e);
+              console.log(`[${this.net.nodeUrl}] Failed to push tx to client`, e);
             }
           }
         };
         setImmediate(() => {
-          this.net.opts.pool.on('tx', this.txHandler!);
+          this.opts.pool.on('tx', this.txHandler!);
         });
         return {};
       }
@@ -284,18 +291,18 @@ export class Peer extends EventEmitter {
             });
           } catch (e) {
             if (e instanceof DisconnectedError) {
-              this.net.opts.blockchain.removeListener('block', this.blockHandler!);
+              this.opts.blockchain.removeListener('block', this.blockHandler!);
               this.blockHandler = undefined;
             } else {
-              console.log(`[${this.net.opts.nodeUrl}] Failed to push block to client`, e);
+              console.log(`[${this.net.nodeUrl}] Failed to push block to client`, e);
             }
           }
         };
         setImmediate(() => {
-          this.net.opts.blockchain.on('block', this.blockHandler!);
+          this.opts.blockchain.on('block', this.blockHandler!);
         });
         return {
-          block: this.net.opts.blockchain.head.fullySerialize().toBuffer()
+          block: this.opts.blockchain.head.fullySerialize().toBuffer()
         };
       }
       default:
@@ -313,12 +320,12 @@ export class Peer extends EventEmitter {
     }
 
     if (this.blockHandler) {
-      this.net.opts.blockchain.removeListener('block', this.blockHandler);
+      this.opts.blockchain.removeListener('block', this.blockHandler);
       this.blockHandler = undefined;
     }
 
     if (this.txHandler) {
-      this.net.opts.pool.removeListener('tx', this.txHandler);
+      this.opts.pool.removeListener('tx', this.txHandler);
       this.txHandler = undefined;
     }
   }

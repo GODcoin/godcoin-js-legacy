@@ -1,16 +1,7 @@
 import { DisconnectedError, WsCloseCode } from './errors';
-import { TxPool, LocalMinter } from '../producer';
-import { Blockchain } from '../blockchain';
 import { EventEmitter } from 'events';
 import * as WebSocket from 'uws';
 import * as borc from 'borc';
-
-export interface NetOpts {
-  nodeUrl: string;
-  blockchain: Blockchain;
-  minter?: LocalMinter;
-  pool: TxPool;
-}
 
 export abstract class Net extends EventEmitter {
 
@@ -18,10 +9,6 @@ export abstract class Net extends EventEmitter {
 
   get ws(): WebSocket|undefined {
     return this._ws;
-  }
-
-  constructor(readonly opts: NetOpts) {
-    super();
   }
 
   set ws(socket: WebSocket|undefined) {
@@ -43,16 +30,20 @@ export abstract class Net extends EventEmitter {
     return this._ws !== undefined && this._ws.readyState === WebSocket.OPEN;
   }
 
+  constructor(readonly nodeUrl: string) {
+    super();
+  }
+
   protected abstract onPing(data: any): void;
   protected abstract onError(err: any): void;
 
   protected onOpen(): void {
-    console.log(`[${this.opts.nodeUrl}] Peer has connected`);
+    console.log(`[${this.nodeUrl}] Peer has connected`);
     this.emit('open');
   }
 
   protected onClose(code: number, msg: string): void {
-    console.log(`[${this.opts.nodeUrl}] Peer has disconnected (${code}; ${msg ? msg : 'no reason provided'})`);
+    console.log(`[${this.nodeUrl}] Peer has disconnected (${code}; ${msg ? msg : 'no reason provided'})`);
     this.ws = undefined;
     this.emit('close');
   }

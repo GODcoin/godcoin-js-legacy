@@ -26,7 +26,6 @@ export class Synchronizer {
       if (!this.running) return;
       await this.lock.lock();
       try {
-        // TODO: notify the producer
         const height = block.height.toString();
         const len = block.transactions.length;
         if (block.height.gt(this.blockchain.head.height)) {

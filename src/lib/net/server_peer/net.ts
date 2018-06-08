@@ -1,5 +1,5 @@
-import { Net, NetOpts } from '../net';
 import * as WebSocket from 'uws';
+import { Net } from '../net';
 
 export type MessageCallback = (map: any) => Promise<any>;
 
@@ -8,8 +8,8 @@ export class ServerNet extends Net {
   private pingTimer?: NodeJS.Timer;
   private lastPong = 0;
 
-  constructor(opts: NetOpts, ws: WebSocket) {
-    super(opts);
+  constructor(nodeUrl: string, ws: WebSocket) {
+    super(nodeUrl);
     this.ws = ws;
   }
 
@@ -43,7 +43,7 @@ export class ServerNet extends Net {
   }
 
   protected onError(err: any): void {
-    console.log(`[${this.opts.nodeUrl}] Unexpected error`, err);
+    console.log(`[${this.nodeUrl}] Unexpected error`, err);
   }
 
   protected onPing(): void {}

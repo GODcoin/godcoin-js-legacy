@@ -1,12 +1,12 @@
+import { Peer, PeerOpts } from '../peer';
 import { ServerNet } from './net';
-import { Peer } from '../peer';
 
 export * from './net';
 
 export class ServerPeer extends Peer {
 
-  constructor(readonly net: ServerNet) {
-    super(net);
+  constructor(opts: PeerOpts, readonly net: ServerNet) {
+    super(opts, net);
   }
 
   init() {

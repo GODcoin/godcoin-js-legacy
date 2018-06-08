@@ -67,10 +67,9 @@ export class Daemon {
     await this.producer.start();
     if (this.opts.peers.length) {
       for (const peer of this.opts.peers) this.peerPool.addNode({
-        nodeUrl: peer,
         blockchain: this.blockchain,
         pool: this.txPool
-      });
+      }, peer);
       await this.peerPool.start();
       await this.sync.start();
 
