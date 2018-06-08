@@ -83,8 +83,3 @@ export abstract class Net extends EventEmitter {
     });
   }
 }
-
-export interface PromiseLike {
-  resolve: (value?: any) => void;
-  reject: (err?: any) => void;
-}

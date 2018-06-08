@@ -7,13 +7,14 @@ import {
 } from './errors';
 import { SignedBlock, Blockchain } from '../blockchain';
 import { LocalMinter, TxPool } from '../producer';
-import { Net, PromiseLike } from './net';
+import { PromiseLike } from '../node-util';
 import * as ByteBuffer from 'bytebuffer';
 import { PublicKey } from '../crypto';
 import { EventEmitter } from 'events';
 import { Tx } from '../transactions';
 import * as rpc from './rpc_model';
 import * as borc from 'borc';
+import { Net } from './net';
 
 export interface PeerOpts {
   blockchain: Blockchain;

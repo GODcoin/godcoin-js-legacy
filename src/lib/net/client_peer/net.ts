@@ -1,7 +1,8 @@
-import { Net, PromiseLike } from '../net';
+import { PromiseLike } from '../../node-util';
 import { Lock } from '../../lock';
 import * as WebSocket from 'uws';
 import * as assert from 'assert';
+import { Net } from '../net';
 
 export class ClientNet extends Net {
 

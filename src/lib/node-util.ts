@@ -33,3 +33,8 @@ export function hookSigInt(callback: () => void, rli?: readline.ReadLine) {
     }
   });
 }
+
+export interface PromiseLike {
+  resolve: (value?: any) => void;
+  reject: (err?: any) => void;
+}
