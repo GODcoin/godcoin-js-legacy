@@ -116,10 +116,10 @@ export class Asset {
     return `${negative ? '-' : ''}${full}${partial} ${this.symbol}`;
   }
 
-  static fromString(asset: string): Asset {
-    const split = asset.trim().split(' ');
+  static fromString(str: string): Asset {
+    assert(str.length <= 25, 'asset string is too big');
+    const split = str.trim().split(' ');
     assert.strictEqual(split.length, 2, 'invalid asset format');
-    assert(split[0].length <= 25, 'asset amount is too big');
     assert(/^-?[0-9]*\.?[0-9]+\.?$/.test(split[0]), 'asset amount must be a valid number');
     assert(split[1] === AssetSymbol.GOLD || split[1] === AssetSymbol.SILVER,
             `asset type must be ${AssetSymbol.GOLD} or ${AssetSymbol.SILVER}`);

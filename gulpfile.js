@@ -2,7 +2,6 @@ const sourceMaps = require('gulp-sourcemaps');
 const ts = require('gulp-typescript');
 const merge = require('merge2');
 const gulp = require('gulp');
-const path = require('path');
 const del = require('del');
 
 const outDir = 'out';
