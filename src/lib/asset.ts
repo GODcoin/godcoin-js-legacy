@@ -117,7 +117,7 @@ export class Asset {
   }
 
   static fromString(str: string): Asset {
-    assert(str.length <= 25, 'asset string is too big');
+    assert(str.length <= 32, 'asset string is too big');
     const split = str.trim().split(' ');
     assert.strictEqual(split.length, 2, 'invalid asset format');
     assert(/^-?[0-9]*\.?[0-9]+\.?$/.test(split[0]), 'asset amount must be a valid number');
