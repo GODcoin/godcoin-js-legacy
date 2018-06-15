@@ -47,7 +47,7 @@ it('should throw parsing invalid input', () => {
   check('1.0 GOLD a', 'invalid asset format');
   check('1', 'invalid asset format');
 
-  check('12345678901234567890123456 GOLD', 'asset amount is too big');
+  check('1234567890123456789012345678 GOLD', 'asset string is too big');
   check('1.0 gold', 'asset type must be GOLD or SILVER');
 });
 
