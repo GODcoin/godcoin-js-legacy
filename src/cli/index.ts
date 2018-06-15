@@ -8,7 +8,6 @@ import {
 import * as sodium from 'libsodium-wrappers';
 import { Wallet } from './wallet';
 import * as yargs from 'yargs';
-import * as path from 'path';
 import * as fs from 'fs';
 
 function startDaemon(argv: any): void {

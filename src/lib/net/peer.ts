@@ -8,6 +8,7 @@ import {
 import { SignedBlock, Blockchain } from '../blockchain';
 import { LocalMinter, TxPool } from '../producer';
 import { PromiseLike } from '../node-util';
+import { ClientType } from './client_type';
 import * as ByteBuffer from 'bytebuffer';
 import { PublicKey } from '../crypto';
 import { EventEmitter } from 'events';
@@ -34,6 +35,7 @@ export class Peer extends EventEmitter {
     super();
     this.net.on('message', this.onMessage.bind(this));
     this.net.on('close', this.onClose.bind(this));
+    this.net.on('open', this.onOpen.bind(this));
   }
 
   async broadcast(tx: Buffer): Promise<rpc.BroadcastResult> {
@@ -41,19 +43,6 @@ export class Peer extends EventEmitter {
       method: 'broadcast',
       tx
     });
-  }
-
-  async subscribeTx(): Promise<void> {
-    await this.invokeRpc({
-      method: 'subscribe_tx'
-    });
-  }
-
-  async subscribeBlock(): Promise<SignedBlock> {
-    const data = (await this.invokeRpc({
-      method: 'subscribe_block'
-    })).block;
-    return SignedBlock.fullyDeserialize(ByteBuffer.wrap(data));
   }
 
   async getProperties(): Promise<rpc.NetworkProperties> {
@@ -107,7 +96,7 @@ export class Peer extends EventEmitter {
   async invokeRpc(data: any): Promise<any> {
     return new Promise((resolve, reject) => {
       if (!this.net.isOpen) throw new DisconnectedError();
-      const id = this.id++;
+      const id = ++this.id;
       const prom = this.requests[id] = {
         resolve: (val?: any) => {
           delete this.requests[id];
@@ -161,9 +150,12 @@ export class Peer extends EventEmitter {
         }
       }
 
-      // Check for an RPC response
-      if (map.error) this.requests[id].reject(map);
-      else this.requests[id].resolve(map);
+      // Resolve any pending RPC request
+      const req = this.requests[id];
+      if (req) {
+        if (map.error) req.reject(map);
+        else req.resolve(map);
+      }
     } catch (e) {
       console.log(`[${this.net.nodeUrl}] Failed to process message`, e);
     }
@@ -259,55 +251,47 @@ export class Peer extends EventEmitter {
           ]
         };
       }
-      case 'subscribe_tx': {
-        // Subscribes to newly broadcasted tx's to be included in a block
-        check(!this.txHandler, ApiErrorCode.MISC, 'already subscribed');
-        this.txHandler = async (tx, nodeOrigin) => {
-          if (this.net.nodeUrl === nodeOrigin) return;
-          try {
-            await this.net.sendEvent('tx', {
-              tx: tx.serialize(true).toBuffer()
-            });
-          } catch (e) {
-            if (e instanceof DisconnectedError) {
-              this.opts.pool.removeListener('tx', this.txHandler!);
-              this.txHandler = undefined;
-            } else {
-              console.log(`[${this.net.nodeUrl}] Failed to push tx to client`, e);
-            }
-          }
-        };
-        setImmediate(() => {
-          this.opts.pool.on('tx', this.txHandler!);
-        });
-        return {};
-      }
-      case 'subscribe_block': {
-        // Subscribes to live generated blocks
-        check(!this.blockHandler, ApiErrorCode.MISC, 'already subscribed');
-        this.blockHandler = async (block: SignedBlock) => {
-          try {
-            await this.net.sendEvent('block', {
-              block: block.fullySerialize().toBuffer()
-            });
-          } catch (e) {
-            if (e instanceof DisconnectedError) {
-              this.opts.blockchain.removeListener('block', this.blockHandler!);
-              this.blockHandler = undefined;
-            } else {
-              console.log(`[${this.net.nodeUrl}] Failed to push block to client`, e);
-            }
-          }
-        };
-        setImmediate(() => {
-          this.opts.blockchain.on('block', this.blockHandler!);
-        });
-        return {
-          block: this.opts.blockchain.head.fullySerialize().toBuffer()
-        };
-      }
       default:
         throw new ApiError(ApiErrorCode.UNKNOWN_METHOD, 'unknown method');
+    }
+  }
+
+  private addSubscriptions() {
+    if (this.txHandler || this.blockHandler) return;
+    this.txHandler = async (tx, nodeOrigin) => {
+      if (this.net.nodeUrl === nodeOrigin) return;
+      try {
+        await this.net.sendEvent('tx', {
+          tx: tx.serialize(true).toBuffer()
+        });
+      } catch (e) {
+        if (!(e instanceof DisconnectedError)) {
+          console.log(`[${this.net.nodeUrl}] Failed to push tx to client`, e);
+        }
+      }
+    };
+
+    this.blockHandler = async (block: SignedBlock) => {
+      try {
+        await this.net.sendEvent('block', {
+          block: block.fullySerialize().toBuffer()
+        });
+      } catch (e) {
+        if (!(e instanceof DisconnectedError)) {
+          console.log(`[${this.net.nodeUrl}] Failed to push block to client`, e);
+        }
+      }
+    };
+
+    setImmediate(() => {
+      this.opts.pool.on('tx', this.txHandler!);
+      this.opts.blockchain.on('block', this.blockHandler!);
+    });
+  }
+
+  private onOpen(): void {
+    if (this.net.clientType === ClientType.NODE) {
+      this.addSubscriptions();
     }
   }
 

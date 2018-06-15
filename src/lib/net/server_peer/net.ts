@@ -1,3 +1,4 @@
+import * as ClientType from '../client_type';
 import * as WebSocket from 'uws';
 import { Net } from '../net';
 
@@ -13,7 +14,34 @@ export class ServerNet extends Net {
     this.ws = ws;
   }
 
-  init(): void {
+  async init(): Promise<void> {
+    // Send handshake
+    await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error('handshake timeout'));
+      }, 3000);
+
+      this.once('message', msg => {
+        if (msg.id !== 0) {
+          return reject(new Error('handshake id invalid'));
+        }
+        {
+          const clientType = ClientType.toEnum(msg['client-type']);
+          if (!clientType) {
+            return reject(new Error('missing or invalid client-type'));
+          }
+          this.clientType = clientType;
+        }
+        try {
+          this.sendId(0, {});
+        } catch (e) {
+          return reject(new Error('failed to send server handshake'));
+        }
+        clearTimeout(timer);
+        resolve();
+      });
+    });
+
     this.onOpen();
     this.startPingTimer();
 

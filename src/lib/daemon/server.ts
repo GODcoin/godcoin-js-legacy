@@ -1,4 +1,4 @@
-import { ServerNet, ServerPeer } from '../net';
+import { ServerNet, ServerPeer, WsCloseCode } from '../net';
 import { Blockchain } from '../blockchain';
 import { TxPool } from '../producer';
 import { GODcoinEnv } from '../env';
@@ -43,7 +43,7 @@ export class Server {
     this.server.on('upgrade', (req: http.IncomingMessage, socket, head) => {
       let ip = req.connection.remoteAddress!;
       let port = req.connection.remotePort!;
-      this.ws.handleUpgrade(req, socket, head, ws => {
+      this.ws.handleUpgrade(req, socket, head, async ws => {
         if (GODcoinEnv.GODCOIN_TRUST_PROXY) {
           const tmp = req.headers['x-forwarded-for'];
           if (typeof(tmp) === 'string') ip = tmp.split(',')[0];
@@ -54,7 +54,12 @@ export class Server {
           blockchain: this.blockchain,
           pool: this.pool
         }, net);
-        peer.init();
+        try {
+          await peer.init();
+        } catch (e) {
+          console.log(`[${net.nodeUrl}] Failed to initialize peer`, e);
+          net.ws!.close(WsCloseCode.POLICY_VIOLATION, e.message);
+        }
       });
     });
   }

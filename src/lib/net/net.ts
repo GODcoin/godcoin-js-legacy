@@ -1,10 +1,13 @@
 import { DisconnectedError, WsCloseCode } from './errors';
+import { ClientType } from './client_type';
 import { EventEmitter } from 'events';
 import * as WebSocket from 'uws';
+import * as assert from 'assert';
 import * as borc from 'borc';
 
 export abstract class Net extends EventEmitter {
 
+  private _clientType?: ClientType;
   private _ws?: WebSocket;
 
   get ws(): WebSocket|undefined {
@@ -30,6 +33,15 @@ export abstract class Net extends EventEmitter {
     return this._ws !== undefined && this._ws.readyState === WebSocket.OPEN;
   }
 
+  get clientType(): ClientType {
+    return this._clientType!;
+  }
+
+  set clientType(t: ClientType) {
+    assert(this.clientType === undefined, 'client type already set');
+    this._clientType = t;
+  }
+
   constructor(readonly nodeUrl: string) {
     super();
   }
@@ -38,6 +50,10 @@ export abstract class Net extends EventEmitter {
   protected abstract onError(err: any): void;
 
   protected onOpen(): void {
+    if (!this.clientType) {
+      console.log(`[${this.nodeUrl}] Client type not set`);
+      return this.ws!.close(WsCloseCode.POLICY_VIOLATION, 'client type not set');
+    }
     console.log(`[${this.nodeUrl}] Peer has connected`);
     this.emit('open');
   }

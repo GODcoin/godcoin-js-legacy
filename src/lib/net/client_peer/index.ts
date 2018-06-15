@@ -13,7 +13,8 @@ export class ClientPeer extends Peer {
     return this.net.start();
   }
 
-  stop(): Promise<void> {
-    return this.net.stop();
+  async stop(): Promise<void> {
+    await this.net.stop();
+    this.removeAllListeners();
   }
 }

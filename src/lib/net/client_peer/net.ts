@@ -1,4 +1,5 @@
 import { PromiseLike } from '../../node-util';
+import { WsCloseCode } from '../errors';
 import { Lock } from '../../lock';
 import * as WebSocket from 'uws';
 import * as assert from 'assert';
@@ -88,12 +89,48 @@ export class ClientNet extends Net {
     }, 4000);
   }
 
-  protected onOpen() {
-    if (this.openPromise) {
-      this.openLock.unlock();
+  protected async onOpen() {
+    try {
       this.lastPing = Date.now();
+      await new Promise(async (resolve, reject) => {
+        const handler = data => {
+          // Handshake completed
+          if (data.id === 0) {
+            clearTimeout(timer);
+            resolve();
+          }
+        };
+        this.once('message', handler);
+
+        const timer = setTimeout(() => {
+          this.removeListener('message', handler);
+          reject(new Error('handshake timeout'));
+        }, 3000);
+
+        try {
+          // Send the handshake request
+          await this.sendId(0, {
+            'client-type': this.clientType
+          });
+        } catch (e) {
+          this.removeListener('message', handler);
+          reject(e);
+        }
+      });
+    } catch (e) {
+      if (this.ws) this.ws.close(WsCloseCode.POLICY_VIOLATION, e.message);
+      if (this.openPromise) {
+        this.openPromise.reject(e);
+        this.openPromise = undefined;
+        this.openLock.unlock();
+      }
+      return;
+    }
+
+    if (this.openPromise) {
       this.openPromise.resolve();
       this.openPromise = undefined;
+      this.openLock.unlock();
     }
     super.onOpen();
   }

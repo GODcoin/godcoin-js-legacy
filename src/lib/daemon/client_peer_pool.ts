@@ -3,12 +3,14 @@ import {
   EndOfClients,
   BlockRange,
   ClientPeer,
+  ClientType,
   ClientNet,
   PeerOpts
 } from '../net';
 import { SignedBlock } from '../blockchain';
 import * as ByteBuffer from 'bytebuffer';
 import { EventEmitter } from 'events';
+import * as Long from 'long';
 
 export class ClientPeerPool extends EventEmitter {
 
@@ -20,7 +22,9 @@ export class ClientPeerPool extends EventEmitter {
   get count() { return this.clients.length; }
 
   async addNode(opts: PeerOpts, nodeUrl: string) {
-    const peer = new ClientPeer(opts, new ClientNet(nodeUrl));
+    const net = new ClientNet(nodeUrl);
+    net.clientType = ClientType.NODE;
+    const peer = new ClientPeer(opts, net);
     this.clients.push(peer);
   }
 
@@ -46,59 +50,27 @@ export class ClientPeerPool extends EventEmitter {
 
   async subscribeTx(cb: (tx: Buffer) => void) {
     const handler = (data: any) => {
+      // TODO: server side clients need this handler
       cb(Buffer.from(data.tx));
     };
 
     for (const client of this.clients) {
-      client.net.on('open', async () => {
-        try {
-          await client.subscribeTx();
-        } catch (e) {
-          console.log(`[${client.net.nodeUrl}] Failed to subscribe to incoming transactions`, e);
-        }
-      });
-
       client.on('net_event_tx', handler);
-      if (client.net.isOpen) {
-        try {
-          await client.subscribeTx();
-        } catch (e) {
-          console.log(`[${client.net.nodeUrl}] Failed to subscribe to incoming transactions`, e);
-        }
-      }
     }
   }
 
   async subscribeBlock(cb: (block: SignedBlock) => void) {
-    let lastHeight: Long|undefined;
+    let lastHeight = Long.fromNumber(0, true);
     const handler = (data: any) => {
+      // TODO: server side clients need this handler
       const block = SignedBlock.fullyDeserialize(ByteBuffer.wrap(data.block));
-      if (block.height.gt(lastHeight!)) {
+      if (block.height.gt(lastHeight)) {
         lastHeight = block.height;
         cb(block);
       }
     };
     for (const client of this.clients) {
-      client.net.on('open', async () => {
-        try {
-          await client.subscribeBlock();
-        } catch (e) {
-          console.log(`[${client.net.nodeUrl}] Failed to subscribe to incoming blocks`, e);
-        }
-      });
-
       client.on('net_event_block', handler);
-      if (client.net.isOpen) {
-        try {
-          const b = await client.subscribeBlock();
-          if (!lastHeight) {
-            lastHeight = b.height;
-            cb(b);
-          }
-        } catch (e) {
-          console.log(`[${client.net.nodeUrl}] Failed to subscribe to incoming blocks`, e);
-        }
-      }
     }
   }
 

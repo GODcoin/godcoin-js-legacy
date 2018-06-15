@@ -1,9 +1,8 @@
 import {
   generateKeyPair,
-  deserialize,
-  SignedBlock,
   AssetSymbol,
   hookSigInt,
+  ClientType,
   GODcoinEnv,
   TransferTx,
   ClientPeer,
@@ -11,11 +10,9 @@ import {
   PublicKey,
   ClientNet,
   TxType,
-  Asset,
-  Tx
+  Asset
 } from '../../lib';
 import { WalletDb, WalletIndexProp } from './db';
-import * as ByteBuffer from 'bytebuffer';
 import * as readline from 'readline';
 import * as mkdirp from 'mkdirp';
 import * as assert from 'assert';
@@ -30,10 +27,12 @@ export class Wallet {
   private db!: WalletDb;
 
   constructor(nodeUrl: string) {
+    const net = new ClientNet(nodeUrl);
+    net.clientType = ClientType.WALLET;
     this.client = new ClientPeer({
       blockchain: undefined!,
       pool: undefined!
-    }, new ClientNet(nodeUrl));
+    }, net);
   }
 
   async start() {
@@ -318,32 +317,6 @@ export class Wallet {
         write(data);
         break;
       }
-      case 'subscribe_block': {
-        const handler = (data: any) => {
-          const block = SignedBlock.fullyDeserialize(ByteBuffer.wrap(data.block));
-          write('subscribe_block =>', block.toString());
-        };
-        this.client.on('net_event_block', handler);
-        this.client.net.once('close', () => {
-          this.client.removeListener('net_event_block', handler);
-        });
-
-        const data = await this.client.subscribeBlock();
-        write('subscribe_block =>', data.toString());
-        break;
-      }
-      case 'subscribe_tx': {
-        const handler = (data: any) => {
-          const tx = deserialize<Tx>(ByteBuffer.wrap(data.tx), true);
-          write('subscribe_tx =>', tx.toString());
-        }
-        this.client.on('net_event_tx', handler);
-        this.client.net.once('close', () => {
-          this.client.removeListener('net_event_tx', handler);
-        });
-        await this.client.subscribeTx();
-        break;
-      }
       default:
         write('Unknown command:', args[0]);
       case 'help':
@@ -362,11 +335,6 @@ export class Wallet {
         cmds.push(['list_all_keys', 'list all keys in the wallet']);
         cmds.push(['transfer <from_account> <to_address> <amount> [memo]', 'transfer funds from an account to another GODcoin public address']);
         Wallet.writeHelp('Available commands:', cmds);
-
-        cmds = [];
-        cmds.push(['subscribe_block', 'subscribe to blocks as they are added to the network']);
-        cmds.push(['subscribe_tx', 'subscribe to transactions as they are broadcasted to the network']);
-        Wallet.writeHelp('Additional commands:', cmds);
     }
   }
 

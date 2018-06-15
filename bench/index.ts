@@ -1,7 +1,7 @@
 import { TransferTx, TxType } from '../src/lib/transactions';
-import { KeyPair, generateKeyPair } from '../src/lib/crypto';
-import * as sodium from 'libsodium-wrappers';
 import { Asset, AssetSymbol } from '../src/lib/asset';
+import { generateKeyPair } from '../src/lib/crypto';
+import * as sodium from 'libsodium-wrappers';
 import * as Benchmark from 'benchmark';
 import * as bigInt from 'big-integer';
 

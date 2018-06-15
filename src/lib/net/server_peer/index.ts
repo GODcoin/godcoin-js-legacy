@@ -9,7 +9,7 @@ export class ServerPeer extends Peer {
     super(opts, net);
   }
 
-  init() {
-    this.net.init();
+  init(): Promise<void> {
+    return this.net.init();
   }
 }
