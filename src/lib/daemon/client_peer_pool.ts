@@ -7,10 +7,10 @@ import {
   ClientNet,
   PeerOpts
 } from '../net';
+import { Synchronizer } from './synchronizer';
 import { SignedBlock } from '../blockchain';
 import * as ByteBuffer from 'bytebuffer';
 import { EventEmitter } from 'events';
-import * as Long from 'long';
 
 export class ClientPeerPool extends EventEmitter {
 
@@ -48,29 +48,25 @@ export class ClientPeerPool extends EventEmitter {
     for (const client of this.clients) await client.stop();
   }
 
-  async subscribeTx(cb: (tx: Buffer) => void) {
+  subscribeTx(sync: Synchronizer) {
     const handler = (data: any) => {
-      // TODO: server side clients need this handler
-      cb(Buffer.from(data.tx));
+      if (data.tx) sync.handleTx(Buffer.from(data.tx));
     };
-
     for (const client of this.clients) {
       client.on('net_event_tx', handler);
     }
   }
 
-  async subscribeBlock(cb: (block: SignedBlock) => void) {
-    let lastHeight = Long.fromNumber(0, true);
-    const handler = (data: any) => {
-      // TODO: server side clients need this handler
-      const block = SignedBlock.fullyDeserialize(ByteBuffer.wrap(data.block));
-      if (block.height.gt(lastHeight)) {
-        lastHeight = block.height;
-        cb(block);
-      }
-    };
+  subscribeBlock(sync: Synchronizer) {
     for (const client of this.clients) {
-      client.on('net_event_block', handler);
+      client.on('net_event_block', (data: any) => {
+        try {
+          const block = SignedBlock.fullyDeserialize(ByteBuffer.wrap(data.block));
+          sync.handleBlock(block);
+        } catch (e) {
+          console.log(`[${client.net.nodeUrl}] Failed to deserialize block`, e);
+        }
+      });
     }
   }
 

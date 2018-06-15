@@ -169,18 +169,13 @@ export class Peer extends EventEmitter {
         check(tx, ApiErrorCode.INVALID_PARAMS, 'missing tx');
         check(tx instanceof Buffer, ApiErrorCode.INVALID_PARAMS, 'tx not a buffer');
 
-        let refBlock!: Long;
-        let refTxPos!: number;
-        if (this.opts.pool.writable) {
-          const data = await this.opts.pool.push(tx, this.net.nodeUrl);
-          refBlock = data[0];
-          refTxPos = data[1];
-          return {
-            ref_block: refBlock.toString(),
-            ref_tx_pos: refTxPos
-          };
-        }
-        return;
+        const data = await this.opts.pool.push(tx, this.net.nodeUrl);
+        const refBlock = data[0];
+        const refTxPos = data[1];
+        return {
+          ref_block: refBlock.toString(),
+          ref_tx_pos: refTxPos
+        };
       }
       case 'get_properties': {
         return {

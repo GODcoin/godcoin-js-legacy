@@ -37,11 +37,11 @@ export class Daemon {
 
     this.blockchain = new Blockchain(dir, opts.reindex);
     this.peerPool = new ClientPeerPool();
-    this.producer = new Producer(this.blockchain);
-    this.sync = new Synchronizer(this.blockchain, this.peerPool, this.producer);
 
+    this.txPool = new TxPool(this.blockchain);
+    this.producer = new Producer(this.blockchain, this.txPool);
+    this.sync = new Synchronizer(this.blockchain, this.peerPool, this.txPool, this.producer);
     const isMinter = this.opts.signingKeys !== undefined;
-    this.txPool = new TxPool(this.blockchain, isMinter);
     if (isMinter) {
       this.minter = new LocalMinter(this.blockchain, this.txPool, this.opts.signingKeys);
       this.producer.minter = this.minter;
@@ -65,24 +65,18 @@ export class Daemon {
     }
 
     await this.producer.start();
-    if (this.opts.peers.length) {
+
+    {
       for (const peer of this.opts.peers) this.peerPool.addNode({
         blockchain: this.blockchain,
         pool: this.txPool
       }, peer);
       await this.peerPool.start();
-      await this.sync.start();
-
-      if (this.minter) {
-        await this.peerPool.subscribeTx(async tx => {
-          try {
-            await this.txPool.push(tx);
-          } catch (e) {
-            console.log('Failed to push tx from peer pool', tx.toString('hex'), e);
-          }
-        });
-      }
+      this.peerPool.subscribeBlock(this.sync);
+      this.peerPool.subscribeTx(this.sync);
     }
+
+    await this.sync.start();
     await this.producer.startTimer();
 
     if (this.opts.listen) {
@@ -92,7 +86,7 @@ export class Daemon {
         bindAddress: this.opts.bind,
         port: this.opts.port
       });
-      this.server.start();
+      this.server.start(this.sync);
     }
   }
 

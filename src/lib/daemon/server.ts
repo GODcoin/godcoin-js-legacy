@@ -1,5 +1,7 @@
 import { ServerNet, ServerPeer, WsCloseCode } from '../net';
-import { Blockchain } from '../blockchain';
+import { Blockchain, SignedBlock } from '../blockchain';
+import { Synchronizer } from './synchronizer';
+import * as ByteBuffer from 'bytebuffer';
 import { TxPool } from '../producer';
 import { GODcoinEnv } from '../env';
 import * as WebSocket from 'uws';
@@ -31,7 +33,7 @@ export class Server {
     this.port = opts.port;
   }
 
-  start(): void {
+  start(sync: Synchronizer): void {
     if (this.server) return;
 
     this.server = http.createServer((req, res) => {
@@ -56,6 +58,17 @@ export class Server {
         }, net);
         try {
           await peer.init();
+          peer.on('net_event_block', (data: any) => {
+            try {
+              const block = SignedBlock.fullyDeserialize(ByteBuffer.wrap(data.block));
+              sync.handleBlock(block);
+            } catch (e) {
+              console.log(`[${net.nodeUrl}] Failed to deserialize block`, e);
+            }
+          });
+          peer.on('net_event_tx', (data: any) => {
+            if (data.tx) sync.handleTx(Buffer.from(data.tx));
+          });
         } catch (e) {
           console.log(`[${net.nodeUrl}] Failed to initialize peer`, e);
           net.ws!.close(WsCloseCode.POLICY_VIOLATION, e.message);

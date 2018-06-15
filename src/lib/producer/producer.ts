@@ -1,13 +1,14 @@
 import { Blockchain, SignedBlock } from '../blockchain';
 import { LocalMinter } from './local_minter';
+import * as sodium from 'libsodium-wrappers';
 import { Scheduler } from './scheduler';
 import { GODcoin } from '../constants';
-import { Indexer, IndexProp } from '../indexer';
+import { IndexProp } from '../indexer';
+import { PublicKey } from '../crypto';
 import * as assert from 'assert';
 import { Lock } from '../lock';
-import { PublicKey } from '../crypto';
-import * as sodium from 'libsodium-wrappers';
 import { Asset } from '..';
+import { TxPool } from './tx_pool';
 
 export class Producer {
 
@@ -17,13 +18,12 @@ export class Producer {
   private running = false;
   private initd = false;
 
-  private readonly indexer: Indexer;
   private timer?: NodeJS.Timer;
   private missed = 0;
 
   constructor(readonly blockchain: Blockchain,
+              public txPool: TxPool,
               public minter?: LocalMinter) {
-    this.indexer = blockchain.indexer;
   }
 
   async start() {
@@ -91,6 +91,8 @@ export class Producer {
 
       if (this.timer) clearTimeout(this.timer);
       await this.blockchain.addBlock(block);
+      // TODO: scan for left over transactions
+      this.txPool.popAll();
       this.missed = 0;
       this.startTimer();
     } catch (e) {

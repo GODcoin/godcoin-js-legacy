@@ -18,14 +18,12 @@ export class TxPool extends EventEmitter {
   private readonly indexer: Indexer;
   private txs: Tx[] = [];
 
-  constructor(readonly blockchain: Blockchain,
-              readonly writable: boolean) {
+  constructor(readonly blockchain: Blockchain) {
     super();
     this.indexer = this.blockchain.indexer;
   }
 
   async push(txBuf: Buffer, nodeOrigin?: string): Promise<[Long, number]> {
-    assert(this.writable, 'pool is read only');
     await this.lock.lock();
     try {
       assert(!(await this.indexer.hasTx(txBuf)), 'duplicate tx');
