@@ -9,7 +9,8 @@ const outDir = 'out';
 gulp.task('build', () => {
   const res = gulp.src('src/**/*.ts')
                     .pipe(sourceMaps.init())
-                    .pipe(ts.createProject('tsconfig.json')());
+                    .pipe(ts.createProject('tsconfig.json')())
+                    .on('error', () => {});
 
   const js = res.js.pipe(sourceMaps.write('.', {
     includeContent: false,
