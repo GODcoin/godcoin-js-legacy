@@ -16,5 +16,6 @@ export class ClientPeer extends Peer {
   async stop(): Promise<void> {
     await this.net.stop();
     this.removeAllListeners();
+    this.removeSubscriptions();
   }
 }

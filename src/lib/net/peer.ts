@@ -251,6 +251,17 @@ export class Peer extends EventEmitter {
     }
   }
 
+  removeSubscriptions() {
+    if (this.txHandler) {
+      this.opts.pool.removeListener('tx', this.txHandler);
+      this.txHandler = undefined;
+    }
+    if (this.blockHandler) {
+      this.opts.blockchain.removeListener('block', this.blockHandler);
+      this.blockHandler = undefined;
+    }
+  }
+
   private addSubscriptions() {
     if (this.txHandler || this.blockHandler) return;
     this.txHandler = async (tx, nodeOrigin) => {
