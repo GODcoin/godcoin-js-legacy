@@ -1,19 +1,16 @@
 import {
   SignedBlock,
   Blockchain,
-  ChainStore,
   Block,
 } from '../src/lib/blockchain';
 import { TxType, RewardTx, TransferTx } from '../src/lib/transactions';
 import { generateKeyPair, KeyPair } from '../src/lib/crypto';
 import { Asset, AssetSymbol } from '../src/lib/asset';
-import { Indexer } from '../src/lib/indexer';
 import { TxPool } from '../src/lib/producer';
 import { AssertionError } from 'assert';
 import * as bigInt from 'big-integer';
 import { expect } from 'chai';
 import * as path from 'path';
-import * as util from 'util';
 import * as Long from 'long';
 import * as del from 'del';
 import * as os from 'os';
@@ -21,7 +18,6 @@ import * as fs from 'fs';
 
 let genesisKeys: KeyPair;
 let testDir: string;
-let store: ChainStore;
 let chain: Blockchain;
 
 beforeEach(async () => {
@@ -224,7 +220,7 @@ it('should have correct balances in the tx pool', async () => {
   }
 
   const txTo = generateKeyPair();
-  const pool = new TxPool(chain, true);
+  const pool = new TxPool(chain);
   {
     const tx = Buffer.from(new TransferTx({
       type: TxType.TRANSFER,
