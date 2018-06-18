@@ -1,3 +1,4 @@
+import { PromiseLike } from '../../node-util';
 import * as ClientType from '../client_type';
 import * as WebSocket from 'uws';
 import { Net } from '../net';
@@ -6,6 +7,7 @@ export type MessageCallback = (map: any) => Promise<any>;
 
 export class ServerNet extends Net {
 
+  private handshakePromise?: PromiseLike;
   private pingTimer?: NodeJS.Timer;
   private lastPong = 0;
 
@@ -16,7 +18,19 @@ export class ServerNet extends Net {
 
   async init(): Promise<void> {
     // Send handshake
-    await new Promise((resolve, reject) => {
+    await new Promise((_resolve, _reject) => {
+      const resolve = () => {
+        this.handshakePromise = undefined;
+        clearTimeout(timer);
+        _resolve();
+      };
+      const reject = (err: Error) => {
+        this.handshakePromise = undefined;
+        clearTimeout(timer);
+        _reject(err);
+      };
+      this.handshakePromise = { resolve, reject };
+
       const timer = setTimeout(() => {
         reject(new Error('handshake timeout'));
       }, 3000);
@@ -67,6 +81,9 @@ export class ServerNet extends Net {
   protected onClose(code: number, msg: string) {
     super.onClose(code, msg);
     this.removeAllListeners();
+    if (this.handshakePromise) {
+      this.handshakePromise.reject(new Error('client disconnected during handshake'));
+    }
     if (this.pingTimer) clearInterval(this.pingTimer);
   }
 
