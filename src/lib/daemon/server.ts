@@ -71,7 +71,9 @@ export class Server {
           });
         } catch (e) {
           console.log(`[${net.nodeUrl}] Failed to initialize peer`, e);
-          net.ws!.close(WsCloseCode.POLICY_VIOLATION, e.message);
+          if (net.ws && net.isOpen) {
+            net.ws.close(WsCloseCode.POLICY_VIOLATION, e.message);
+          }
         }
       });
     });
