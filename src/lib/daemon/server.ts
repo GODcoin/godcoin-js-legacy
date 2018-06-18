@@ -60,14 +60,20 @@ export class Server {
           await peer.init();
           peer.on('net_event_block', (data: any) => {
             try {
-              const block = SignedBlock.fullyDeserialize(ByteBuffer.wrap(data.block));
-              sync.handleBlock(block);
+              if (data.block) {
+                const block = SignedBlock.fullyDeserialize(ByteBuffer.wrap(data.block));
+                sync.handleBlock(block);
+              }
             } catch (e) {
               console.log(`[${net.nodeUrl}] Failed to deserialize block`, e);
             }
           });
           peer.on('net_event_tx', (data: any) => {
-            if (data.tx) sync.handleTx(Buffer.from(data.tx));
+            try {
+              if (data.tx) sync.handleTx(Buffer.from(data.tx));
+            } catch (e) {
+              console.log(`[${net.nodeUrl}] Failed to handle transaction`, e);
+            }
           });
         } catch (e) {
           console.log(`[${net.nodeUrl}] Failed to initialize peer`, e);

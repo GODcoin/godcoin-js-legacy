@@ -49,11 +49,14 @@ export class ClientPeerPool extends EventEmitter {
   }
 
   subscribeTx(sync: Synchronizer) {
-    const handler = (data: any) => {
-      if (data.tx) sync.handleTx(Buffer.from(data.tx));
-    };
     for (const client of this.clients) {
-      client.on('net_event_tx', handler);
+      client.on('net_event_tx', (data: any) => {
+        try {
+          if (data.tx) sync.handleTx(Buffer.from(data.tx));
+        } catch (e) {
+          console.log(`[${client.net.nodeUrl}] Failed to handle transaction`, e);
+        }
+      });
     }
   }
 
