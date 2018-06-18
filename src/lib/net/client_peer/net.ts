@@ -10,6 +10,7 @@ export class ClientNet extends Net {
   private readonly openLock = new Lock();
   private openPromise?: PromiseLike;
   private openTimer?: NodeJS.Timer;
+  private handshakePromise?: PromiseLike;
   private running = false;
 
   private pingTimer?: NodeJS.Timer;
@@ -34,6 +35,10 @@ export class ClientNet extends Net {
     this.running = false;
     this.removeAllListeners();
 
+    if (this.handshakePromise) {
+      this.handshakePromise.reject(new Error('shutting down'));
+      this.handshakePromise = undefined;
+    }
     if (this.openTimer) {
       clearTimeout(this.openTimer);
       this.openTimer = undefined;
@@ -92,7 +97,19 @@ export class ClientNet extends Net {
   protected async onOpen() {
     try {
       this.lastPing = Date.now();
-      await new Promise(async (resolve, reject) => {
+      await new Promise(async (_resolve, _reject) => {
+        const resolve = () => {
+          this.handshakePromise = undefined;
+          clearTimeout(timer);
+          _resolve();
+        };
+        const reject = (err: Error) => {
+          this.handshakePromise = undefined;
+          clearTimeout(timer);
+          _reject(err);
+        };
+        this.handshakePromise = { resolve, reject };
+
         const handler = data => {
           // Handshake completed
           if (data.id === 0) {
