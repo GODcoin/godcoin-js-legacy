@@ -45,6 +45,7 @@ export class ClientPeerPool extends EventEmitter {
 
   async stop() {
     this.index = 0;
+    this.removeAllListeners();
     for (const client of this.clients) await client.stop();
   }
 
