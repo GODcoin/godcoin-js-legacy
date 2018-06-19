@@ -26,6 +26,10 @@ export class Server {
   });
   private server?: http.Server;
 
+  get clientCount(): number {
+    return this.ws.clients.length;
+  }
+
   constructor(opts: ServerOptions) {
     this.blockchain = opts.blockchain;
     this.pool = opts.pool;

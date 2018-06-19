@@ -84,6 +84,7 @@ export class Daemon {
     });
 
     this.peerPool.on('close', () => {
+      if (this.server && this.server.clientCount > 0) return;
       this.producer.stop().catch(e => {
         console.log('Failed to stop the producer after stopping the peer pool', e);
       });
