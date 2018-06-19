@@ -64,8 +64,6 @@ export class Daemon {
       await this.minter.createGenesisBlock();
     }
 
-    await this.producer.start();
-
     {
       for (const peer of this.opts.peers) this.peerPool.addNode({
         blockchain: this.blockchain,
@@ -77,7 +75,19 @@ export class Daemon {
     }
 
     await this.sync.start();
-    await this.producer.startTimer();
+    await this.producer.start();
+
+    this.peerPool.on('open', () => {
+      this.producer.start(true).catch(e => {
+        console.log('Failed to start the producer after resuming the peer pool', e);
+      });
+    });
+
+    this.peerPool.on('close', () => {
+      this.producer.stop().catch(e => {
+        console.log('Failed to stop the producer after stopping the peer pool', e);
+      });
+    });
 
     if (this.opts.listen) {
       this.server = new Server({

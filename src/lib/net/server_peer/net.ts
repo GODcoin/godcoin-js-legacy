@@ -17,7 +17,7 @@ export class ServerNet extends Net {
   }
 
   async init(): Promise<void> {
-    // Send handshake
+    // Handle handshake
     await new Promise((_resolve, _reject) => {
       const resolve = () => {
         this.handshakePromise = undefined;

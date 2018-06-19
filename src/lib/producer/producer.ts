@@ -5,10 +5,10 @@ import { Scheduler } from './scheduler';
 import { GODcoin } from '../constants';
 import { IndexProp } from '../indexer';
 import { PublicKey } from '../crypto';
-import * as assert from 'assert';
-import { Lock } from '../lock';
-import { Asset } from '..';
 import { TxPool } from './tx_pool';
+import * as assert from 'assert';
+import { Asset } from '../asset';
+import { Lock } from '../lock';
 
 export class Producer {
 
@@ -26,46 +26,59 @@ export class Producer {
               public minter?: LocalMinter) {
   }
 
-  async start() {
-    if (this.running) return;
-    this.running = true;
+  async start(forceLaterSchedule = false) {
+    await this.lock.lock();
+    try {
+      if (this.running) return;
+      this.running = true;
 
-    if (this.initd) return;
-    this.initd = true;
-    await new Promise((resolve, reject) => {
-      this.blockchain.indexer.db.createReadStream({
-        gte: IndexProp.NAMESPACE_BOND,
-        lt: Buffer.from([IndexProp.NAMESPACE_BOND[0] + 1])
-      }).on('data', data => {
-        try {
-          const key = data.key as Buffer;
-          const value = data.value as Buffer;
+      if (!this.initd) {
+        this.initd = true;
+        await new Promise((resolve, reject) => {
+          this.blockchain.indexer.db.createReadStream({
+            gte: IndexProp.NAMESPACE_BOND,
+            lt: Buffer.from([IndexProp.NAMESPACE_BOND[0] + 1])
+          }).on('data', data => {
+            try {
+              const key = data.key as Buffer;
+              const value = data.value as Buffer;
 
-          const minter = new PublicKey(key.slice(IndexProp.NAMESPACE_BOND.length));
-          const staker = new PublicKey(value.slice(0, sodium.crypto_sign_PUBLICKEYBYTES));
-          const amt = Asset.fromString(value.slice(sodium.crypto_sign_PUBLICKEYBYTES).toString('utf8'));
-          this.scheduler.addBond({
-            minter,
-            staker,
-            stake_amt: amt
+              const minter = new PublicKey(key.slice(IndexProp.NAMESPACE_BOND.length));
+              const staker = new PublicKey(value.slice(0, sodium.crypto_sign_PUBLICKEYBYTES));
+              const amt = Asset.fromString(value.slice(sodium.crypto_sign_PUBLICKEYBYTES).toString('utf8'));
+              this.scheduler.addBond({
+                minter,
+                staker,
+                stake_amt: amt
+              });
+              console.log('Registered bond from minter:', minter.toWif());
+            } catch (e) {
+              console.log('Failed to register bond', e);
+            }
+          }).on('end', () => {
+            resolve();
+          }).on('error', err => {
+            reject(err);
           });
-          console.log('Registered bond from minter:', minter.toWif());
-        } catch (e) {
-          console.log('Failed to register bond', e);
-        }
-      }).on('end', () => {
-        resolve();
-      }).on('error', err => {
-        reject(err);
-      });
-    });
+        });
+      }
+
+      this.startTimer(forceLaterSchedule);
+    } finally {
+      this.lock.unlock();
+    }
   }
 
   async stop() {
-    this.running = false;
-    if (this.timer) {
-      clearTimeout(this.timer);
-      this.timer = undefined;
+    await this.lock.lock();
+    try {
+      this.running = false;
+      if (this.timer) {
+        clearTimeout(this.timer);
+        this.timer = undefined;
+      }
+    } finally {
+      this.lock.unlock();
     }
   }
 
@@ -102,7 +115,7 @@ export class Producer {
     }
   }
 
-  startTimer() {
+  private startTimer(forceLaterSchedule = false) {
     assert(this.running, 'producer must be running');
     if (this.timer) clearTimeout(this.timer);
     const head = this.blockchain.head;
@@ -111,7 +124,7 @@ export class Producer {
 
     this.timer = setTimeout(async () => {
       await this.tryProducingBlock();
-    }, schedule);
+    }, !forceLaterSchedule ? schedule : GODcoin.BLOCK_PROD_TIME);
   }
 
   private startMissedBlockTimer(minter: PublicKey, height: Long) {
