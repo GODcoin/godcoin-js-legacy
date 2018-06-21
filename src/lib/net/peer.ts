@@ -251,18 +251,18 @@ export class Peer extends EventEmitter {
     }
   }
 
-  removeSubscriptions() {
-    if (this.txHandler) {
-      this.opts.pool.removeListener('tx', this.txHandler);
-      this.txHandler = undefined;
-    }
+  protected removeSubscriptions() {
     if (this.blockHandler) {
       this.opts.blockchain.removeListener('block', this.blockHandler);
       this.blockHandler = undefined;
     }
+    if (this.txHandler) {
+      this.opts.pool.removeListener('tx', this.txHandler);
+      this.txHandler = undefined;
+    }
   }
 
-  private addSubscriptions() {
+  protected addSubscriptions() {
     if (this.txHandler || this.blockHandler) return;
     this.txHandler = async (tx) => {
       try {
@@ -301,22 +301,13 @@ export class Peer extends EventEmitter {
   }
 
   private onClose(): void {
+    this.removeSubscriptions();
     const requests = Object.values(this.requests);
     this.requests = {};
     for (const req of requests) {
       setImmediate(() => {
         req.reject(new DisconnectedError());
       });
-    }
-
-    if (this.blockHandler) {
-      this.opts.blockchain.removeListener('block', this.blockHandler);
-      this.blockHandler = undefined;
-    }
-
-    if (this.txHandler) {
-      this.opts.pool.removeListener('tx', this.txHandler);
-      this.txHandler = undefined;
     }
   }
 }
