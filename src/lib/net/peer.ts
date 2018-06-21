@@ -29,7 +29,7 @@ export class Peer extends EventEmitter {
   private id = 0;
 
   private blockHandler?: (block: SignedBlock) => void;
-  private txHandler?: (block: Tx, nodeOrigin: string) => void;
+  private txHandler?: (block: Tx) => void;
 
   constructor(readonly opts: PeerOpts, readonly net: Net) {
     super();
@@ -169,7 +169,7 @@ export class Peer extends EventEmitter {
         check(tx, ApiErrorCode.INVALID_PARAMS, 'missing tx');
         check(tx instanceof Buffer, ApiErrorCode.INVALID_PARAMS, 'tx not a buffer');
 
-        const data = await this.opts.pool.push(tx, this.net.nodeUrl);
+        const data = await this.opts.pool.push(tx);
         const refBlock = data[0];
         const refTxPos = data[1];
         return {
@@ -264,8 +264,7 @@ export class Peer extends EventEmitter {
 
   private addSubscriptions() {
     if (this.txHandler || this.blockHandler) return;
-    this.txHandler = async (tx, nodeOrigin) => {
-      if (this.net.nodeUrl === nodeOrigin) return;
+    this.txHandler = async (tx) => {
       try {
         await this.net.sendEvent('tx', {
           tx: tx.serialize(true).toBuffer()

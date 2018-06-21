@@ -23,7 +23,7 @@ export class TxPool extends EventEmitter {
     this.indexer = this.blockchain.indexer;
   }
 
-  async push(txBuf: Buffer, nodeOrigin?: string): Promise<[Long, number]> {
+  async push(txBuf: Buffer): Promise<[Long, number]> {
     await this.lock.lock();
     try {
       assert(!(await this.indexer.hasTx(txBuf)), 'duplicate tx');
@@ -65,7 +65,7 @@ export class TxPool extends EventEmitter {
       }
 
       await this.indexer.addTx(txBuf, tx.data.timestamp!.getTime() + 60000);
-      this.emit('tx', tx, nodeOrigin);
+      this.emit('tx', tx);
       return [this.blockchain.head.height.add(1), this.txs.push(tx) - 1];
     } finally {
       this.lock.unlock();
