@@ -9,6 +9,7 @@ import {
 import { Asset, AssetSymbol, EMPTY_GOLD, EMPTY_SILVER } from '../asset';
 import { Indexer, BatchIndex } from '../indexer';
 import { ChainStore } from './chain_store';
+import { SkipFlags } from '../skip_flags';
 import * as ByteBuffer from 'bytebuffer';
 import { GODcoin } from '../constants';
 import { PublicKey } from '../crypto';
@@ -24,6 +25,8 @@ import * as fs from 'fs';
 export * from './block';
 
 export class Blockchain extends EventEmitter {
+
+  private running = false;
 
   private readonly dir: string;
   private get indexDir() { return path.join(this.dir, 'index'); }
@@ -68,6 +71,7 @@ export class Blockchain extends EventEmitter {
   }
 
   async start(): Promise<void> {
+    this.running = true;
     await this.indexer.init();
     await this.store.init();
 
@@ -78,7 +82,9 @@ export class Blockchain extends EventEmitter {
       const batch = this.prepareBatch();
       let head: SignedBlock|undefined;
 
+      const skipFlags = SkipFlags.SKIP_BLOCK_MERKLE | SkipFlags.SKIP_TX;
       await this.store.readBlockLog(async (err, block, bytePos) => {
+        if (!this.running) return;
         if (err) {
           console.log('Error during reindexing', err);
           if (head) {
@@ -89,10 +95,18 @@ export class Blockchain extends EventEmitter {
           }
           return;
         }
-        if (head) await this.validateBlock(block, head);
+        if (head && block.height.lte(head.height)) {
+          console.log('Unexpected height during reindexing:', block.height.toString());
+          console.log('Trimming the block log to height', head.height.toString());
+          await this.store.chop(head.height);
+          return;
+        }
+
+        if (head) await this.validateBlock(block, head, skipFlags);
         head = block;
         await batch.index(block, bytePos);
       });
+      if (!this.running) return;
 
       if (head) {
         await batch.flush();
@@ -106,6 +120,7 @@ export class Blockchain extends EventEmitter {
   }
 
   async stop(): Promise<void> {
+    this.running = false;
     await this.lock.lock();
     try {
       this.removeAllListeners();
@@ -245,13 +260,19 @@ export class Blockchain extends EventEmitter {
     return [goldFee, silverFee];
   }
 
-  async validateBlock(block: SignedBlock, prevBlock: SignedBlock) {
+  async validateBlock(block: SignedBlock,
+                      prevBlock: SignedBlock,
+                      skipFlags = SkipFlags.SKIP_NOTHING) {
     assert(prevBlock.height.add(1).eq(block.height), 'unexpected height');
-    for (const tx of block.transactions) {
-      // TODO: verify the tx is not a dup in the blockchain
-      await this.validateTx(Buffer.from(tx.serialize(true).toBuffer()));
+    if ((skipFlags & SkipFlags.SKIP_TX) === 0) {
+      for (const tx of block.transactions) {
+        // TODO: verify the tx is not a dup in the blockchain
+        const buf = Buffer.from(tx.serialize(true).toBuffer());
+        await this.validateTx(buf, undefined, skipFlags);
+      }
     }
-    { // Verify merkle root recalculation
+    if ((skipFlags & SkipFlags.SKIP_BLOCK_MERKLE) === 0) {
+      // Verify merkle root recalculation
       const thisRoot = block.tx_merkle_root;
       const expectedRoot = block.getMerkleRoot();
       assert(expectedRoot.equals(thisRoot), 'unexpected merkle root');
@@ -270,7 +291,10 @@ export class Blockchain extends EventEmitter {
     }
   }
 
-  async validateTx(txBuf: Buffer, additionalTxs?: Tx[]): Promise<Tx> {
+  async validateTx(txBuf: Buffer,
+                    additionalTxs?: Tx[],
+                    skipFlags = SkipFlags.SKIP_NOTHING): Promise<Tx> {
+    assert((skipFlags & SkipFlags.SKIP_TX) === 0, 'cannot skip entire tx');
     assert(!(await this.indexer.hasTx(txBuf)), 'duplicate tx');
     const tx = deserialize<Tx>(ByteBuffer.wrap(txBuf));
 
@@ -279,7 +303,7 @@ export class Blockchain extends EventEmitter {
       assert(tx.data.fee.amount.gt(0), 'fee must be greater than zero');
       checkAsset('fee', tx.data.fee);
 
-      { // Validate time
+      if ((skipFlags & SkipFlags.SKIP_TX_TIME) === 0) {
         const exp = tx.data.timestamp.getTime();
         const now = Date.now();
         const delta = now - exp;
@@ -293,7 +317,9 @@ export class Blockchain extends EventEmitter {
     }
 
     if (tx instanceof RewardTx) {
-      assert(tx.data.timestamp.getTime() === 0, 'reward must have 0 for time');
+      if ((skipFlags & SkipFlags.SKIP_TX_TIME) === 0) {
+        assert(tx.data.timestamp.getTime() === 0, 'reward must have 0 for time');
+      }
       assert(tx.data.signature_pairs.length === 0, 'reward must not be signed');
     } else if (tx instanceof TransferTx) {
       {
@@ -303,6 +329,9 @@ export class Blockchain extends EventEmitter {
         if (tx.data.memo) {
           assert(tx.data.memo.length <= 512, 'maximum memo length is 512 bytes');
         }
+      }
+
+      if ((skipFlags & SkipFlags.SKIP_TX_SIGNATURE) === 0) {
         const buf = tx.serialize(false);
         const pair = tx.data.signature_pairs[0];
         assert(tx.data.from.verify(pair.signature, buf.toBuffer()), 'invalid signature');
