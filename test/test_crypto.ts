@@ -81,7 +81,7 @@ it('should throw on invalid key', () => {
 
   expect(() => {
     const buf = bs58.decode(keys.privateKey.toWif());
-    buf[buf.length - 1] = 0;
+    for (let i = 0; i < 4; ++i) buf[buf.length - i - 1] = 0;
     PrivateKey.fromWif(bs58.encode(buf));
   }).to.throw(InvalidWif, 'invalid checksum');
 
@@ -91,7 +91,7 @@ it('should throw on invalid key', () => {
   }).to.throw(InvalidWif, 'wif must start with ' + PUB_ADDRESS_PREFIX);
 
   expect(keys.privateKey).to.have.property('seed');
-  const wif = (keys.privateKey as any).seed = undefined;
+  (keys.privateKey as any).seed = undefined;
   expect(keys.privateKey.extended).to.be.false;
   expect(keys.privateKey.seed).to.be.undefined;
   expect(() => {
