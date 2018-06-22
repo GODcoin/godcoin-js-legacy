@@ -243,6 +243,21 @@ export class Wallet {
         });
         break;
       }
+      case 'remove_account': {
+        const name = (args[1] || '').trim();
+        if (!name) {
+          write('remove_account <name> - missing name');
+          break;
+        }
+
+        if (!(await this.db.hasAccount(name))) {
+          write('Account does not exist');
+          break;
+        }
+
+        this.db.deleteAccount(name);
+        break;
+      }
       case 'import_account': {
         const name = (args[1] || '').trim();
         const pk = (args[2] || '').trim();
@@ -330,6 +345,7 @@ export class Wallet {
         cmds.push(['get_total_fee <address|account>', 'retrieve the minimum address and network fee combined to broadcast transactions']);
         cmds.push(['get_balance <address|account>', 'retrieve the total balance of a public address or account']);
         cmds.push(['create_account <name>', 'create an account and a new key pair']);
+        cmds.push(['remove_account <name>', 'remove an account']);
         cmds.push(['import_account <name> <private_key>', 'import an account with the following name and private key']);
         cmds.push(['list_accounts', 'list all accounts in the wallet']);
         cmds.push(['list_all_keys', 'list all keys in the wallet']);

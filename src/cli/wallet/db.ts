@@ -50,6 +50,10 @@ export class WalletDb {
     await this.db.put(prop, final.toString('base64'));
   }
 
+  async delProp(prop: WalletIndexProp): Promise<void> {
+    await this.db.del(prop);
+  }
+
   async close(): Promise<void> {
     await this.db.close();
   }
@@ -64,7 +68,11 @@ export class WalletDb {
     }
   }
 
-  async setAccount(name: string, key: PrivateKey) {
+  async deleteAccount(name): Promise<void> {
+    await this.delProp((WalletIndexProp.ACCOUNT + name) as any);
+  }
+
+  async setAccount(name: string, key: PrivateKey): Promise<void> {
     await this.setProp((WalletIndexProp.ACCOUNT + name) as any, key.toWif());
   }
 
