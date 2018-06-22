@@ -95,7 +95,7 @@ export class Synchronizer {
           if (range.blocks.length) {
             for (const block of range.blocks) {
               if (!this.running) break;
-              if (this.blockchain.head) this.blockchain.validateBlock(block, this.blockchain.head);
+              if (this.blockchain.head) await this.blockchain.validateBlock(block, this.blockchain.head);
               await batch.index(block);
             }
           }
