@@ -89,7 +89,7 @@ export class Blockchain extends EventEmitter {
           }
           return;
         }
-        if (head) this.validateBlock(block, head);
+        if (head) await this.validateBlock(block, head);
         head = block;
         await batch.index(block, bytePos);
       });
