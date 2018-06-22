@@ -62,16 +62,15 @@ export class LocalMinter {
     const bond = await this.blockchain.indexer.getBond(head.signature_pair.public_key);
     assert(bond, 'must be a minter to produce a block');
 
-    const ts = new Date();
     const block = new Block({
       height: head.height.add(1),
       previous_hash: head.getHash(),
-      timestamp: ts,
+      timestamp: new Date(),
       transactions: [
         ...(await this.pool.popAll()),
         new RewardTx({
           type: TxType.REWARD,
-          timestamp: ts,
+          timestamp: new Date(0),
           to: bond!.staker,
           fee: EMPTY_GOLD,
           rewards: [ REWARD_GOLD, REWARD_SILVER ],
