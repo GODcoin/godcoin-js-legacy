@@ -67,19 +67,7 @@ export class Block implements BlockOpts {
     });
   }
 
-  validate(prevBlock: Block): void {
-    assert(prevBlock.height.add(1).eq(this.height), 'unexpected height');
-    for (const tx of this.transactions) {
-      tx.validate();
-    }
-    {
-      const thisRoot = this.tx_merkle_root;
-      const expectedRoot = this.getMerkleRoot();
-      assert(expectedRoot.equals(thisRoot), 'unexpected merkle root');
-    }
-  }
-
-  protected serialize(): Buffer {
+  serialize(): Buffer {
     return Buffer.from(this.rawSerialize().flip().toBuffer());
   }
 
@@ -90,7 +78,7 @@ export class Block implements BlockOpts {
     return buf;
   }
 
-  private getMerkleRoot(): Buffer {
+  getMerkleRoot(): Buffer {
     const buf = ByteBuffer.allocate(ByteBuffer.DEFAULT_CAPACITY,
                                     ByteBuffer.BIG_ENDIAN);
     for (const tx of this.transactions) {
@@ -124,21 +112,6 @@ export class SignedBlock extends Block implements SignedBlockOpts {
   constructor(data: SignedBlockOpts) {
     super(data);
     this.signature_pair = data.signature_pair;
-  }
-
-  validate(prevBlock: SignedBlock) {
-    super.validate(prevBlock);
-    {
-      const prevHash = prevBlock.getHash();
-      const curHash = this.previous_hash;
-      assert(curHash.equals(prevHash), 'previous hash does not match');
-    }
-    {
-      const serialized = this.serialize();
-      const key = this.signature_pair.public_key;
-      const sig = this.signature_pair.signature;
-      assert(key.verify(sig, serialized), 'invalid signature');
-    }
   }
 
   fullySerialize(includeTx = true): ByteBuffer {

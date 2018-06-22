@@ -5,11 +5,8 @@ import {
 } from '../serializer';
 import { PrivateKey, PublicKey, SigPair } from '../crypto';
 import * as ByteBuffer from 'bytebuffer';
-import { GODcoin } from '../constants';
-import { checkAsset } from './util';
 import * as newDebug from 'debug';
 import { Asset } from '../asset';
-import * as assert from 'assert';
 
 const debug = newDebug('godcoin:tx');
 
@@ -43,12 +40,6 @@ export abstract class Tx {
 
   abstract rawSerialize(buf: ByteBuffer): void;
 
-  validate(): void {
-    assert(this.data.timestamp.getTime() < Date.now(), 'timestamp cannot be in the future');
-    assert(this.data.fee.amount.gt(0), 'fee must be greater than zero');
-    checkAsset('fee', this.data.fee);
-  }
-
   sign(key: PrivateKey): SigPair {
     const buf = this.serialize(false);
     /* istanbul ignore if */
@@ -60,14 +51,6 @@ export abstract class Tx {
     const sig = this.sign(key);
     this.data.signature_pairs.push(sig);
     return this;
-  }
-
-  checkExpiry(): void {
-    const exp = this.data.timestamp.getTime();
-    const now = Date.now();
-    const delta = now - exp;
-    assert(delta <= GODcoin.TX_EXPIRY_TIME, 'tx expired');
-    assert(delta > 0, 'tx timestamp in the future');
   }
 
   serialize(includeSigs: boolean): ByteBuffer {

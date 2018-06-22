@@ -1,7 +1,15 @@
+import {
+  deserialize,
+  checkAsset,
+  TransferTx,
+  RewardTx,
+  BondTx,
+  Tx
+} from '../transactions';
 import { Asset, AssetSymbol, EMPTY_GOLD, EMPTY_SILVER } from '../asset';
-import { Tx, TransferTx, BondTx } from '../transactions';
 import { Indexer, BatchIndex } from '../indexer';
 import { ChainStore } from './chain_store';
+import * as ByteBuffer from 'bytebuffer';
 import { GODcoin } from '../constants';
 import { PublicKey } from '../crypto';
 import { SignedBlock } from './block';
@@ -81,7 +89,7 @@ export class Blockchain extends EventEmitter {
           }
           return;
         }
-        if (head) block.validate(head);
+        if (head) this.validateBlock(block, head);
         head = block;
         await batch.index(block, bytePos);
       });
@@ -124,7 +132,7 @@ export class Blockchain extends EventEmitter {
       if (!this.store.blockHead && block.height.eq(0)) {
         this.genesisBlock = block;
       } else {
-        block.validate(this.store.blockHead);
+        await this.validateBlock(block, this.store.blockHead);
         assert(await this.isBondValid(block.signature_pair.public_key), 'invalid bond');
       }
       await this.batchIndex.index(block);
@@ -217,9 +225,13 @@ export class Blockchain extends EventEmitter {
   }
 
   private async cacheNetworkFee(): Promise<void> {
+    this._networkFee = await this.calcNetworkFee(this.head);
+  }
+
+  private async calcNetworkFee(block: SignedBlock): Promise<[Asset, Asset]> {
     // The network fee adjusts every 5 blocks so that users have a bigger time
     // frame to confirm the fee they want to spend without suddenly changing.
-    const maxHeight = this.head.height.sub(this.head.height.mod(5));
+    const maxHeight = block.height.sub(block.height.mod(5));
     let minHeight = maxHeight.sub(GODcoin.NETWORK_FEE_AVG_WINDOW);
     if (minHeight.lt(0)) minHeight = Long.fromNumber(0, true);
 
@@ -230,6 +242,119 @@ export class Blockchain extends EventEmitter {
     }
     const goldFee = GODcoin.MIN_GOLD_FEE.mul(GODcoin.NETWORK_FEE_GOLD_MULT.pow(txCount), 8);
     const silverFee = GODcoin.MIN_SILVER_FEE.mul(GODcoin.NETWORK_FEE_SILVER_MULT.pow(txCount), 8);
-    this._networkFee = [goldFee, silverFee];
+    return [goldFee, silverFee];
+  }
+
+  async validateBlock(block: SignedBlock, prevBlock: SignedBlock) {
+    assert(prevBlock.height.add(1).eq(block.height), 'unexpected height');
+    for (const tx of block.transactions) {
+      // TODO: verify the tx is not a dup in the blockchain
+      await this.validateTx(Buffer.from(tx.serialize(true).toBuffer()));
+    }
+    { // Verify merkle root recalculation
+      const thisRoot = block.tx_merkle_root;
+      const expectedRoot = block.getMerkleRoot();
+      assert(expectedRoot.equals(thisRoot), 'unexpected merkle root');
+    }
+
+    {
+      const prevHash = prevBlock.getHash();
+      const curHash = block.previous_hash;
+      assert(curHash.equals(prevHash), 'previous hash does not match');
+    }
+    {
+      const serialized = block.serialize();
+      const key = block.signature_pair.public_key;
+      const sig = block.signature_pair.signature;
+      assert(key.verify(sig, serialized), 'invalid signature');
+    }
+  }
+
+  async validateTx(txBuf: Buffer, additionalTxs?: Tx[]): Promise<Tx> {
+    assert(!(await this.indexer.hasTx(txBuf)), 'duplicate tx');
+    const tx = deserialize<Tx>(ByteBuffer.wrap(txBuf));
+
+    if (!(tx instanceof RewardTx)) {
+      assert(tx.data.timestamp.getTime() < Date.now(), 'timestamp cannot be in the future');
+      assert(tx.data.fee.amount.gt(0), 'fee must be greater than zero');
+      checkAsset('fee', tx.data.fee);
+
+      { // Validate time
+        const exp = tx.data.timestamp.getTime();
+        const now = Date.now();
+        const delta = now - exp;
+        assert(delta <= GODcoin.TX_EXPIRY_TIME, 'tx expired');
+        assert(delta > 0, 'tx timestamp in the future');
+
+        const timeTx = tx.data.timestamp.getTime();
+        const timeHead = this.head.timestamp.getTime() - 3000;
+        assert(timeTx > timeHead, 'timestamp cannot be behind 3 seconds of the block head time');
+      }
+    }
+
+    if (tx instanceof RewardTx) {
+      assert(tx.data.timestamp.getTime() === 0, 'reward must have 0 for time');
+      assert(tx.data.signature_pairs.length === 0, 'reward must not be signed');
+    } else if (tx instanceof TransferTx) {
+      {
+        assert.equal(tx.data.amount.symbol, tx.data.fee.symbol, 'fee must be paid with the same asset');
+        assert(tx.data.amount.amount.geq(0), 'amount must be greater than or equal to zero');
+        checkAsset('amount', tx.data.amount, tx.data.fee.symbol);
+        if (tx.data.memo) {
+          assert(tx.data.memo.length <= 512, 'maximum memo length is 512 bytes');
+        }
+        const buf = tx.serialize(false);
+        const pair = tx.data.signature_pairs[0];
+        assert(tx.data.from.verify(pair.signature, buf.toBuffer()), 'invalid signature');
+      }
+
+      let bal: Asset|undefined;
+      let fee: Asset|undefined;
+      if (tx.data.amount.symbol === AssetSymbol.GOLD) {
+        bal = (await this.getBalance(tx.data.from, additionalTxs))[0];
+        fee = (await this.getTotalFee(tx.data.from, additionalTxs))[0];
+      } else if (tx.data.amount.symbol === AssetSymbol.SILVER) {
+        bal = (await this.getBalance(tx.data.from, additionalTxs))[1];
+        fee = (await this.getTotalFee(tx.data.from, additionalTxs))[1];
+      }
+      assert(bal, 'unknown balance symbol ' + tx.data.amount.symbol);
+      assert(tx.data.fee.geq(fee!), 'fee amount too small, expected ' + fee!.toString());
+
+      const remaining = bal!.sub(tx.data.amount).sub(tx.data.fee);
+      assert(remaining.amount.geq(0), 'insufficient balance');
+    } else if (tx instanceof BondTx) {
+      {
+        const data = tx.data;
+        // For additional security, only allow unique minter and staker keys to
+        // help prevent accidentally using hot wallets for minting
+        assert(!data.minter.equals(data.staker), 'minter and staker keys must be unique');
+
+        checkAsset('stake_amt', data.stake_amt, AssetSymbol.GOLD);
+        checkAsset('bond_fee', data.bond_fee, AssetSymbol.GOLD);
+        assert(data.stake_amt.amount.gt(0), 'stake_amt must be greater than zero');
+
+        const buf = tx.serialize(false);
+
+        assert(tx.data.signature_pairs.length === 2, 'transaction must be signed by the minter and staker');
+        const minter = tx.data.signature_pairs[0];
+        assert(tx.data.minter.verify(minter.signature, buf.toBuffer()), 'invalid signature');
+
+        const staker = tx.data.signature_pairs[1];
+        assert(tx.data.staker.verify(staker.signature, buf.toBuffer()), 'invalid signature');
+      }
+
+      // TODO: handle stake amount modifications
+      const bal = (await this.getBalance(tx.data.staker, additionalTxs))[0];
+      const fee = (await this.getTotalFee(tx.data.staker, additionalTxs))[0];
+      assert(tx.data.fee.geq(fee), 'fee amount too small, expected ' + fee.toString());
+
+      assert(tx.data.bond_fee.eq(GODcoin.BOND_FEE), 'invalid bond_fee');
+      const remaining = bal.sub(fee).sub(tx.data.bond_fee).sub(tx.data.stake_amt);
+      assert(remaining.amount.geq(0), 'insufficient balance');
+    } else {
+      throw new Error('invalid transaction');
+    }
+
+    return tx;
   }
 }

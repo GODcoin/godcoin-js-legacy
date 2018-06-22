@@ -7,7 +7,6 @@ import { Tx, TxData, TxType } from './transaction';
 import * as ByteBuffer from 'bytebuffer';
 import { PublicKey } from '../crypto';
 import { Asset } from '../asset';
-import * as assert from 'assert';
 
 export interface RewardTxData extends TxData {
   type: TxType.REWARD;
@@ -26,10 +25,6 @@ export class RewardTx extends Tx {
 
   constructor(readonly data: RewardTxData) {
     super(data);
-  }
-
-  validate(): void {
-    assert(this.data.signature_pairs.length === 0, 'reward transactions must not be signed');
   }
 
   rawSerialize(buf: ByteBuffer): void {

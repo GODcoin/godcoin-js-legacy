@@ -27,43 +27,7 @@ export class TxPool extends EventEmitter {
     await this.lock.lock();
     try {
       assert(!(await this.indexer.hasTx(txBuf)), 'duplicate tx');
-      const tx = deserialize<Tx>(ByteBuffer.wrap(txBuf));
-      { // Validate time
-        tx.checkExpiry();
-        const timeTx = tx.data.timestamp.getTime();
-        const timeHead = this.blockchain.head.timestamp.getTime() - 3000;
-        assert(timeTx > timeHead, 'timestamp cannot be behind 3 seconds of the block head time');
-      }
-      tx.validate();
-
-      if (tx instanceof TransferTx) {
-        let bal: Asset|undefined;
-        let fee: Asset|undefined;
-        if (tx.data.amount.symbol === AssetSymbol.GOLD) {
-          bal = (await this.blockchain.getBalance(tx.data.from, this.txs))[0];
-          fee = (await this.blockchain.getTotalFee(tx.data.from, this.txs))[0];
-        } else if (tx.data.amount.symbol === AssetSymbol.SILVER) {
-          bal = (await this.blockchain.getBalance(tx.data.from, this.txs))[1];
-          fee = (await this.blockchain.getTotalFee(tx.data.from, this.txs))[1];
-        }
-        assert(bal, 'unknown balance symbol ' + tx.data.amount.symbol);
-        assert(tx.data.fee.geq(fee!), 'fee amount too small, expected ' + fee!.toString());
-
-        const remaining = bal!.sub(tx.data.amount).sub(tx.data.fee);
-        assert(remaining.amount.geq(0), 'insufficient balance');
-      } else if (tx instanceof BondTx) {
-        // TODO: handle stake amount modifications
-        const bal = (await this.blockchain.getBalance(tx.data.staker, this.txs))[0];
-        const fee = (await this.blockchain.getTotalFee(tx.data.staker, this.txs))[0];
-        assert(tx.data.fee.geq(fee), 'fee amount too small, expected ' + fee.toString());
-
-        assert(tx.data.bond_fee.eq(GODcoin.BOND_FEE), 'invalid bond_fee');
-        const remaining = bal.sub(fee).sub(tx.data.bond_fee).sub(tx.data.stake_amt);
-        assert(remaining.amount.geq(0), 'insufficient balance');
-      } else {
-        throw new Error('invalid transaction');
-      }
-
+      const tx = await this.blockchain.validateTx(txBuf, this.txs);
       await this.indexer.addTx(txBuf, tx.data.timestamp!.getTime() + 60000);
       this.emit('tx', tx);
       return [this.blockchain.head.height.add(1), this.txs.push(tx) - 1];

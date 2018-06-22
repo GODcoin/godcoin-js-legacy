@@ -4,11 +4,9 @@ import {
   ObjectType
 } from '../serializer';
 import { Tx, TxData, TxType } from './transaction';
-import { Asset, AssetSymbol } from '../asset';
 import * as ByteBuffer from 'bytebuffer';
 import { PublicKey } from '../crypto';
-import { checkAsset } from './util';
-import * as assert from 'assert';
+import { Asset } from '../asset';
 
 export interface Bond {
   minter: PublicKey; // Key that signs blocks
@@ -34,27 +32,6 @@ export class BondTx extends Tx {
 
   constructor(readonly data: BondTxData) {
     super(data);
-  }
-
-  validate(): void {
-    super.validate();
-    const data = this.data;
-    // For security, only allow unique minter and staker keys to help prevent
-    // accidentally using hot wallets for minting
-    assert(!data.minter.equals(data.staker), 'minter and staker keys must be unique');
-
-    checkAsset('stake_amt', data.stake_amt, AssetSymbol.GOLD);
-    checkAsset('bond_fee', data.bond_fee, AssetSymbol.GOLD);
-    assert(data.stake_amt.amount.gt(0), 'stake_amt must be greater than zero');
-
-    const buf = this.serialize(false);
-
-    assert(this.data.signature_pairs.length === 2, 'transaction must be signed by the minter and staker');
-    const minter = this.data.signature_pairs[0];
-    assert(this.data.minter.verify(minter.signature, buf.toBuffer()), 'invalid signature');
-
-    const staker = this.data.signature_pairs[1];
-    assert(this.data.staker.verify(staker.signature, buf.toBuffer()), 'invalid signature');
   }
 
   rawSerialize(buf: ByteBuffer): void {

@@ -35,15 +35,14 @@ afterEach(async () => {
 });
 
 it('should read and write the genesis block', async () => {
-  const genesisTs = new Date();
   const genesisBlock = new Block({
     height: Long.fromNumber(0, true),
-    previous_hash: undefined as any,
-    timestamp: genesisTs,
+    previous_hash: undefined!,
+    timestamp: new Date(),
     transactions: [
       new RewardTx({
         type: TxType.REWARD,
-        timestamp: genesisTs,
+        timestamp: new Date(0),
         fee: Asset.fromString('0 GOLD'),
         to: genesisKeys.publicKey,
         rewards: [ Asset.fromString('1 GOLD') ],
@@ -136,25 +135,71 @@ it('should fail with incorrect height', async () => {
 
 it('should have correct balances in the blockchain', async () => {
   const goldFee = new Asset(bigInt(1), 0, AssetSymbol.GOLD);
-  const silverFee = new Asset(bigInt(1), 0, AssetSymbol.SILVER);
+  const silverFee = new Asset(bigInt(10), 0, AssetSymbol.SILVER);
   const txFrom = generateKeyPair();
   const txTo = generateKeyPair();
-  for (let i = 0; i < 10; ++i) {
-    const hash = i === 0 ? undefined : chain.head.getHash();
+
+  // Add the genesis block
+  {
     const ts = new Date();
     const b = new Block({
-      height: Long.fromNumber(i, true),
-      previous_hash: hash as any,
+      height: Long.fromNumber(0, true),
+      previous_hash: undefined!,
       timestamp: ts,
       transactions: [
         new RewardTx({
           type: TxType.REWARD,
           to: genesisKeys.publicKey,
-          timestamp: ts,
+          timestamp: new Date(0),
           fee: goldFee,
           rewards: [
             Asset.fromString('0.1 GOLD'),
             Asset.fromString('10 SILVER')
+          ],
+          signature_pairs: []
+        }),
+        new RewardTx({
+          type: TxType.REWARD,
+          to: txFrom.publicKey,
+          timestamp: new Date(0),
+          fee: goldFee,
+          rewards: [
+            Asset.fromString('20 GOLD'),
+            Asset.fromString('20 SILVER')
+          ],
+          signature_pairs: []
+        }),
+      ]
+    }).sign(genesisKeys);
+    await chain.addBlock(b);
+  }
+
+  for (let i = 1; i <= 10; ++i) {
+    const ts = new Date();
+    const b = new Block({
+      height: Long.fromNumber(i, true),
+      previous_hash: chain.head.getHash(),
+      timestamp: ts,
+      transactions: [
+        new RewardTx({
+          type: TxType.REWARD,
+          to: genesisKeys.publicKey,
+          timestamp: new Date(0),
+          fee: goldFee,
+          rewards: [
+            Asset.fromString('0.1 GOLD'),
+            Asset.fromString('10 SILVER')
+          ],
+          signature_pairs: []
+        }),
+        new RewardTx({
+          type: TxType.REWARD,
+          to: txFrom.publicKey,
+          timestamp: new Date(0),
+          fee: goldFee,
+          rewards: [
+            Asset.fromString('1.1 GOLD'),
+            Asset.fromString('11 SILVER')
           ],
           signature_pairs: []
         }),
@@ -182,12 +227,13 @@ it('should have correct balances in the blockchain', async () => {
   }
 
   let bal = await chain.getBalance(genesisKeys.publicKey);
-  expect(bal[0].toString()).to.eq('1.0 GOLD');
-  expect(bal[1].toString()).to.eq('100 SILVER');
+  expect(bal[0].toString()).to.eq('1.1 GOLD');
+  expect(bal[1].toString()).to.eq('110 SILVER');
 
+  // Extra balance is obtained from the genesis block
   bal = await chain.getBalance(txFrom.publicKey);
-  expect(bal[0].toString()).to.eq('-11.0 GOLD');
-  expect(bal[1].toString()).to.eq('-20.0 SILVER');
+  expect(bal[0].toString()).to.eq('20.0 GOLD');
+  expect(bal[1].toString()).to.eq('20.0 SILVER');
 
   bal = await chain.getBalance(txTo.publicKey);
   expect(bal[0].toString()).to.eq('1.0 GOLD');
@@ -206,7 +252,7 @@ it('should have correct balances in the tx pool', async () => {
         new RewardTx({
           type: TxType.REWARD,
           to: genesisKeys.publicKey,
-          timestamp: ts,
+          timestamp: new Date(0),
           fee: Asset.fromString('0 GOLD'),
           rewards: [
             Asset.fromString('1 GOLD'),
@@ -240,5 +286,48 @@ it('should have correct balances in the tx pool', async () => {
 
   bal = await pool.getBalance(txTo.publicKey);
   expect(bal[0].toString()).to.eq('5 GOLD');
+  expect(bal[1].toString()).to.eq('0 SILVER');
+});
+
+it('should throw on invalid balance in the tx pool', async () => {
+  await chain.addBlock(new Block({
+    height: Long.fromNumber(0, true),
+    previous_hash: undefined!,
+    timestamp: new Date(),
+    transactions: [
+      new RewardTx({
+        type: TxType.REWARD,
+        to: genesisKeys.publicKey,
+        timestamp: new Date(0),
+        fee: Asset.fromString('0 GOLD'),
+        rewards: [
+          Asset.fromString('10 GOLD'),
+          Asset.fromString('10 SILVER')
+        ],
+        signature_pairs: []
+      })
+    ]
+  }).sign(genesisKeys));
+
+  const pool = new TxPool(chain);
+  const txTo = generateKeyPair();
+
+  const tx = Buffer.from(new TransferTx({
+    type: TxType.TRANSFER,
+    timestamp: new Date(),
+    from: genesisKeys.publicKey,
+    to: txTo.publicKey,
+    amount: Asset.fromString('10 GOLD'),
+    fee: Asset.fromString('1 GOLD'),
+    signature_pairs: []
+  }).appendSign(genesisKeys.privateKey).serialize(true).toBuffer());
+  await expect(pool.push(tx)).to.be.rejectedWith(AssertionError, 'insufficient balance');
+
+  let bal = await chain.getBalance(genesisKeys.publicKey);
+  expect(bal[0].toString()).to.eq('10 GOLD');
+  expect(bal[1].toString()).to.eq('10 SILVER');
+
+  bal = await chain.getBalance(txTo.publicKey);
+  expect(bal[0].toString()).to.eq('0 GOLD');
   expect(bal[1].toString()).to.eq('0 SILVER');
 });
