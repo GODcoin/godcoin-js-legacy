@@ -21,7 +21,10 @@ export class Synchronizer {
     if (this.running) return;
     this.running = true;
     if (this.peerPool.count <= 0) return;
-    await this.synchronizeChain();
+    if (!(await this.synchronizeChain())) {
+      await this.stop();
+      throw new Error('startup synchronization error');
+    }
     const height = this.blockchain.head.height;
     console.log('Synchronization completed at height', height.toString());
 
@@ -79,9 +82,9 @@ export class Synchronizer {
     }
   }
 
-  private async synchronizeChain(): Promise<void> {
+  private async synchronizeChain(): Promise<boolean> {
     try {
-      if (!this.running) return;
+      if (!this.running) return false;
       await this.lock.lock();
       let height = this.blockchain.head ? this.blockchain.head.height : undefined;
       let batch = this.blockchain.prepareBatch();
@@ -111,8 +114,10 @@ export class Synchronizer {
       }
       await batch.flush();
       await this.blockchain.reload();
+      return true;
     } catch (e) {
       console.log('Failed to synchronize blockchain', e);
+      return false;
     } finally {
       this.lock.unlock();
     }

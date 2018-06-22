@@ -52,52 +52,57 @@ export class Daemon {
     if (this.running) return;
     this.running = true;
 
-    await this.blockchain.start();
-    if (this.blockchain.head) {
-      const height = this.blockchain.head.height.toString();
-      console.log(`Using existing blockchain at height ${height}`);
-    } else {
-      console.log('Block log is empty or missing');
-    }
+    try {
+      await this.blockchain.start();
+      if (this.blockchain.head) {
+        const height = this.blockchain.head.height.toString();
+        console.log(`Using existing blockchain at height ${height}`);
+      } else {
+        console.log('Block log is empty or missing');
+      }
 
-    if (this.minter && !(this.blockchain.head || this.opts.peers.length)) {
-      await this.minter.createGenesisBlock();
-    }
+      if (this.minter && !(this.blockchain.head || this.opts.peers.length)) {
+        await this.minter.createGenesisBlock();
+      }
 
-    {
-      for (const peer of this.opts.peers) this.peerPool.addNode({
-        blockchain: this.blockchain,
-        pool: this.txPool
-      }, peer);
-      await this.peerPool.start();
-      this.peerPool.subscribeBlock(this.sync);
-      this.peerPool.subscribeTx(this.sync);
-    }
+      {
+        for (const peer of this.opts.peers) this.peerPool.addNode({
+          blockchain: this.blockchain,
+          pool: this.txPool
+        }, peer);
+        await this.peerPool.start();
+        this.peerPool.subscribeBlock(this.sync);
+        this.peerPool.subscribeTx(this.sync);
+      }
 
-    await this.sync.start();
-    await this.producer.start();
+      await this.sync.start();
+      await this.producer.start();
 
-    this.peerPool.on('open', () => {
-      this.producer.start(true).catch(e => {
-        console.log('Failed to start the producer after resuming the peer pool', e);
+      this.peerPool.on('open', () => {
+        this.producer.start(true).catch(e => {
+          console.log('Failed to start the producer after resuming the peer pool', e);
+        });
       });
-    });
 
-    this.peerPool.on('close', () => {
-      if (this.server && this.server.clientCount > 0) return;
-      this.producer.stop().catch(e => {
-        console.log('Failed to stop the producer after stopping the peer pool', e);
+      this.peerPool.on('close', () => {
+        if (this.server && this.server.clientCount > 0) return;
+        this.producer.stop().catch(e => {
+          console.log('Failed to stop the producer after stopping the peer pool', e);
+        });
       });
-    });
 
-    if (this.opts.listen) {
-      this.server = new Server({
-        blockchain: this.blockchain,
-        pool: this.txPool,
-        bindAddress: this.opts.bind,
-        port: this.opts.port
-      });
-      this.server.start(this.sync);
+      if (this.opts.listen) {
+        this.server = new Server({
+          blockchain: this.blockchain,
+          pool: this.txPool,
+          bindAddress: this.opts.bind,
+          port: this.opts.port
+        });
+        this.server.start(this.sync);
+      }
+    } catch (e) {
+      await this.stop();
+      throw e;
     }
   }
 
