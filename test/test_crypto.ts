@@ -60,9 +60,9 @@ it('should import keys from WIF', () => {
   const {
     privateKey,
     publicKey
-  } = PrivateKey.fromWif('3MFjoc3Czmy4zednmK2JdJLRTm6rXHMzBroTHD67guSJycuXJ9');
-  expect(privateKey.toWif()).to.eq('3MFjoc3Czmy4zednmK2JdJLRTm6rXHMzBroTHD67guSJycuXJ9');
-  expect(publicKey.toWif()).to.eq('GOD6o5rLKP4jrJ527spZg1CSQXTbcGTdHYHpxp3CWDR4cdA666Rkx');
+  } = PrivateKey.fromWif('3GAD3otqozDorfu1iDpMQJ1gzWp8PRFEjVHZivZdedKW3i3KtM');
+  expect(privateKey.toWif()).to.eq('3GAD3otqozDorfu1iDpMQJ1gzWp8PRFEjVHZivZdedKW3i3KtM');
+  expect(publicKey.toWif()).to.eq('GOD52QZDBUStV5CudxvKf6bPsQeN7oeKTkEm2nAU1vAUqNVexGTb8');
 });
 
 it('should throw on invalid key', () => {
