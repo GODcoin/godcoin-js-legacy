@@ -7,7 +7,7 @@ const del = require('del');
 const outDir = 'out';
 
 gulp.task('build', () => {
-  const res = gulp.src('src/**/*.ts')
+  const res = gulp.src(['src/**/*.ts', 'typings/**/*.d.ts'])
                     .pipe(sourceMaps.init())
                     .pipe(ts.createProject('tsconfig.json')())
                     .on('error', () => {});

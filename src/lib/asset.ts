@@ -1,5 +1,3 @@
-import { BigInteger } from 'big-integer';
-import * as bigInt from 'big-integer';
 import * as assert from 'assert';
 
 export const enum AssetSymbol {
@@ -9,7 +7,7 @@ export const enum AssetSymbol {
 
 export class Asset {
 
-  constructor(readonly amount: BigInteger,
+  constructor(readonly amount: BigInt,
               readonly decimals: number,
               readonly symbol: AssetSymbol) {}
 
@@ -18,7 +16,7 @@ export class Asset {
     const decimals = Math.max(this.decimals, other.decimals);
     const t = setDecimals(this.amount, this.decimals, decimals);
     const o = setDecimals(other.amount, other.decimals, decimals);
-    return new Asset(t.add(o), decimals, this.symbol);
+    return new Asset(t + o, decimals, this.symbol);
   }
 
   sub(other: Asset): Asset {
@@ -26,7 +24,7 @@ export class Asset {
     const decimals = Math.max(this.decimals, other.decimals);
     const t = setDecimals(this.amount, this.decimals, decimals);
     const o = setDecimals(other.amount, other.decimals, decimals);
-    return new Asset(t.subtract(o), decimals, this.symbol);
+    return new Asset(t - o, decimals, this.symbol);
   }
 
   mul(other: Asset, precision?: number): Asset {
@@ -36,7 +34,7 @@ export class Asset {
     const o = setDecimals(other.amount, other.decimals, decimals);
 
     decimals *= 2;
-    let mult = t.multiply(o);
+    let mult = t * o;
     if (precision !== undefined) {
       mult = setDecimals(mult, decimals, precision);
       decimals = precision;
@@ -46,11 +44,11 @@ export class Asset {
 
   div(other: Asset, precision: number = 0): Asset {
     assert.strictEqual(this.symbol, other.symbol, 'asset type mismatch');
-    if (other.amount.eq(0)) throw new ArithmeticError('divide by zero');
+    if (other.amount === BigInt(0)) throw new ArithmeticError('divide by zero');
     const decimals = Math.max(this.decimals, other.decimals, precision);
     const t = setDecimals(this.amount, this.decimals, decimals * 2);
     const o = setDecimals(other.amount, other.decimals, decimals);
-    return new Asset(t.divide(o), decimals, this.symbol);
+    return new Asset(t / o, decimals, this.symbol);
   }
 
   pow(num: number, precision: number = this.decimals): Asset {
@@ -58,7 +56,7 @@ export class Asset {
     assert((num % 1) === 0, 'num must be an integer');
 
     const dec = this.decimals * num;
-    const pow = setDecimals(this.amount.pow(num), dec, precision);
+    const pow = setDecimals(this.amount ** BigInt(num), dec, precision);
     return new Asset(pow, precision, this.symbol);
   }
 
@@ -68,7 +66,7 @@ export class Asset {
     const decimals = Math.max(this.decimals, other.decimals);
     const t = setDecimals(this.amount, this.decimals, decimals);
     const o = setDecimals(other.amount, other.decimals, decimals);
-    return t.geq(o);
+    return t >= o;
   }
 
   gt(other: Asset): boolean {
@@ -77,7 +75,7 @@ export class Asset {
     const decimals = Math.max(this.decimals, other.decimals);
     const t = setDecimals(this.amount, this.decimals, decimals);
     const o = setDecimals(other.amount, other.decimals, decimals);
-    return t.gt(o);
+    return t > o;
   }
 
   lt(other: Asset): boolean {
@@ -94,7 +92,7 @@ export class Asset {
     const decimals = Math.max(this.decimals, other.decimals);
     const t = setDecimals(this.amount, this.decimals, decimals);
     const o = setDecimals(other.amount, other.decimals, decimals);
-    return t.eq(o);
+    return t === o;
   }
 
   setDecimals(decimals: number) {
@@ -105,7 +103,7 @@ export class Asset {
 
   toString(): string {
     let amount = this.amount.toString();
-    let negative = this.amount.lt(0);
+    let negative = this.amount < 0;
     if (negative) amount = amount.substring(1);
     const full = amount.substring(0, amount.length - this.decimals);
     let partial = '';
@@ -131,14 +129,14 @@ export class Asset {
       split[0] = split[0].replace('.', '');
     }
 
-    const num = bigInt(split[0]);
+    const num = BigInt(split[0]);
     const symbol = split[1] as AssetSymbol;
     return new Asset(num, decimals, symbol);
   }
 }
 
-export const EMPTY_GOLD = new Asset(bigInt(0), 0, AssetSymbol.GOLD);
-export const EMPTY_SILVER = new Asset(bigInt(0), 0, AssetSymbol.SILVER);
+export const EMPTY_GOLD = new Asset(BigInt(0), 0, AssetSymbol.GOLD);
+export const EMPTY_SILVER = new Asset(BigInt(0), 0, AssetSymbol.SILVER);
 
 export class ArithmeticError extends Error {
   constructor(msg: string) {
@@ -146,13 +144,13 @@ export class ArithmeticError extends Error {
   }
 }
 
-function setDecimals(old: BigInteger,
+function setDecimals(old: BigInt,
                       oldDecimals: number,
-                      newDecimals: number): BigInteger {
+                      newDecimals: number): BigInt {
   if (newDecimals > oldDecimals) {
-    return old.multiply('1' + '0'.repeat(newDecimals - oldDecimals));
+    return old * BigInt('1' + '0'.repeat(newDecimals - oldDecimals));
   } else if (newDecimals < oldDecimals) {
-    return old.divide('1' + '0'.repeat(oldDecimals - newDecimals));
+    return old / BigInt('1' + '0'.repeat(oldDecimals - newDecimals));
   }
   return old;
 }

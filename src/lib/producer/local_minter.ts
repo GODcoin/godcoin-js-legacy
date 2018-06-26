@@ -2,14 +2,12 @@ import { RewardTx, TxType, BondTx } from '../transactions';
 import { Asset, AssetSymbol, EMPTY_GOLD } from '../asset';
 import { KeyPair, generateKeyPair } from '../crypto';
 import { Blockchain, Block } from '../blockchain';
-import { GODcoin } from '../constants';
-import * as bigInt from 'big-integer';
 import { TxPool } from './tx_pool';
 import * as assert from 'assert';
 import * as Long from 'long';
 
-const REWARD_GOLD = new Asset(bigInt(1), 0, AssetSymbol.GOLD);
-const REWARD_SILVER = new Asset(bigInt(100), 0, AssetSymbol.SILVER);
+const REWARD_GOLD = new Asset(BigInt(1), 0, AssetSymbol.GOLD);
+const REWARD_SILVER = new Asset(BigInt(100), 0, AssetSymbol.SILVER);
 
 export class LocalMinter {
 

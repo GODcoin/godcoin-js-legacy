@@ -20,7 +20,7 @@ will be minimal until the software stabilizes.
 
 ### Prerequisites
 
-- NodeJS 8+
+- NodeJS 10+
 - Yarn
 
 This project does not, and will never, use npm. Yarn is able to keep the lock

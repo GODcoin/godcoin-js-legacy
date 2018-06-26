@@ -3,7 +3,6 @@ import { Asset, AssetSymbol } from '../src/lib/asset';
 import { generateKeyPair } from '../src/lib/crypto';
 import * as sodium from 'libsodium-wrappers';
 import * as Benchmark from 'benchmark';
-import * as bigInt from 'big-integer';
 
 (async () => {
   await sodium.ready;
@@ -42,7 +41,7 @@ import * as bigInt from 'big-integer';
   suite.add('string to asset', () => {
     Asset.fromString('1.123 GOLD');
   }).add('asset to string', () => {
-    new Asset(bigInt(1123), 3, AssetSymbol.GOLD).toString();
+    new Asset(BigInt(1123), 3, AssetSymbol.GOLD).toString();
   }).add('serialize transaction', () => {
     tx.serialize(true);
   }).on('start', evt => {

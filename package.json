@@ -22,7 +22,7 @@
   "types": "./out/lib/index.d.ts",
   "bin": "./bin/godcoin.js",
   "engines": {
-    "node": ">=8.0.0"
+    "node": ">=10.0.0"
   },
   "yargs": {
     "camel-case-expansion": false
@@ -31,7 +31,6 @@
     "bytebuffer/long": "^4.0.0"
   },
   "dependencies": {
-    "big-integer": "^1.6.31",
     "borc": "^2.0.3",
     "bs58": "^4.0.1",
     "bytebuffer": "^5.0.1",

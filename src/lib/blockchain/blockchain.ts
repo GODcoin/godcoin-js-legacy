@@ -300,7 +300,7 @@ export class Blockchain extends EventEmitter {
 
     if (!(tx instanceof RewardTx)) {
       assert(tx.data.timestamp.getTime() < Date.now(), 'timestamp cannot be in the future');
-      assert(tx.data.fee.amount.gt(0), 'fee must be greater than zero');
+      assert(tx.data.fee.amount > 0, 'fee must be greater than zero');
       checkAsset('fee', tx.data.fee);
 
       if ((skipFlags & SkipFlags.SKIP_TX_TIME) === 0) {
@@ -324,7 +324,7 @@ export class Blockchain extends EventEmitter {
     } else if (tx instanceof TransferTx) {
       {
         assert.equal(tx.data.amount.symbol, tx.data.fee.symbol, 'fee must be paid with the same asset');
-        assert(tx.data.amount.amount.geq(0), 'amount must be greater than or equal to zero');
+        assert(tx.data.amount.amount > 0, 'amount must be greater than or equal to zero');
         checkAsset('amount', tx.data.amount, tx.data.fee.symbol);
         if (tx.data.memo) {
           assert(tx.data.memo.length <= 512, 'maximum memo length is 512 bytes');
@@ -350,7 +350,7 @@ export class Blockchain extends EventEmitter {
       assert(tx.data.fee.geq(fee!), 'fee amount too small, expected ' + fee!.toString());
 
       const remaining = bal!.sub(tx.data.amount).sub(tx.data.fee);
-      assert(remaining.amount.geq(0), 'insufficient balance');
+      assert(remaining.amount >= BigInt(0), 'insufficient balance');
     } else if (tx instanceof BondTx) {
       {
         const data = tx.data;
@@ -360,7 +360,7 @@ export class Blockchain extends EventEmitter {
 
         checkAsset('stake_amt', data.stake_amt, AssetSymbol.GOLD);
         checkAsset('bond_fee', data.bond_fee, AssetSymbol.GOLD);
-        assert(data.stake_amt.amount.gt(0), 'stake_amt must be greater than zero');
+        assert(data.stake_amt.amount > 0, 'stake_amt must be greater than zero');
 
         const buf = tx.serialize(false);
 
@@ -379,7 +379,7 @@ export class Blockchain extends EventEmitter {
 
       assert(tx.data.bond_fee.eq(GODcoin.BOND_FEE), 'invalid bond_fee');
       const remaining = bal.sub(fee).sub(tx.data.bond_fee).sub(tx.data.stake_amt);
-      assert(remaining.amount.geq(0), 'insufficient balance');
+      assert(remaining.amount >= 0, 'insufficient balance');
     } else {
       throw new Error('invalid transaction');
     }

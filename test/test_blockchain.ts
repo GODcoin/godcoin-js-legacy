@@ -8,7 +8,6 @@ import { generateKeyPair, KeyPair } from '../src/lib/crypto';
 import { Asset, AssetSymbol } from '../src/lib/asset';
 import { TxPool } from '../src/lib/producer';
 import { AssertionError } from 'assert';
-import * as bigInt from 'big-integer';
 import { expect } from 'chai';
 import * as path from 'path';
 import * as Long from 'long';
@@ -134,8 +133,8 @@ it('should fail with incorrect height', async () => {
 });
 
 it('should have correct balances in the blockchain', async () => {
-  const goldFee = new Asset(bigInt(1), 0, AssetSymbol.GOLD);
-  const silverFee = new Asset(bigInt(10), 0, AssetSymbol.SILVER);
+  const goldFee = new Asset(BigInt(1), 0, AssetSymbol.GOLD);
+  const silverFee = new Asset(BigInt(10), 0, AssetSymbol.SILVER);
   const txFrom = generateKeyPair();
   const txTo = generateKeyPair();
 
