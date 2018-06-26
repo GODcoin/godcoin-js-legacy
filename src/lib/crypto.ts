@@ -60,6 +60,8 @@ export class PrivateKey extends Key {
     super(buffer);
     if (buffer.length !== sodium.crypto_sign_SECRETKEYBYTES) {
       throw new InvalidWif(`invalid key length (got ${buffer.length} bytes)`);
+    } else if (seed && seed.length !== sodium.crypto_sign_SEEDBYTES) {
+      throw new InvalidWif(`invalid seed length (got ${seed.length} bytes)`);
     }
   }
 
@@ -91,9 +93,8 @@ export class PrivateKey extends Key {
     let buf = Key.keyFromWif(wif, PRIV_BUF_PREFIX);
     if (buf.length === sodium.crypto_sign_SEEDBYTES) {
       const keys = sodium.crypto_sign_seed_keypair(buf);
-      buf = Buffer.from(keys.privateKey);
       return {
-        privateKey: new PrivateKey(buf, Buffer.from(keys.privateKey)),
+        privateKey: new PrivateKey(Buffer.from(keys.privateKey), buf),
         publicKey: new PublicKey(Buffer.from(keys.publicKey))
       };
     }

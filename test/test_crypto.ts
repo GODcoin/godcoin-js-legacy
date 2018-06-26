@@ -57,7 +57,11 @@ it('should recreate keypairs from an extended private key', () => {
 });
 
 it('should import keys from WIF', () => {
-  const { publicKey } = PrivateKey.fromWif('3MFjoc3Czmy4zednmK2JdJLRTm6rXHMzBroTHD67guSJycuXJ9');
+  const {
+    privateKey,
+    publicKey
+  } = PrivateKey.fromWif('3MFjoc3Czmy4zednmK2JdJLRTm6rXHMzBroTHD67guSJycuXJ9');
+  expect(privateKey.toWif()).to.eq('3MFjoc3Czmy4zednmK2JdJLRTm6rXHMzBroTHD67guSJycuXJ9');
   expect(publicKey.toWif()).to.eq('GOD6o5rLKP4jrJ527spZg1CSQXTbcGTdHYHpxp3CWDR4cdA666Rkx');
 });
 
@@ -113,6 +117,10 @@ it('should throw on invalid key lengths', () => {
   expect(() => {
     new PrivateKey(Buffer.alloc(32));
   }).to.throw(Error, 'invalid key length (got 32 bytes)');
+
+  expect(() => {
+    new PrivateKey(Buffer.alloc(64), Buffer.alloc(16));
+  }).to.throw(Error, 'invalid seed length (got 16 bytes)');
 
   expect(() => {
     new PublicKey(Buffer.alloc(64));
