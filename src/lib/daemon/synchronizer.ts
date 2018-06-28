@@ -73,8 +73,9 @@ export class Synchronizer {
     if (!this.running) return;
     await this.lock.lock();
     try {
-      if (await this.blockchain.indexer.hasTx(tx)) return;
-      await this.txPool.push(tx);
+      const hex = tx.toString('hex');
+      if (await this.txPool.hasTx(tx, hex)) return;
+      await this.txPool.push(tx, hex);
     } catch (e) {
       console.log('Failed to process incoming tx', e);
     } finally {

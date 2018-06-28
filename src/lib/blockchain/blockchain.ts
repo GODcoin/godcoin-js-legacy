@@ -24,6 +24,11 @@ import * as fs from 'fs';
 
 export * from './block';
 
+export interface ValidateOpts {
+  additional_txs?: Tx[];
+  skipFlags: SkipFlags;
+}
+
 export class Blockchain extends EventEmitter {
 
   private running = false;
@@ -265,10 +270,13 @@ export class Blockchain extends EventEmitter {
                       skipFlags = SkipFlags.SKIP_NOTHING) {
     assert(prevBlock.height.add(1).eq(block.height), 'unexpected height');
     if ((skipFlags & SkipFlags.SKIP_TX) === 0) {
+      const opts: ValidateOpts = { skipFlags };
       for (const tx of block.transactions) {
-        // TODO: verify the tx is not a dup in the blockchain
         const buf = Buffer.from(tx.serialize(true).toBuffer());
-        await this.validateTx(buf, undefined, skipFlags);
+        await this.validateTx(buf, opts);
+        if (!(tx instanceof RewardTx)) {
+          await this.indexer.addTx(buf, tx.data.timestamp.getTime() + GODcoin.TX_EXPIRY_TIME);
+        }
       }
     }
     if ((skipFlags & SkipFlags.SKIP_BLOCK_MERKLE) === 0) {
@@ -291,10 +299,10 @@ export class Blockchain extends EventEmitter {
     }
   }
 
-  async validateTx(txBuf: Buffer,
-                    additionalTxs?: Tx[],
-                    skipFlags = SkipFlags.SKIP_NOTHING): Promise<Tx> {
-    assert((skipFlags & SkipFlags.SKIP_TX) === 0, 'cannot skip entire tx');
+  async validateTx(txBuf: Buffer, opts: ValidateOpts = {
+                                    skipFlags: SkipFlags.SKIP_NOTHING
+                                  }): Promise<Tx> {
+    assert((opts.skipFlags & SkipFlags.SKIP_TX) === 0, 'cannot skip tx in tx validator');
     assert(!(await this.indexer.hasTx(txBuf)), 'duplicate tx');
     const tx = deserialize<Tx>(ByteBuffer.wrap(txBuf));
 
@@ -303,7 +311,7 @@ export class Blockchain extends EventEmitter {
       assert(tx.data.fee.amount > 0, 'fee must be greater than zero');
       checkAsset('fee', tx.data.fee);
 
-      if ((skipFlags & SkipFlags.SKIP_TX_TIME) === 0) {
+      if ((opts.skipFlags & SkipFlags.SKIP_TX_TIME) === 0) {
         const exp = tx.data.timestamp.getTime();
         const now = Date.now();
         const delta = now - exp;
@@ -317,7 +325,7 @@ export class Blockchain extends EventEmitter {
     }
 
     if (tx instanceof RewardTx) {
-      if ((skipFlags & SkipFlags.SKIP_TX_TIME) === 0) {
+      if ((opts.skipFlags & SkipFlags.SKIP_TX_TIME) === 0) {
         assert(tx.data.timestamp.getTime() === 0, 'reward must have 0 for time');
       }
       assert(tx.data.signature_pairs.length === 0, 'reward must not be signed');
@@ -331,7 +339,7 @@ export class Blockchain extends EventEmitter {
         }
       }
 
-      if ((skipFlags & SkipFlags.SKIP_TX_SIGNATURE) === 0) {
+      if ((opts.skipFlags & SkipFlags.SKIP_TX_SIGNATURE) === 0) {
         const buf = tx.serialize(false);
         const pair = tx.data.signature_pairs[0];
         assert(tx.data.from.verify(pair.signature, buf.toBuffer()), 'invalid signature');
@@ -340,11 +348,11 @@ export class Blockchain extends EventEmitter {
       let bal: Asset|undefined;
       let fee: Asset|undefined;
       if (tx.data.amount.symbol === AssetSymbol.GOLD) {
-        bal = (await this.getBalance(tx.data.from, additionalTxs))[0];
-        fee = (await this.getTotalFee(tx.data.from, additionalTxs))[0];
+        bal = (await this.getBalance(tx.data.from, opts.additional_txs))[0];
+        fee = (await this.getTotalFee(tx.data.from, opts.additional_txs))[0];
       } else if (tx.data.amount.symbol === AssetSymbol.SILVER) {
-        bal = (await this.getBalance(tx.data.from, additionalTxs))[1];
-        fee = (await this.getTotalFee(tx.data.from, additionalTxs))[1];
+        bal = (await this.getBalance(tx.data.from, opts.additional_txs))[1];
+        fee = (await this.getTotalFee(tx.data.from, opts.additional_txs))[1];
       }
       assert(bal, 'unknown balance symbol ' + tx.data.amount.symbol);
       assert(tx.data.fee.geq(fee!), 'fee amount too small, expected ' + fee!.toString());
@@ -373,8 +381,8 @@ export class Blockchain extends EventEmitter {
       }
 
       // TODO: handle stake amount modifications
-      const bal = (await this.getBalance(tx.data.staker, additionalTxs))[0];
-      const fee = (await this.getTotalFee(tx.data.staker, additionalTxs))[0];
+      const bal = (await this.getBalance(tx.data.staker, opts.additional_txs))[0];
+      const fee = (await this.getTotalFee(tx.data.staker, opts.additional_txs))[0];
       assert(tx.data.fee.geq(fee), 'fee amount too small, expected ' + fee.toString());
 
       assert(tx.data.bond_fee.eq(GODcoin.BOND_FEE), 'invalid bond_fee');

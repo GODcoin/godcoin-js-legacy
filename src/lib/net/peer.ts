@@ -169,7 +169,7 @@ export class Peer extends EventEmitter {
         check(tx, ApiErrorCode.INVALID_PARAMS, 'missing tx');
         check(tx instanceof Buffer, ApiErrorCode.INVALID_PARAMS, 'tx not a buffer');
 
-        const data = await this.opts.pool.push(tx);
+        const data = await this.opts.pool.push(tx, tx.toString('hex'));
         const refBlock = data[0];
         const refTxPos = data[1];
         return {
