@@ -1,3 +1,5 @@
+/// <reference path="../../../typings/bigint.d.ts" />
+
 import {
   deserialize,
   checkAsset,
@@ -146,13 +148,13 @@ export class Blockchain extends EventEmitter {
     return new BatchIndex(this.indexer, this.store, this.getBalance.bind(this));
   }
 
-  async addBlock(block: SignedBlock): Promise<void> {
+  async addBlock(block: SignedBlock, skipFlags?: SkipFlags): Promise<void> {
     try {
       await this.lock.lock();
       if (!this.store.blockHead && block.height.eq(0)) {
         this.genesisBlock = block;
       } else {
-        await this.validateBlock(block, this.store.blockHead);
+        await this.validateBlock(block, this.store.blockHead, skipFlags);
         assert(await this.isBondValid(block.signature_pair.public_key), 'invalid bond');
       }
       await this.batchIndex.index(block);

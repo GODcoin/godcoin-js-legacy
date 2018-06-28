@@ -6,6 +6,7 @@ import {
 import { TxType, RewardTx, TransferTx } from '../src/lib/transactions';
 import { generateKeyPair, KeyPair } from '../src/lib/crypto';
 import { Asset, AssetSymbol } from '../src/lib/asset';
+import { SkipFlags } from '../src/lib/skip_flags';
 import { TxPool } from '../src/lib/producer';
 import { AssertionError } from 'assert';
 import { expect } from 'chai';
@@ -222,7 +223,7 @@ it('should have correct balances in the blockchain', async () => {
         }).appendSign(txFrom.privateKey)
       ]
     }).sign(genesisKeys);
-    await chain.addBlock(b);
+    await chain.addBlock(b, SkipFlags.SKIP_TX);
   }
 
   let bal = await chain.getBalance(genesisKeys.publicKey);
@@ -276,7 +277,9 @@ it('should have correct balances in the tx pool', async () => {
       fee: Asset.fromString('5 GOLD'),
       signature_pairs: []
     }).appendSign(genesisKeys.privateKey).serialize(true).toBuffer());
-    await pool.push(tx);
+    const hex = tx.toString('hex');
+    await pool.push(tx, hex);
+    await expect(pool.push(tx, hex)).to.be.rejectedWith(AssertionError, 'duplicate tx');
   }
 
   let bal = await pool.getBalance(genesisKeys.publicKey);
@@ -320,7 +323,7 @@ it('should throw on invalid balance in the tx pool', async () => {
     fee: Asset.fromString('1 GOLD'),
     signature_pairs: []
   }).appendSign(genesisKeys.privateKey).serialize(true).toBuffer());
-  await expect(pool.push(tx)).to.be.rejectedWith(AssertionError, 'insufficient balance');
+  await expect(pool.push(tx, tx.toString('hex'))).to.be.rejectedWith(AssertionError, 'insufficient balance');
 
   let bal = await chain.getBalance(genesisKeys.publicKey);
   expect(bal[0].toString()).to.eq('10 GOLD');
