@@ -25,7 +25,7 @@ export class TxPool extends EventEmitter {
     this.indexer = this.blockchain.indexer;
   }
 
-  async push(txBuf: Buffer, hex: string): Promise<[Long, number]> {
+  async push(txBuf: Buffer, hex: string): Promise<void> {
     await this.lock.lock();
     try {
       assert(!(await this.hasTx(txBuf, hex)), 'duplicate tx');
@@ -41,7 +41,6 @@ export class TxPool extends EventEmitter {
       }, timeout).unref();
 
       this.emit('tx', tx);
-      return [this.blockchain.head.height.add(1), this.txs.push(tx) - 1];
     } finally {
       this.lock.unlock();
     }
