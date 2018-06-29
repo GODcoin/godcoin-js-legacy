@@ -86,11 +86,15 @@ export class Peer extends EventEmitter {
     })).balance;
   }
 
-  async getTotalFee(address: string): Promise<[string,string]> {
-    return (await this.invokeRpc({
+  async getTotalFee(address: string): Promise<rpc.TotalFee> {
+    const data = await this.invokeRpc({
       method: 'get_total_fee',
       address
-    })).fee;
+    });
+    return {
+      net_fee: data.net_fee,
+      fee: data.fee
+    };
   }
 
   async invokeRpc(data: any): Promise<any> {
@@ -222,8 +226,13 @@ export class Peer extends EventEmitter {
         const address: string = map.address;
         check(typeof(address) === 'string', ApiErrorCode.INVALID_PARAMS, 'address must be a string');
         const wif = PublicKey.fromWif(address);
+        const netFee = this.opts.blockchain.networkFee;
         const fee = await this.opts.pool.getTotalFee(wif);
         return {
+          net_fee: [
+            netFee[0].toString(),
+            netFee[1].toString()
+          ],
           fee: [
             fee[0].toString(),
             fee[1].toString()

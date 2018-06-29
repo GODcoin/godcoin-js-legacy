@@ -28,8 +28,8 @@ export async function execTransfer(wallet: Wallet, args: any[]) {
   const totalFee = await Util.getTotalFee(wallet.client, acc.publicKey);
 
   let fee: Asset;
-  if (amt.symbol === AssetSymbol.GOLD) fee = totalFee[0];
-  else if (amt.symbol === AssetSymbol.SILVER) fee = totalFee[1];
+  if (amt.symbol === AssetSymbol.GOLD) fee = totalFee.fee[0];
+  else if (amt.symbol === AssetSymbol.SILVER) fee = totalFee.fee[1];
   assert(fee!, 'unhandled asset type: ' + amt.symbol);
 
   const props = await wallet.client.getProperties();

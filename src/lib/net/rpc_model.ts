@@ -7,10 +7,15 @@ export interface BroadcastResult {
 
 export interface NetworkProperties {
   block_height: string;
-  network_fee: [ string /* gold */, string /* silver */ ];
+  net_fee: [ string /* gold */, string /* silver */ ];
 }
 
 export interface BlockRange {
   range_outside_height: boolean;
   blocks: SignedBlock[];
+}
+
+export interface TotalFee {
+  net_fee: [ string /* gold */, string /* silver */ ];
+  fee: [ string /* gold */, string /* silver */ ];
 }

@@ -16,9 +16,15 @@ export async function execGetTotalFee(wallet: Wallet, args: any[]) {
   // Make sure the user can't accidentally input a private key
   const addr = PublicKey.fromWif(address);
   const fee = await Util.getTotalFee(wallet.client, addr);
-  write([
-    fee[0].toString(),
-    fee[1].toString()
-  ]);
+  write({
+    net_fee: [
+      fee.net_fee[0].toString(),
+      fee.net_fee[1].toString()
+    ],
+    fee: [
+      fee.fee[0].toString(),
+      fee.fee[1].toString()
+    ]
+  });
 }
 
