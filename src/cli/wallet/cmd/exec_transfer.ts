@@ -48,25 +48,10 @@ export async function execTransfer(wallet: Wallet, args: any[]) {
   await wallet.client.broadcast(buf);
 
   let height = Number.parseInt(props.block_height);
-  const exp = tx.data.timestamp.getTime() + GODcoin.TX_EXPIRY_TIME;
-  const hex = buf.toString('hex');
-  while (Date.now() < exp) {
-    const block = await wallet.client.getBlock(++height);
-    if (!block) {
-      await new Promise(r => setTimeout(r, GODcoin.BLOCK_PROD_TIME));
-      --height;
-      continue;
-    }
-    for (let i = 0; i < block.transactions.length; ++i) {
-      const tx = block.transactions[i];
-      if (hex === Buffer.from(tx.serialize(true).toBuffer()).toString('hex')) {
-        write({
-          ref_block: height,
-          ref_tx_pos: i
-        });
-        return;
-      }
-    }
+  const data = await Util.findTx(wallet.client, height, tx);
+  if (data) {
+    write(data);
+  } else {
+    write('unable to locate tx within expiry time');
   }
-  write('unable to locate tx within expiry time');
 }
