@@ -40,6 +40,7 @@ export class TxPool extends EventEmitter {
         delete this.txSet[hex];
       }, timeout).unref();
 
+      this.txs.push(tx);
       this.emit('tx', tx);
     } finally {
       this.lock.unlock();

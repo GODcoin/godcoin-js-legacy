@@ -3,7 +3,8 @@ import {
   TransferTx,
   PublicKey,
   TxType,
-  Asset
+  Asset,
+  GODcoin
 } from '../../../lib';
 import { Wallet } from '../wallet';
 import { write } from '../writer';
@@ -31,6 +32,7 @@ export async function execTransfer(wallet: Wallet, args: any[]) {
   else if (amt.symbol === AssetSymbol.SILVER) fee = totalFee[1];
   assert(fee!, 'unhandled asset type: ' + amt.symbol);
 
+  const props = await wallet.client.getProperties();
   const tx = new TransferTx({
     type: TxType.TRANSFER,
     timestamp: new Date(),
@@ -43,6 +45,28 @@ export async function execTransfer(wallet: Wallet, args: any[]) {
   }).appendSign(acc.privateKey);
   write('Broadcasting tx\n', tx.toString(), '\n');
   const buf = Buffer.from(tx.serialize(true).toBuffer());
-  const data = await wallet.client.broadcast(buf);
-  write(data);
+  await wallet.client.broadcast(buf);
+
+  let height = Number.parseInt(props.block_height);
+  const exp = tx.data.timestamp.getTime() + GODcoin.TX_EXPIRY_TIME;
+  const hex = buf.toString('hex');
+  while (Date.now() < exp) {
+    const block = await wallet.client.getBlock(++height);
+    if (!block) {
+      await new Promise(r => setTimeout(r, GODcoin.BLOCK_PROD_TIME));
+      --height;
+      continue;
+    }
+    for (let i = 0; i < block.transactions.length; ++i) {
+      const tx = block.transactions[i];
+      if (hex === Buffer.from(tx.serialize(true).toBuffer()).toString('hex')) {
+        write({
+          ref_block: height,
+          ref_tx_pos: i
+        });
+        return;
+      }
+    }
+  }
+  write('unable to locate tx within expiry time');
 }
