@@ -114,6 +114,8 @@ export class Wallet {
         return await Command.execListAllKeys(this, args);
       case 'transfer':
         return await Command.execTransfer(this, args);
+      case 'create_bond':
+        return await Command.execCreateBond(this, args);
       default:
         write('Unknown command:', args[0]);
       case 'help':
@@ -132,6 +134,7 @@ export class Wallet {
         cmds.push(['list_accounts', 'list all accounts in the wallet']);
         cmds.push(['list_all_keys', 'list all keys in the wallet']);
         cmds.push(['transfer <from_account> <to_address> <amount> [memo]', 'transfer funds from an account to another GODcoin public address']);
+        cmds.push(['create_bond <minter_account> <staker_account> <stake_amount>', 'create a bond to become a producer in the network']);
         Wallet.writeHelp('Available commands:', cmds);
     }
   }

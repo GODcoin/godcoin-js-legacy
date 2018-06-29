@@ -47,11 +47,11 @@ export async function execTransfer(wallet: Wallet, args: any[]) {
   const buf = Buffer.from(tx.serialize(true).toBuffer());
   await wallet.client.broadcast(buf);
 
-  let height = Number.parseInt(props.block_height);
+  const height = Number.parseInt(props.block_height);
   const data = await Util.findTx(wallet.client, height, tx);
   if (data) {
     write(data);
   } else {
-    write('unable to locate tx within expiry time');
+    write('Unable to locate tx within expiry time');
   }
 }

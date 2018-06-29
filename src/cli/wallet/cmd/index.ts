@@ -11,3 +11,4 @@ export * from './exec_import_account';
 export * from './exec_list_accounts';
 export * from './exec_list_all_keys';
 export * from './exec_transfer';
+export * from './exec_create_bond';
