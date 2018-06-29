@@ -3,7 +3,7 @@ import { SkipFlags } from '../skip_flags';
 import { GODcoin } from '../constants';
 import { PublicKey } from '../crypto';
 import { EventEmitter } from 'events';
-import { Tx } from '../transactions';
+import { Tx, TransferTx, BondTx } from '../transactions';
 import { Indexer } from '../indexer';
 import { Asset } from '../asset';
 import * as assert from 'assert';
@@ -33,6 +33,8 @@ export class TxPool extends EventEmitter {
         additional_txs: this.txs,
         skipFlags: SkipFlags.SKIP_NOTHING
       });
+      assert(tx instanceof TransferTx
+              || tx instanceof BondTx, 'invalid tx type');
 
       this.txSet[hex] = true;
       const timeout = (tx.data.timestamp.getTime() + GODcoin.TX_EXPIRY_TIME) - Date.now();
