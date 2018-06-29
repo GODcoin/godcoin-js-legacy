@@ -134,16 +134,7 @@ export class SignedBlock extends Block implements SignedBlockOpts {
       height: this.height.toString(),
       previous_hash: this.previous_hash ? this.previous_hash.toString('hex') : undefined,
       timestamp: this.timestamp.toString(),
-      transactions: this.transactions.map(val => {
-        const data: any = {};
-        Object.getOwnPropertyNames(val.data).forEach(name => {
-          if (typeof(val.data[name]) !== 'function') {
-            const prop = val.data[name];
-            data[name] = prop !== undefined ? prop.toString() : undefined;
-          }
-        });
-        return data;
-      }),
+      transactions: this.transactions.map(val => JSON.parse(val.toString())),
       tx_merkle_root: this.tx_merkle_root.toString('hex'),
       signature_pair: {
         public_key: this.signature_pair.public_key.toWif(),
