@@ -155,7 +155,6 @@ export class Blockchain extends EventEmitter {
         this.genesisBlock = block;
       } else {
         await this.validateBlock(block, this.store.blockHead, skipFlags);
-        assert(await this.isBondValid(block.signature_pair.public_key), 'invalid bond');
       }
       await this.batchIndex.index(block);
       await this.batchIndex.flush();
@@ -171,8 +170,10 @@ export class Blockchain extends EventEmitter {
     return this.store.read(height);
   }
 
-  async isBondValid(key: PublicKey): Promise<boolean> {
-    return this.genesisBlock.signature_pair.public_key.equals(key);
+  async isBondValid(block: SignedBlock): Promise<boolean> {
+    const m = block.signature_pair.public_key;
+    return (await this.indexer.getBond(m)) !== undefined
+            || this.genesisBlock.signature_pair.public_key.equals(m);
   }
 
   async getTotalFee(addr: PublicKey, additionalTxs?: Tx[]): Promise<[Asset,Asset]> {
@@ -271,6 +272,10 @@ export class Blockchain extends EventEmitter {
                       prevBlock: SignedBlock,
                       skipFlags = SkipFlags.SKIP_NOTHING) {
     assert(prevBlock.height.add(1).eq(block.height), 'unexpected height');
+    if ((skipFlags & SkipFlags.SKIP_BLOCK_BOND_SIGNER) === 0) {
+      assert(await this.isBondValid(block), 'invalid bond');
+    }
+
     if ((skipFlags & SkipFlags.SKIP_TX) === 0) {
       const opts: ValidateOpts = { skipFlags };
       for (const tx of block.transactions) {

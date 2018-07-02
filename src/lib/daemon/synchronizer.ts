@@ -90,7 +90,8 @@ export class Synchronizer {
       await this.lock.lock();
       let height = this.blockchain.head ? this.blockchain.head.height : undefined;
       let batch = this.blockchain.prepareBatch();
-      const skipFlags = SkipFlags.SKIP_TX_TIME;
+      const skipFlags = SkipFlags.SKIP_BLOCK_BOND_SIGNER
+                          | SkipFlags.SKIP_TX;
       while (this.running) {
         try {
           const min = height ? height.add(1) : Long.fromNumber(0, true);
