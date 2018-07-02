@@ -1,6 +1,7 @@
 import { SignedBlock, Blockchain } from '../blockchain';
 import { ClientPeerPool } from './client_peer_pool';
 import { Producer, TxPool } from '../producer';
+import { SkipFlags } from '../skip_flags';
 import { EndOfClients } from '../net';
 import { Lock } from '../lock';
 import * as Long from 'long';
@@ -89,6 +90,7 @@ export class Synchronizer {
       await this.lock.lock();
       let height = this.blockchain.head ? this.blockchain.head.height : undefined;
       let batch = this.blockchain.prepareBatch();
+      const skipFlags = SkipFlags.SKIP_TX_TIME;
       while (this.running) {
         try {
           const min = height ? height.add(1) : Long.fromNumber(0, true);
@@ -99,7 +101,9 @@ export class Synchronizer {
           if (range.blocks.length) {
             for (const block of range.blocks) {
               if (!this.running) break;
-              if (this.blockchain.head) await this.blockchain.validateBlock(block, this.blockchain.head);
+              if (this.blockchain.head) {
+                await this.blockchain.validateBlock(block, this.blockchain.head, skipFlags);
+              }
               await batch.index(block);
             }
           }
