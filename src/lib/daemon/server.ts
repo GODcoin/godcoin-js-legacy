@@ -1,11 +1,11 @@
-import { ServerNet, ServerPeer, WsCloseCode } from '../net';
-import { Blockchain, SignedBlock } from '../blockchain';
-import { Synchronizer } from './synchronizer';
 import * as ByteBuffer from 'bytebuffer';
-import { TxPool } from '../producer';
-import { GODcoinEnv } from '../env';
-import * as WebSocket from 'uws';
 import * as http from 'http';
+import * as WebSocket from 'uws';
+import { Blockchain, SignedBlock } from '../blockchain';
+import { GODcoinEnv } from '../env';
+import { ServerNet, ServerPeer, WsCloseCode } from '../net';
+import { TxPool } from '../producer';
+import { Synchronizer } from './synchronizer';
 
 export interface ServerOptions {
   blockchain: Blockchain;
@@ -48,7 +48,7 @@ export class Server {
     });
     this.server.on('upgrade', (req: http.IncomingMessage, socket, head) => {
       let ip = req.connection.remoteAddress!;
-      let port = req.connection.remotePort!;
+      const port = req.connection.remotePort!;
       this.ws.handleUpgrade(req, socket, head, async ws => {
         if (GODcoinEnv.GODCOIN_TRUST_PROXY) {
           const tmp = req.headers['x-forwarded-for'];

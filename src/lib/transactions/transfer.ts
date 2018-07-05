@@ -1,12 +1,12 @@
+import * as ByteBuffer from 'bytebuffer';
+import { Asset } from '../asset';
+import { PublicKey } from '../crypto';
 import {
+  ObjectType,
   TypeDeserializer as TD,
-  TypeSerializer as TS,
-  ObjectType
+  TypeSerializer as TS
 } from '../serializer';
 import { Tx, TxData, TxType } from './transaction';
-import * as ByteBuffer from 'bytebuffer';
-import { PublicKey } from '../crypto';
-import { Asset } from '../asset';
 
 export interface TransferTxData extends TxData {
   type: TxType.TRANSFER;
@@ -27,15 +27,15 @@ export class TransferTx extends Tx {
   static readonly SERIALIZER = TS.object(TransferTx.SERIALIZER_FIELDS);
   static readonly DESERIALIZER = TD.object(TransferTx.SERIALIZER_FIELDS);
 
+  static deserialize(buf: ByteBuffer, obj: any): any {
+    return TransferTx.DESERIALIZER(buf, obj);
+  }
+
   constructor(readonly data: TransferTxData) {
     super(data);
   }
 
   rawSerialize(buf: ByteBuffer): void {
     TransferTx.SERIALIZER(buf, this.data);
-  }
-
-  static deserialize(buf: ByteBuffer, obj: any): any {
-    return TransferTx.DESERIALIZER(buf, obj);
   }
 }

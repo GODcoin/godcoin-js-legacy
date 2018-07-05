@@ -1,13 +1,14 @@
-import { BondTx, TxType, GODcoin, Asset } from '../../../lib';
+import { Asset, BondTx, GODcoin, TxType } from '../../../lib';
+import { Util } from '../util';
 import { Wallet } from '../wallet';
 import { write } from '../writer';
-import { Util } from '../util';
 
 export async function execCreateBond(wallet: Wallet, args: any[]) {
   const minter = (args[1] || '').trim();
   const staker = (args[2] || '').trim();
-  const stake_amt = (args[3] || '').trim();
+  const stakeAmt = (args[3] || '').trim();
   if (!(minter && staker)) {
+    // tslint:disable-next-line:max-line-length
     write('create_bond <minter_account> <staker_account> <stake_amount> - missing minter_account, staker_account, or stake_amount');
     return;
   }
@@ -25,7 +26,7 @@ export async function execCreateBond(wallet: Wallet, args: any[]) {
     timestamp: new Date(),
     minter: minterAcc.publicKey,
     staker: stakerAcc.publicKey,
-    stake_amt: Asset.fromString(stake_amt),
+    stake_amt: Asset.fromString(stakeAmt),
     bond_fee: GODcoin.BOND_FEE,
     fee: fee[0],
     signature_pairs: []

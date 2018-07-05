@@ -1,16 +1,16 @@
+import * as ByteBuffer from 'bytebuffer';
+import { EventEmitter } from 'events';
+import { SignedBlock } from '../blockchain';
 import {
-  DisconnectedError,
-  EndOfClients,
   BlockRange,
+  ClientNet,
   ClientPeer,
   ClientType,
-  ClientNet,
+  DisconnectedError,
+  EndOfClients,
   PeerOpts
 } from '../net';
 import { Synchronizer } from './synchronizer';
-import { SignedBlock } from '../blockchain';
-import * as ByteBuffer from 'bytebuffer';
-import { EventEmitter } from 'events';
 
 export class ClientPeerPool extends EventEmitter {
 
@@ -78,6 +78,7 @@ export class ClientPeerPool extends EventEmitter {
     return this.invoke(ClientPeer.prototype.getBlockRange, min, max);
   }
 
+  // tslint:disable-next-line:ban-types
   private async invoke(func: Function, ...args: any[]): Promise<any> {
     const clientLen = this.clients.length;
     const totalIndex = this.index + clientLen;

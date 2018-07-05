@@ -1,7 +1,7 @@
 import { PublicKey } from '../../../lib';
+import { Util } from '../util';
 import { Wallet } from '../wallet';
 import { write } from '../writer';
-import { Util } from '../util';
 
 export async function execGetTotalFee(wallet: Wallet, args: any[]) {
   let address = (args[1] || '').trim();
@@ -27,4 +27,3 @@ export async function execGetTotalFee(wallet: Wallet, args: any[]) {
     ]
   });
 }
-

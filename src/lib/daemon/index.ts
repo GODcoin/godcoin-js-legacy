@@ -1,12 +1,12 @@
-import { Producer, LocalMinter, TxPool } from '../producer';
-import { ClientPeerPool } from './client_peer_pool';
-import { Synchronizer } from './synchronizer';
-import { Blockchain } from '../blockchain';
-import { GODcoinEnv } from '../env';
-import { KeyPair } from '../crypto';
-import { Server } from './server';
 import * as mkdirp from 'mkdirp';
 import * as path from 'path';
+import { Blockchain } from '../blockchain';
+import { KeyPair } from '../crypto';
+import { GODcoinEnv } from '../env';
+import { LocalMinter, Producer, TxPool } from '../producer';
+import { ClientPeerPool } from './client_peer_pool';
+import { Server } from './server';
+import { Synchronizer } from './synchronizer';
 
 export interface DaemonOpts {
   signingKeys: KeyPair;
@@ -19,17 +19,15 @@ export interface DaemonOpts {
 
 export class Daemon {
 
-  private running = false;
-
   readonly blockchain: Blockchain;
+  readonly peerPool: ClientPeerPool;
   readonly minter?: LocalMinter;
 
+  private running = false;
   private readonly txPool: TxPool;
   private readonly sync: Synchronizer;
   private readonly producer: Producer;
-
   private server?: Server;
-  readonly peerPool: ClientPeerPool;
 
   constructor(readonly opts: DaemonOpts) {
     const dir = path.join(GODcoinEnv.GODCOIN_HOME, 'blockchain', 'data');
@@ -66,10 +64,12 @@ export class Daemon {
       }
 
       {
-        for (const peer of this.opts.peers) this.peerPool.addNode({
-          blockchain: this.blockchain,
-          pool: this.txPool
-        }, peer);
+        for (const peer of this.opts.peers) {
+          this.peerPool.addNode({
+            blockchain: this.blockchain,
+            pool: this.txPool
+          }, peer);
+        }
         await this.peerPool.start();
         this.peerPool.subscribeBlock(this.sync);
         this.peerPool.subscribeTx(this.sync);

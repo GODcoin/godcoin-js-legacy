@@ -7,6 +7,26 @@ export const enum AssetSymbol {
 
 export class Asset {
 
+  static fromString(str: string): Asset {
+    assert(str.length <= 32, 'asset string is too big');
+    const split = str.trim().split(' ');
+    assert.strictEqual(split.length, 2, 'invalid asset format');
+    assert(/^-?[0-9]*\.?[0-9]+\.?$/.test(split[0]), 'asset amount must be a valid number');
+    assert(split[1] === AssetSymbol.GOLD || split[1] === AssetSymbol.SILVER,
+            `asset type must be ${AssetSymbol.GOLD} or ${AssetSymbol.SILVER}`);
+
+    const index = split[0].indexOf('.');
+    let decimals = 0;
+    if (index !== -1) {
+      decimals = split[0].substring(index + 1).length;
+      split[0] = split[0].replace('.', '');
+    }
+
+    const num = BigInt(split[0]);
+    const symbol = split[1] as AssetSymbol;
+    return new Asset(num, decimals, symbol);
+  }
+
   constructor(readonly amount: BigInt,
               readonly decimals: number,
               readonly symbol: AssetSymbol) {}
@@ -103,7 +123,7 @@ export class Asset {
 
   toString(): string {
     let amount = this.amount.toString();
-    let negative = this.amount < 0;
+    const negative = this.amount < 0;
     if (negative) amount = amount.substring(1);
     const full = amount.substring(0, amount.length - this.decimals);
     let partial = '';
@@ -112,26 +132,6 @@ export class Asset {
       partial = (full ? '.' : '0.') + '0'.repeat(this.decimals - num.length) + num;
     }
     return `${negative ? '-' : ''}${full}${partial} ${this.symbol}`;
-  }
-
-  static fromString(str: string): Asset {
-    assert(str.length <= 32, 'asset string is too big');
-    const split = str.trim().split(' ');
-    assert.strictEqual(split.length, 2, 'invalid asset format');
-    assert(/^-?[0-9]*\.?[0-9]+\.?$/.test(split[0]), 'asset amount must be a valid number');
-    assert(split[1] === AssetSymbol.GOLD || split[1] === AssetSymbol.SILVER,
-            `asset type must be ${AssetSymbol.GOLD} or ${AssetSymbol.SILVER}`);
-
-    const index = split[0].indexOf('.');
-    let decimals = 0;
-    if (index !== -1) {
-      decimals = split[0].substring(index + 1).length;
-      split[0] = split[0].replace('.', '');
-    }
-
-    const num = BigInt(split[0]);
-    const symbol = split[1] as AssetSymbol;
-    return new Asset(num, decimals, symbol);
   }
 }
 
@@ -145,8 +145,8 @@ export class ArithmeticError extends Error {
 }
 
 function setDecimals(old: BigInt,
-                      oldDecimals: number,
-                      newDecimals: number): BigInt {
+                     oldDecimals: number,
+                     newDecimals: number): BigInt {
   if (newDecimals > oldDecimals) {
     return old * BigInt('1' + '0'.repeat(newDecimals - oldDecimals));
   } else if (newDecimals < oldDecimals) {

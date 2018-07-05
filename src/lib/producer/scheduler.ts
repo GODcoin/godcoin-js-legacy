@@ -1,13 +1,10 @@
 import { SignedBlock } from '../blockchain';
-import { Bond } from '../transactions';
 import { PublicKey } from '../crypto';
+import { Bond } from '../transactions';
 
 export class Scheduler {
 
   private bonds: Bond[] = [];
-
-  constructor() {
-  }
 
   addBond(bond: Bond) {
     this.bonds.push(bond);

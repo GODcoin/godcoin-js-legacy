@@ -1,15 +1,15 @@
+import * as assert from 'assert';
 import {
-  AssetSymbol,
-  TransferTx,
-  PublicKey,
-  TxType,
   Asset,
-  GODcoin
+  AssetSymbol,
+  GODcoin,
+  PublicKey,
+  TransferTx,
+  TxType
 } from '../../../lib';
+import { Util } from '../util';
 import { Wallet } from '../wallet';
 import { write } from '../writer';
-import * as assert from 'assert';
-import { Util } from '../util';
 
 export async function execTransfer(wallet: Wallet, args: any[]) {
   const accountStr = (args[1] || '').trim();

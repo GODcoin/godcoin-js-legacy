@@ -1,12 +1,12 @@
+import * as ByteBuffer from 'bytebuffer';
+import { Asset } from '../asset';
+import { PublicKey } from '../crypto';
 import {
+  ObjectType,
   TypeDeserializer as TD,
-  TypeSerializer as TS,
-  ObjectType
+  TypeSerializer as TS
 } from '../serializer';
 import { Tx, TxData, TxType } from './transaction';
-import * as ByteBuffer from 'bytebuffer';
-import { PublicKey } from '../crypto';
-import { Asset } from '../asset';
 
 export interface Bond {
   minter: PublicKey; // Key that signs blocks
@@ -30,15 +30,15 @@ export class BondTx extends Tx {
   static readonly SERIALIZER = TS.object(BondTx.SERIALIZER_FIELDS);
   static readonly DESERIALIZER = TD.object(BondTx.SERIALIZER_FIELDS);
 
+  static deserialize(buf: ByteBuffer, obj: any): any {
+    return BondTx.DESERIALIZER(buf, obj);
+  }
+
   constructor(readonly data: BondTxData) {
     super(data);
   }
 
   rawSerialize(buf: ByteBuffer): void {
     BondTx.SERIALIZER(buf, this.data);
-  }
-
-  static deserialize(buf: ByteBuffer, obj: any): any {
-    return BondTx.DESERIALIZER(buf, obj);
   }
 }

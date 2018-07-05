@@ -1,7 +1,7 @@
 export class Lock {
 
   private _locked: boolean = false;
-  private handles: Function[] = [];
+  private handles: Array<() => void> = [];
 
   get locked() {
     return this._locked;

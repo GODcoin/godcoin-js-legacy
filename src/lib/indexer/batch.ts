@@ -1,15 +1,17 @@
-import { TransferTx, RewardTx, BondTx } from '../transactions';
-import { ChainStore, SignedBlock } from '../blockchain';
-import { Indexer, IndexProp } from './index';
-import { AssetSymbol } from '../asset';
-import { PublicKey } from '../crypto';
 import * as Codec from 'level-codec';
-import { Asset } from '../asset';
-import { Lock } from '../lock';
 import * as Long from 'long';
+import { AssetSymbol } from '../asset';
+import { Asset } from '../asset';
+import { ChainStore, SignedBlock } from '../blockchain';
+import { PublicKey } from '../crypto';
+import { Lock } from '../lock';
+import { BondTx, RewardTx, TransferTx } from '../transactions';
+import { Indexer, IndexProp } from './index';
 
-export type CacheMissCallback = (key: PublicKey) => Promise<[Asset,Asset]>;
-export type AssetMap = { [acc: string]: [Asset,Asset] };
+export type CacheMissCallback = (key: PublicKey) => Promise<[Asset, Asset]>;
+export interface AssetMap {
+  [acc: string]: [Asset, Asset];
+}
 
 const jsonCodec = new Codec({
   keyEncoding: 'binary',
@@ -59,6 +61,16 @@ export class BatchIndex {
     }
   }
 
+  async flush() {
+    await this.lock.lock();
+    try {
+      await this.flushBalances();
+      await this.flushOps();
+    } finally {
+      this.lock.unlock();
+    }
+  }
+
   private async indexTransactions(block: SignedBlock) {
     for (const tx of block.transactions) {
       if (tx instanceof TransferTx) {
@@ -99,16 +111,6 @@ export class BatchIndex {
     let cache = this.map[hex];
     if (!cache) cache = this.map[hex] = await this.cmcb(key);
     return cache;
-  }
-
-  async flush() {
-    await this.lock.lock();
-    try {
-      await this.flushBalances();
-      await this.flushOps();
-    } finally {
-      this.lock.unlock();
-    }
   }
 
   private async flushBalances(): Promise<void> {

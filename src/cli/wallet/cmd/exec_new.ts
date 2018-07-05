@@ -1,8 +1,8 @@
-import { WalletState } from '../wallet_state';
+import * as assert from 'assert';
 import { WalletIndexProp } from '../db';
 import { Wallet } from '../wallet';
+import { WalletState } from '../wallet_state';
 import { write } from '../writer';
-import * as assert from 'assert';
 
 export async function execNew(wallet: Wallet, args: any[]) {
   (wallet.rl as any).history.shift();

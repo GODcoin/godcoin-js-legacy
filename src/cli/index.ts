@@ -1,14 +1,14 @@
-import {
-  generateKeyPair,
-  hookSigInt,
-  GODcoinEnv,
-  PrivateKey,
-  Daemon
-} from '../lib';
-import * as sodium from 'libsodium-wrappers';
-import { Wallet } from './wallet';
-import * as yargs from 'yargs';
 import * as fs from 'fs';
+import * as sodium from 'libsodium-wrappers';
+import * as yargs from 'yargs';
+import {
+  Daemon,
+  generateKeyPair,
+  GODcoinEnv,
+  hookSigInt,
+  PrivateKey
+} from '../lib';
+import { Wallet } from './wallet';
 
 function startDaemon(argv: any): void {
   const wif = argv['minter-wif'];

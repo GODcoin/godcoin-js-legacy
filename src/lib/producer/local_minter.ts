@@ -1,10 +1,10 @@
-import { RewardTx, TxType, BondTx } from '../transactions';
-import { Asset, AssetSymbol, EMPTY_GOLD } from '../asset';
-import { KeyPair, generateKeyPair } from '../crypto';
-import { Blockchain, Block } from '../blockchain';
-import { TxPool } from './tx_pool';
 import * as assert from 'assert';
 import * as Long from 'long';
+import { Asset, AssetSymbol, EMPTY_GOLD } from '../asset';
+import { Block, Blockchain } from '../blockchain';
+import { generateKeyPair, KeyPair } from '../crypto';
+import { BondTx, RewardTx, TxType } from '../transactions';
+import { TxPool } from './tx_pool';
 
 const REWARD_GOLD = new Asset(BigInt(1), 0, AssetSymbol.GOLD);
 const REWARD_SILVER = new Asset(BigInt(100), 0, AssetSymbol.SILVER);

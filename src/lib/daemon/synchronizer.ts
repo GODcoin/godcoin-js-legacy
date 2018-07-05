@@ -1,10 +1,10 @@
-import { SignedBlock, Blockchain } from '../blockchain';
-import { ClientPeerPool } from './client_peer_pool';
+import * as Long from 'long';
+import { Blockchain, SignedBlock } from '../blockchain';
+import { Lock } from '../lock';
+import { EndOfClients } from '../net';
 import { Producer, TxPool } from '../producer';
 import { SkipFlags } from '../skip_flags';
-import { EndOfClients } from '../net';
-import { Lock } from '../lock';
-import * as Long from 'long';
+import { ClientPeerPool } from './client_peer_pool';
 
 export class Synchronizer {
 
@@ -89,7 +89,7 @@ export class Synchronizer {
       if (!this.running) return false;
       await this.lock.lock();
       let height = this.blockchain.head ? this.blockchain.head.height : undefined;
-      let batch = this.blockchain.prepareBatch();
+      const batch = this.blockchain.prepareBatch();
       const skipFlags = SkipFlags.SKIP_BLOCK_BOND_SIGNER
                           | SkipFlags.SKIP_TX;
       while (this.running) {

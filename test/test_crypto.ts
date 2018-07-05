@@ -1,12 +1,12 @@
-import {
-  PUB_ADDRESS_PREFIX,
-  InvalidWif,
-  PublicKey,
-  PrivateKey,
-  generateKeyPair
-} from '../src/lib/crypto';
-import { expect } from 'chai';
 import * as bs58 from 'bs58';
+import { expect } from 'chai';
+import {
+  generateKeyPair,
+  InvalidWif,
+  PrivateKey,
+  PUB_ADDRESS_PREFIX,
+  PublicKey
+} from '../src/lib/crypto';
 
 it('should create keys', () => {
   const keys = generateKeyPair();

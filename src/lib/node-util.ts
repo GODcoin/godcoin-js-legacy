@@ -4,7 +4,7 @@ export function hookSigInt(callback: () => void, rli?: readline.ReadLine) {
   let force = false;
 
   if (process.platform === 'win32') {
-    var rl = rli ? rli : readline.createInterface({
+    const rl = rli ? rli : readline.createInterface({
       input: process.stdin
     });
 

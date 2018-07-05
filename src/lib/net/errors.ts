@@ -1,3 +1,5 @@
+/* tslint:disable:max-classes-per-file */
+
 export enum WsCloseCode {
   NORMAL = 1000,
   GOING_AWAY = 1001,

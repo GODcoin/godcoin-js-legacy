@@ -1,5 +1,5 @@
-import { Wallet } from '../../src/cli/wallet';
 import { expect } from 'chai';
+import { Wallet } from '../../src/cli/wallet';
 
 it('should parse lines', () => {
   let args;

@@ -1,8 +1,8 @@
-import { TransferTx, TxType } from '../src/lib/transactions';
+import * as Benchmark from 'benchmark';
+import * as sodium from 'libsodium-wrappers';
 import { Asset, AssetSymbol } from '../src/lib/asset';
 import { generateKeyPair } from '../src/lib/crypto';
-import * as sodium from 'libsodium-wrappers';
-import * as Benchmark from 'benchmark';
+import { TransferTx, TxType } from '../src/lib/transactions';
 
 (async () => {
   await sodium.ready;

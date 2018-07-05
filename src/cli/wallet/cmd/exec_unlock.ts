@@ -1,6 +1,6 @@
-import { WalletState } from '../wallet_state';
 import { WalletIndexProp } from '../db';
 import { Wallet } from '../wallet';
+import { WalletState } from '../wallet_state';
 import { write } from '../writer';
 
 export async function execUnlock(wallet: Wallet, args: any[]) {

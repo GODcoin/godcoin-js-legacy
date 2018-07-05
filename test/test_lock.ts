@@ -1,5 +1,5 @@
-import { Lock } from '../src/lib/lock';
 import { expect } from 'chai';
+import { Lock } from '../src/lib/lock';
 
 it('should lock and unlock', async () => {
   const lock = new Lock();
@@ -26,9 +26,7 @@ it('should lock and unlock', async () => {
   }
 
   await new Promise(resolve => setImmediate(resolve));
-  for (let i = 0; i < promises.length; ++i) {
-    expect(promises[i]).to.be.true;
-  }
+  for (const prom of promises) expect(prom).to.be.true;
   // The lock flag is still set as the unlock is called separately
   expect(lock.locked).to.be.true;
   lock.unlock();

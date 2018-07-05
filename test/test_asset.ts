@@ -1,16 +1,16 @@
-import {
-  ArithmeticError,
-  AssetSymbol,
-  Asset
-} from '../src/lib/asset';
 import { AssertionError } from 'assert';
 import { expect } from 'chai';
+import {
+  ArithmeticError,
+  Asset,
+  AssetSymbol
+} from '../src/lib/asset';
 
 it('should parse valid input', () => {
   function check(asset: Asset,
-                  amount: string,
-                  decimals: number,
-                  symbol: AssetSymbol) {
+                 amount: string,
+                 decimals: number,
+                 symbol: AssetSymbol) {
     expect(asset.amount.toString()).to.eq(amount);
     expect(asset.decimals).to.eq(decimals);
     expect(asset.symbol).to.eq(symbol);
@@ -76,7 +76,6 @@ it('should correctly set precision of numbers', () => {
 
 it('should correctly perform arithmetic and format', () => {
   function check(asset: Asset, amount: string) {
-    const internAmt = amount.split(' ')[0].replace('.', '');
     expect(asset.toString()).to.eq(amount);
   }
   const a = Asset.fromString('123.456 GOLD');
@@ -123,7 +122,7 @@ it('should throw performing arithmetic on different asset types', () => {
   function check(func: (asset: Asset) => void) {
     expect(() => {
       func.call(a, b);
-    }).to.throw(AssertionError, "asset type mismatch");
+    }).to.throw(AssertionError, 'asset type mismatch');
   }
 
   check(a.add);

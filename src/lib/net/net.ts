@@ -1,9 +1,9 @@
-import { DisconnectedError, WsCloseCode } from './errors';
-import { ClientType } from './client_type';
-import { EventEmitter } from 'events';
-import * as WebSocket from 'uws';
 import * as assert from 'assert';
 import * as borc from 'borc';
+import { EventEmitter } from 'events';
+import * as WebSocket from 'uws';
+import { ClientType } from './client_type';
+import { DisconnectedError, WsCloseCode } from './errors';
 
 export abstract class Net extends EventEmitter {
 
@@ -46,6 +46,22 @@ export abstract class Net extends EventEmitter {
     super();
   }
 
+  sendEvent(event: string, data: any): Promise<void> {
+    const buf = borc.encode({
+      event,
+      ...data
+    });
+    return this.send(buf);
+  }
+
+  sendId(id: number, data: any): Promise<void> {
+    const buf = borc.encode({
+      id,
+      ...data
+    });
+    return this.send(buf);
+  }
+
   protected abstract onPing(data: any): void;
   protected abstract onError(err: any): void;
 
@@ -71,22 +87,6 @@ export abstract class Net extends EventEmitter {
     } else {
       this._ws!.close(WsCloseCode.UNSUPPORTED_DATA, 'text not supported');
     }
-  }
-
-  sendEvent(event: string, data: any): Promise<void> {
-    const buf = borc.encode({
-      event,
-      ...data
-    });
-    return this.send(buf);
-  }
-
-  sendId(id: number, data: any): Promise<void> {
-    const buf = borc.encode({
-      id,
-      ...data
-    });
-    return this.send(buf);
   }
 
   private async send(data: Buffer): Promise<void> {

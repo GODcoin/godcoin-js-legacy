@@ -1,13 +1,13 @@
+import * as assert from 'assert';
+import { EventEmitter } from 'events';
+import { Asset } from '../asset';
 import { Blockchain } from '../blockchain';
-import { SkipFlags } from '../skip_flags';
 import { GODcoin } from '../constants';
 import { PublicKey } from '../crypto';
-import { EventEmitter } from 'events';
-import { Tx, TransferTx, BondTx } from '../transactions';
 import { Indexer } from '../indexer';
-import { Asset } from '../asset';
-import * as assert from 'assert';
 import { Lock } from '../lock';
+import { SkipFlags } from '../skip_flags';
+import { BondTx, TransferTx, Tx } from '../transactions';
 
 /**
  * Transaction pool as received by peers
@@ -61,7 +61,7 @@ export class TxPool extends EventEmitter {
     return txs;
   }
 
-  async getTotalFee(addr: PublicKey): Promise<[Asset,Asset]> {
+  async getTotalFee(addr: PublicKey): Promise<[Asset, Asset]> {
     try {
       await this.lock.lock();
       return await this.blockchain.getTotalFee(addr, this.txs);
@@ -70,7 +70,7 @@ export class TxPool extends EventEmitter {
     }
   }
 
-  async getBalance(addr: PublicKey): Promise<[Asset,Asset]> {
+  async getBalance(addr: PublicKey): Promise<[Asset, Asset]> {
     try {
       await this.lock.lock();
       return await this.blockchain.getBalance(addr, this.txs);

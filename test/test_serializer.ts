@@ -1,20 +1,20 @@
-import {
-  TransferTx,
-  RewardTx,
-  TxType,
-  deserialize
-} from '../src/lib/transactions';
+import { AssertionError } from 'assert';
+import * as ByteBuffer from 'bytebuffer';
+import { expect } from 'chai';
+import * as Long from 'long';
+import { Asset } from '../src/lib/asset';
+import { Block, SignedBlock } from '../src/lib/blockchain';
+import { generateKeyPair } from '../src/lib/crypto';
 import {
   TypeDeserializer as TD,
   TypeSerializer as TS
 } from '../src/lib/serializer';
-import { Block, SignedBlock } from '../src/lib/blockchain';
-import { generateKeyPair } from '../src/lib/crypto';
-import { Asset } from '../src/lib/asset';
-import * as ByteBuffer from 'bytebuffer';
-import { AssertionError } from 'assert';
-import { expect } from 'chai';
-import * as Long from 'long';
+import {
+  deserialize,
+  RewardTx,
+  TransferTx,
+  TxType
+} from '../src/lib/transactions';
 
 it('should serialize primitives', () => {
   const buf = new ByteBuffer(ByteBuffer.DEFAULT_CAPACITY,

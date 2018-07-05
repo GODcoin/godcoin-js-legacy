@@ -4,7 +4,7 @@ import { write } from '../writer';
 export async function execGetBlockRange(wallet: Wallet, args: any[]) {
   const minHeight = Number((args[1] || '').trim());
   const maxHeight = Number((args[2] || '').trim());
-  if (minHeight === NaN || maxHeight === NaN) {
+  if (isNaN(minHeight) || isNaN(maxHeight)) {
     write('get_block_range <min_height> <max_height> - missing or invalid number for min and max heights');
     return;
   }

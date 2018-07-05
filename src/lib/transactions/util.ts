@@ -1,6 +1,6 @@
+import * as assert from 'assert';
 import { Asset, AssetSymbol } from '../asset';
 import { GODcoin } from '../constants';
-import * as assert from 'assert';
 
 export function checkAsset(name: string, amt: Asset, symbol?: AssetSymbol) {
   if (symbol) assert(amt.symbol === symbol, `${name} must be in ${symbol}`);

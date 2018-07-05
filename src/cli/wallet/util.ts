@@ -1,4 +1,4 @@
-import { ClientPeer, PublicKey, Asset, Tx, GODcoin } from '../../lib';
+import { Asset, ClientPeer, GODcoin, PublicKey, Tx } from '../../lib';
 
 export namespace Util {
   export interface TotalFee {
@@ -26,8 +26,8 @@ export namespace Util {
   }
 
   export async function findTx(client: ClientPeer,
-                                height: number,
-                                tx: Tx): Promise<TxRef|undefined> {
+                               height: number,
+                               tx: Tx): Promise<TxRef|undefined> {
     const buf = Buffer.from(tx.serialize(true).toBuffer());
     const exp = tx.data.timestamp.getTime() + GODcoin.TX_EXPIRY_TIME;
     const hex = buf.toString('hex');
@@ -40,8 +40,9 @@ export namespace Util {
         continue;
       }
       for (let i = 0; i < block.transactions.length; ++i) {
-        const tx = block.transactions[i];
-        if (hex === Buffer.from(tx.serialize(true).toBuffer()).toString('hex')) {
+        const blockTx = block.transactions[i];
+        const txBuf = Buffer.from(blockTx.serialize(true).toBuffer());
+        if (hex === txBuf.toString('hex')) {
           ref = {
             ref_block: height,
             ref_tx_pos: i

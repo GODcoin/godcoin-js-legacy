@@ -1,10 +1,10 @@
-import * as sodium from 'libsodium-wrappers';
-import { Bond } from '../transactions';
-import { PublicKey } from '../crypto';
-import { Asset } from '../asset';
 import * as assert from 'assert';
 import * as level from 'level';
+import * as sodium from 'libsodium-wrappers';
 import * as Long from 'long';
+import { Asset } from '../asset';
+import { PublicKey } from '../crypto';
+import { Bond } from '../transactions';
 
 export * from './batch';
 
@@ -25,7 +25,7 @@ export class Indexer {
     this.db = level(dbPath, {
       keyEncoding: 'binary',
       valueEncoding: 'binary'
-    }, function (err) {
+    }, err => {
       /* istanbul ignore next */
       if (err) throw err;
     });
@@ -52,6 +52,10 @@ export class Indexer {
     });
   }
 
+  async close(): Promise<void> {
+    await this.db.close();
+  }
+
   async hasTx(txBuf: Buffer): Promise<boolean> {
     const tx = await this.getProp(IndexProp.NAMESPACE_TX, txBuf);
     return tx !== undefined;
@@ -62,16 +66,6 @@ export class Indexer {
     buf.writeDoubleBE(expiry, 0, true);
     await this.setProp(IndexProp.NAMESPACE_TX, tx, buf);
     this.expireTxTimeout(tx, expiry);
-  }
-
-  private expireTxTimeout(tx: Buffer, expiry: number) {
-    setTimeout(async () => {
-      try {
-        await this.delProp(IndexProp.NAMESPACE_TX, tx);
-      } catch (e) {
-        console.log('Failed to prune TX', tx.toString('hex'), e);
-      }
-    }, expiry - Date.now()).unref();
   }
 
   async getBond(minter: PublicKey): Promise<Bond|undefined> {
@@ -92,7 +86,7 @@ export class Indexer {
     await this.setProp(IndexProp.NAMESPACE_BOND, bond.minter.buffer, val);
   }
 
-  async getBalance(key: PublicKey): Promise<[Asset,Asset]|undefined> {
+  async getBalance(key: PublicKey): Promise<[Asset, Asset]|undefined> {
     const bal = await this.getProp(IndexProp.NAMESPACE_BAL, key.buffer, {
       valueEncoding: 'json'
     });
@@ -138,6 +132,16 @@ export class Indexer {
     await this.setProp(IndexProp.NAMESPACE_MAIN, IndexProp.KEY_CURRENT_BLOCK_HEIGHT, buf);
   }
 
+  private expireTxTimeout(tx: Buffer, expiry: number) {
+    setTimeout(async () => {
+      try {
+        await this.delProp(IndexProp.NAMESPACE_TX, tx);
+      } catch (e) {
+        console.log('Failed to prune TX', tx.toString('hex'), e);
+      }
+    }, expiry - Date.now()).unref();
+  }
+
   private async getProp(ns: Buffer, prop: Buffer, opts?: any): Promise<any> {
     try {
       return await this.db.get(Buffer.concat([ns, prop]), opts);
@@ -155,9 +159,5 @@ export class Indexer {
 
   private async delProp(ns: Buffer, prop: Buffer): Promise<void> {
     await this.db.del(Buffer.concat([ns, prop]));
-  }
-
-  async close(): Promise<void> {
-    await this.db.close();
   }
 }

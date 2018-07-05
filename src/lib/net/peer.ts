@@ -1,21 +1,21 @@
-import {
-  DisconnectedError,
-  ApiErrorCode,
-  WsCloseCode,
-  ApiError,
-  check
-} from './errors';
-import { SignedBlock, Blockchain } from '../blockchain';
-import { LocalMinter, TxPool } from '../producer';
-import { PromiseLike } from '../node-util';
-import { ClientType } from './client_type';
-import * as ByteBuffer from 'bytebuffer';
-import { PublicKey } from '../crypto';
-import { EventEmitter } from 'events';
-import { Tx } from '../transactions';
-import * as rpc from './rpc_model';
 import * as borc from 'borc';
+import * as ByteBuffer from 'bytebuffer';
+import { EventEmitter } from 'events';
+import { Blockchain, SignedBlock } from '../blockchain';
+import { PublicKey } from '../crypto';
+import { PromiseLike } from '../node-util';
+import { LocalMinter, TxPool } from '../producer';
+import { Tx } from '../transactions';
+import { ClientType } from './client_type';
+import {
+  ApiError,
+  ApiErrorCode,
+  check,
+  DisconnectedError,
+  WsCloseCode
+} from './errors';
 import { Net } from './net';
+import * as rpc from './rpc_model';
 
 export interface PeerOpts {
   blockchain: Blockchain;
@@ -79,7 +79,7 @@ export class Peer extends EventEmitter {
     };
   }
 
-  async getBalance(address: string): Promise<[string,string]> {
+  async getBalance(address: string): Promise<[string, string]> {
     return (await this.invokeRpc({
       method: 'get_balance',
       address
@@ -124,6 +124,49 @@ export class Peer extends EventEmitter {
     });
   }
 
+  protected removeSubscriptions() {
+    if (this.blockHandler) {
+      this.opts.blockchain.removeListener('block', this.blockHandler);
+      this.blockHandler = undefined;
+    }
+    if (this.txHandler) {
+      this.opts.pool.removeListener('tx', this.txHandler);
+      this.txHandler = undefined;
+    }
+  }
+
+  protected addSubscriptions() {
+    if (this.txHandler || this.blockHandler) return;
+    this.txHandler = async tx => {
+      try {
+        await this.net.sendEvent('tx', {
+          tx: tx.serialize(true).toBuffer()
+        });
+      } catch (e) {
+        if (!(e instanceof DisconnectedError)) {
+          console.log(`[${this.net.nodeUrl}] Failed to push tx to client`, e);
+        }
+      }
+    };
+
+    this.blockHandler = async (block: SignedBlock) => {
+      try {
+        await this.net.sendEvent('block', {
+          block: block.fullySerialize().toBuffer()
+        });
+      } catch (e) {
+        if (!(e instanceof DisconnectedError)) {
+          console.log(`[${this.net.nodeUrl}] Failed to push block to client`, e);
+        }
+      }
+    };
+
+    setImmediate(() => {
+      this.opts.pool.on('tx', this.txHandler!);
+      this.opts.blockchain.on('block', this.blockHandler!);
+    });
+  }
+
   private async onMessage(map: any): Promise<void> {
     try {
       // Check for an event
@@ -149,9 +192,8 @@ export class Peer extends EventEmitter {
             error: e instanceof ApiError ? e.code : ApiErrorCode.MISC,
             message: e.message
           });
-        } finally {
-          return;
         }
+        return;
       }
 
       // Resolve any pending RPC request
@@ -253,49 +295,6 @@ export class Peer extends EventEmitter {
       default:
         throw new ApiError(ApiErrorCode.UNKNOWN_METHOD, 'unknown method');
     }
-  }
-
-  protected removeSubscriptions() {
-    if (this.blockHandler) {
-      this.opts.blockchain.removeListener('block', this.blockHandler);
-      this.blockHandler = undefined;
-    }
-    if (this.txHandler) {
-      this.opts.pool.removeListener('tx', this.txHandler);
-      this.txHandler = undefined;
-    }
-  }
-
-  protected addSubscriptions() {
-    if (this.txHandler || this.blockHandler) return;
-    this.txHandler = async (tx) => {
-      try {
-        await this.net.sendEvent('tx', {
-          tx: tx.serialize(true).toBuffer()
-        });
-      } catch (e) {
-        if (!(e instanceof DisconnectedError)) {
-          console.log(`[${this.net.nodeUrl}] Failed to push tx to client`, e);
-        }
-      }
-    };
-
-    this.blockHandler = async (block: SignedBlock) => {
-      try {
-        await this.net.sendEvent('block', {
-          block: block.fullySerialize().toBuffer()
-        });
-      } catch (e) {
-        if (!(e instanceof DisconnectedError)) {
-          console.log(`[${this.net.nodeUrl}] Failed to push block to client`, e);
-        }
-      }
-    };
-
-    setImmediate(() => {
-      this.opts.pool.on('tx', this.txHandler!);
-      this.opts.blockchain.on('block', this.blockHandler!);
-    });
   }
 
   private onOpen(): void {

@@ -1,8 +1,8 @@
-import { PrivateKey, KeyPair } from '../../lib';
-import * as sodium from 'libsodium-wrappers';
-import * as crypto from 'crypto';
 import * as assert from 'assert';
+import * as crypto from 'crypto';
 import * as level from 'level';
+import * as sodium from 'libsodium-wrappers';
+import { KeyPair, PrivateKey } from '../../lib';
 
 export class WalletDb {
 
@@ -10,7 +10,7 @@ export class WalletDb {
   private password!: Buffer;
 
   constructor(dbPath: string, cb: (err?: any) => void) {
-    this.db = level(dbPath, function (err, db) {
+    this.db = level(dbPath, err => {
       /* istanbul ignore next */
       if (err) return cb(err);
       cb();
@@ -81,10 +81,10 @@ export class WalletDb {
     return PrivateKey.fromWif(prop);
   }
 
-  async getAllAccounts(): Promise<[string, KeyPair][]> {
-    return new Promise<[string, KeyPair][]>(async (resolve, reject) => {
+  async getAllAccounts(): Promise<Array<[string, KeyPair]>> {
+    return new Promise<Array<[string, KeyPair]>>(async (resolve, reject) => {
       try {
-        const accs: [string, KeyPair][] = [];
+        const accs: Array<[string, KeyPair]> = [];
         const stream = this.db.createReadStream().on('data', data => {
           try {
             const key = data.key as string;
@@ -102,7 +102,7 @@ export class WalletDb {
         }).on('end', () => {
           resolve(accs);
         });
-      } catch(e) {
+      } catch (e) {
         reject(e);
       }
     });

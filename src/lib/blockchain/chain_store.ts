@@ -1,11 +1,13 @@
-import * as ByteBuffer from 'bytebuffer';
-import { SignedBlock } from './block';
-import { Indexer } from '../indexer';
-import * as crc32 from 'sse4_crc32';
+/* tslint:disable:max-classes-per-file */
+
 import * as assert from 'assert';
-import * as util from 'util';
-import * as Long from 'long';
+import * as ByteBuffer from 'bytebuffer';
 import * as fs from 'fs';
+import * as Long from 'long';
+import * as crc32 from 'sse4_crc32';
+import * as util from 'util';
+import { Indexer } from '../indexer';
+import { SignedBlock } from './block';
 
 const fsOpen = util.promisify(fs.open);
 const fsClose = util.promisify(fs.close);
@@ -16,19 +18,20 @@ const fsTruncate = util.promisify(fs.truncate);
 
 export class ChainStore {
 
-  private blockTailPos = 0;
+  readonly index: Indexer;
+  readonly dbFile: string;
 
-  private _blockHead!: SignedBlock;
   get blockHead(): SignedBlock {
     return this._blockHead;
   }
+
+  private blockTailPos = 0;
+  private _blockHead!: SignedBlock;
 
   private initialized = false;
   private dbFd?: number;
 
   private readonly blockCache = new BlockCache();
-  readonly index: Indexer;
-  readonly dbFile: string;
 
   constructor(dbFile: string, index: Indexer) {
     this.dbFile = dbFile;
@@ -142,7 +145,7 @@ export class ChainStore {
     }
   }
 
-  private async readBlock(blockPos: number): Promise<[SignedBlock,number]> {
+  private async readBlock(blockPos: number): Promise<[SignedBlock, number]> {
     const tmp = Buffer.allocUnsafe(4);
 
     // Read the length of the block

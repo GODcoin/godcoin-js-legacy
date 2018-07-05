@@ -1,6 +1,6 @@
+import * as WebSocket from 'uws';
 import { PromiseLike } from '../../node-util';
 import * as ClientType from '../client_type';
-import * as WebSocket from 'uws';
 import { Net } from '../net';
 
 export type MessageCallback = (map: any) => Promise<any>;
@@ -64,20 +64,6 @@ export class ServerNet extends Net {
     });
   }
 
-  private startPingTimer() {
-    if (this.pingTimer) return;
-    this.lastPong = Date.now();
-    this.pingTimer = setInterval(() => {
-      if (!this.isOpen) return;
-      const now = Date.now();
-      if (now - this.lastPong > 4000) {
-        this.ws!.close();
-        return;
-      }
-      this.ws!.ping();
-    }, 3000);
-  }
-
   protected onClose(code: number, msg: string) {
     super.onClose(code, msg);
     this.removeAllListeners();
@@ -91,5 +77,20 @@ export class ServerNet extends Net {
     console.log(`[${this.nodeUrl}] Unexpected error`, err);
   }
 
+  // tslint:disable-next-line:no-empty
   protected onPing(): void {}
+
+  private startPingTimer() {
+    if (this.pingTimer) return;
+    this.lastPong = Date.now();
+    this.pingTimer = setInterval(() => {
+      if (!this.isOpen) return;
+      const now = Date.now();
+      if (now - this.lastPong > 4000) {
+        this.ws!.close();
+        return;
+      }
+      this.ws!.ping();
+    }, 3000);
+  }
 }

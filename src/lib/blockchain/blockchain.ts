@@ -1,28 +1,28 @@
 /// <reference path="../../../typings/bigint.d.ts" />
 
-import {
-  deserialize,
-  checkAsset,
-  TransferTx,
-  RewardTx,
-  BondTx,
-  Tx
-} from '../transactions';
-import { Asset, AssetSymbol, EMPTY_GOLD, EMPTY_SILVER } from '../asset';
-import { Indexer, BatchIndex } from '../indexer';
-import { ChainStore } from './chain_store';
-import { SkipFlags } from '../skip_flags';
-import * as ByteBuffer from 'bytebuffer';
-import { GODcoin } from '../constants';
-import { PublicKey } from '../crypto';
-import { SignedBlock } from './block';
-import { EventEmitter } from 'events';
 import * as assert from 'assert';
-import { Lock } from '../lock';
+import * as ByteBuffer from 'bytebuffer';
+import * as del from 'del';
+import { EventEmitter } from 'events';
+import * as fs from 'fs';
 import * as Long from 'long';
 import * as path from 'path';
-import * as del from 'del';
-import * as fs from 'fs';
+import { Asset, AssetSymbol, EMPTY_GOLD, EMPTY_SILVER } from '../asset';
+import { GODcoin } from '../constants';
+import { PublicKey } from '../crypto';
+import { BatchIndex, Indexer } from '../indexer';
+import { Lock } from '../lock';
+import { SkipFlags } from '../skip_flags';
+import {
+  BondTx,
+  checkAsset,
+  deserialize,
+  RewardTx,
+  TransferTx,
+  Tx
+} from '../transactions';
+import { SignedBlock } from './block';
+import { ChainStore } from './chain_store';
 
 export * from './block';
 
@@ -32,6 +32,16 @@ export interface ValidateOpts {
 }
 
 export class Blockchain extends EventEmitter {
+
+  get networkFee() {
+    return this._networkFee;
+  }
+
+  get head() {
+    return this.store.blockHead;
+  }
+
+  readonly indexer: Indexer;
 
   private running = false;
 
@@ -45,16 +55,8 @@ export class Blockchain extends EventEmitter {
 
   private readonly batchIndex: BatchIndex;
   private readonly store: ChainStore;
-  readonly indexer: Indexer;
 
   private _networkFee!: [Asset, Asset];
-  get networkFee() {
-    return this._networkFee;
-  }
-
-  get head() {
-    return this.store.blockHead;
-  }
 
   constructor(dir: string, reindex = false) {
     super();
@@ -176,7 +178,7 @@ export class Blockchain extends EventEmitter {
             || this.genesisBlock.signature_pair.public_key.equals(m);
   }
 
-  async getTotalFee(addr: PublicKey, additionalTxs?: Tx[]): Promise<[Asset,Asset]> {
+  async getTotalFee(addr: PublicKey, additionalTxs?: Tx[]): Promise<[Asset, Asset]> {
     const addrFee = await this.getAddressFee(addr, additionalTxs);
     const netFee = this.networkFee;
     return [
@@ -185,7 +187,7 @@ export class Blockchain extends EventEmitter {
     ];
   }
 
-  async getAddressFee(addr: PublicKey, additionalTxs?: Tx[]): Promise<[Asset,Asset]> {
+  async getAddressFee(addr: PublicKey, additionalTxs?: Tx[]): Promise<[Asset, Asset]> {
     // TODO: apply indexing
     let delta = 0;
     let txCount = 1;
@@ -216,7 +218,7 @@ export class Blockchain extends EventEmitter {
     return [goldFee, silverFee];
   }
 
-  async getBalance(addr: PublicKey, additionalTxs?: Tx[]): Promise<[Asset,Asset]> {
+  async getBalance(addr: PublicKey, additionalTxs?: Tx[]): Promise<[Asset, Asset]> {
     let bal = await this.indexer.getBalance(addr);
     if (!bal) bal = [EMPTY_GOLD, EMPTY_SILVER];
     if (additionalTxs) {
@@ -245,27 +247,6 @@ export class Blockchain extends EventEmitter {
       }
     }
     return bal;
-  }
-
-  private async cacheNetworkFee(): Promise<void> {
-    this._networkFee = await this.calcNetworkFee(this.head);
-  }
-
-  private async calcNetworkFee(block: SignedBlock): Promise<[Asset, Asset]> {
-    // The network fee adjusts every 5 blocks so that users have a bigger time
-    // frame to confirm the fee they want to spend without suddenly changing.
-    const maxHeight = block.height.sub(block.height.mod(5));
-    let minHeight = maxHeight.sub(GODcoin.NETWORK_FEE_AVG_WINDOW);
-    if (minHeight.lt(0)) minHeight = Long.fromNumber(0, true);
-
-    let txCount = 1;
-    for (; minHeight.lte(maxHeight); minHeight = minHeight.add(1)) {
-      const block = (await this.getBlock(minHeight))!;
-      txCount += block.transactions.length;
-    }
-    const goldFee = GODcoin.MIN_GOLD_FEE.mul(GODcoin.NETWORK_FEE_GOLD_MULT.pow(txCount), 8);
-    const silverFee = GODcoin.MIN_SILVER_FEE.mul(GODcoin.NETWORK_FEE_SILVER_MULT.pow(txCount), 8);
-    return [goldFee, silverFee];
   }
 
   async validateBlock(block: SignedBlock,
@@ -400,5 +381,25 @@ export class Blockchain extends EventEmitter {
     }
 
     return tx;
+  }
+
+  private async cacheNetworkFee(): Promise<void> {
+    this._networkFee = await this.calcNetworkFee(this.head);
+  }
+
+  private async calcNetworkFee(block: SignedBlock): Promise<[Asset, Asset]> {
+    // The network fee adjusts every 5 blocks so that users have a bigger time
+    // frame to confirm the fee they want to spend without suddenly changing.
+    const maxHeight = block.height.sub(block.height.mod(5));
+    let minHeight = maxHeight.sub(GODcoin.NETWORK_FEE_AVG_WINDOW);
+    if (minHeight.lt(0)) minHeight = Long.fromNumber(0, true);
+
+    let txCount = 1;
+    for (; minHeight.lte(maxHeight); minHeight = minHeight.add(1)) {
+      txCount += (await this.getBlock(minHeight))!.transactions.length;
+    }
+    const goldFee = GODcoin.MIN_GOLD_FEE.mul(GODcoin.NETWORK_FEE_GOLD_MULT.pow(txCount), 8);
+    const silverFee = GODcoin.MIN_SILVER_FEE.mul(GODcoin.NETWORK_FEE_SILVER_MULT.pow(txCount), 8);
+    return [goldFee, silverFee];
   }
 }

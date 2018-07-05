@@ -3,7 +3,7 @@ import { write } from '../writer';
 
 export async function execGetBlock(wallet: Wallet, args: any[]) {
   const height = Number((args[1] || '').trim());
-  if (height === NaN) {
+  if (isNaN(height)) {
     write('get_block <height> - missing or invalid number for height');
     return;
   }

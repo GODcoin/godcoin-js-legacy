@@ -1,12 +1,12 @@
-import {
-  TypeDeserializer as TD,
-  TypeSerializer as TS,
-  ObjectType
-} from '../serializer';
-import { PrivateKey, PublicKey, SigPair } from '../crypto';
 import * as ByteBuffer from 'bytebuffer';
 import * as newDebug from 'debug';
 import { Asset } from '../asset';
+import { PrivateKey, PublicKey, SigPair } from '../crypto';
+import {
+  ObjectType,
+  TypeDeserializer as TD,
+  TypeSerializer as TS
+} from '../serializer';
 
 const debug = newDebug('godcoin:tx');
 
@@ -32,6 +32,26 @@ export abstract class Tx {
   ];
   static readonly SERIALIZER = TS.object(Tx.SERIALIZER_FIELDS);
   static readonly DESERIALIZER = TD.object(Tx.SERIALIZER_FIELDS);
+
+  private static stringify(obj: any): any {
+    if (obj instanceof Array) {
+      const arr: any[] = [];
+      for (const o of obj) arr.push(Tx.stringify(o));
+      return arr;
+    } else if (obj instanceof Asset) {
+      return obj.toString();
+    } else if (obj instanceof Buffer) {
+      return obj.toString('hex');
+    } else if (obj instanceof PublicKey) {
+      return obj.toWif();
+    } else if (obj && obj.public_key && obj.signature) {
+      return {
+        public_key: obj.public_key.toWif(),
+        signature: obj.signature.toString('hex')
+      };
+    }
+    return obj;
+  }
 
   constructor(readonly data: TxData) {
     const truncated = Math.floor(data.timestamp.getTime() / 1000) * 1000;
@@ -74,23 +94,4 @@ export abstract class Tx {
     return JSON.stringify(data, undefined, 2);
   }
 
-  private static stringify(obj: any): any {
-    if (obj instanceof Array) {
-      const arr: any[] = [];
-      for (const o of obj) arr.push(Tx.stringify(o));
-      return arr;
-    } else if (obj instanceof Asset) {
-      return obj.toString();
-    } else if (obj instanceof Buffer) {
-      return obj.toString('hex');
-    } else if (obj instanceof PublicKey) {
-      return obj.toWif();
-    } else if (obj && obj.public_key && obj.signature) {
-      return {
-        public_key: obj.public_key.toWif(),
-        signature: obj.signature.toString('hex')
-      };
-    }
-    return obj;
-  }
 }

@@ -1,20 +1,87 @@
+/* tslint:disable:max-line-length */
+
+import * as assert from 'assert';
+import * as mkdirp from 'mkdirp';
+import * as path from 'path';
+import * as readline from 'readline';
 import {
-  hookSigInt,
+  ClientNet,
+  ClientPeer,
   ClientType,
   GODcoinEnv,
-  ClientPeer,
-  ClientNet
+  hookSigInt
 } from '../../lib';
-import { WalletState } from './wallet_state';
-import * as readline from 'readline';
-import * as mkdirp from 'mkdirp';
-import * as assert from 'assert';
-import { write } from './writer';
 import * as Command from './cmd';
 import { WalletDb } from './db';
-import * as path from 'path';
+import { WalletState } from './wallet_state';
+import { write } from './writer';
 
 export class Wallet {
+
+  static parse(line: string): string[] {
+    line = line.trim();
+    const args: string[] = [];
+    let tmp = '';
+    let inQuotes = false;
+
+    loop: for (let i = 0; i < line.length; ++i) {
+      switch (line[i]) {
+        case ' ':
+          if (!inQuotes) {
+            args.push(tmp);
+            tmp = '';
+          } else {
+            tmp += ' ';
+          }
+          break;
+        case '"':
+          const prev = line[i - 1];
+          if (prev === '\\') {
+            tmp += line[i];
+            continue loop;
+          }
+          if (!inQuotes) {
+            if (prev !== ' ') throw new Error(`Unexpected " character at pos ${i}`);
+            inQuotes = true;
+          } else {
+            const cont = (++i < line.length) ? line[i] : undefined;
+            if (cont !== undefined && cont !== ' ') {
+              throw new Error(`Unexpected " character at pos ${i}`);
+            }
+            args.push(tmp);
+            tmp = '';
+            inQuotes = false;
+          }
+          break;
+        case '\\':
+          continue loop;
+        default:
+          tmp += line[i];
+      }
+    }
+    if (tmp.length) {
+      if (inQuotes) throw new Error('Expected closing " character');
+      args.push(tmp);
+      tmp = '';
+    }
+    return args;
+  }
+
+  static writeHelp(header: string, cmds: string[][]) {
+    let maxLen = 0;
+    for (const cmd of cmds) {
+      assert(cmd.length === 2);
+      const cmdLen = cmd[0].length;
+      if (cmdLen > maxLen) maxLen = cmdLen;
+    }
+
+    write(header);
+    for (const cmd of cmds) {
+      let c = cmd[0];
+      if (c.length < maxLen) c += ' '.repeat(maxLen - c.length);
+      write('  ' + c + '  ' + cmd[1]);
+    }
+  }
 
   state = WalletState.NEW;
   client: ClientPeer;
@@ -119,7 +186,7 @@ export class Wallet {
       default:
         write('Unknown command:', args[0]);
       case 'help':
-        let cmds: string[][] = [];
+        const cmds: string[][] = [];
         cmds.push(['help', 'display this help menu']);
         cmds.push(['new <password>', 'create a new wallet']);
         cmds.push(['unlock <password>', 'unlock the wallet']);
@@ -136,71 +203,6 @@ export class Wallet {
         cmds.push(['transfer <from_account> <to_address> <amount> [memo]', 'transfer funds from an account to another GODcoin public address']);
         cmds.push(['create_bond <minter_account> <staker_account> <stake_amount>', 'create a bond to become a producer in the network']);
         Wallet.writeHelp('Available commands:', cmds);
-    }
-  }
-
-  static parse(line: string): string[] {
-    line = line.trim();
-    const args: string[] = [];
-    let tmp = '';
-    let inQuotes = false;
-
-    loop: for (let i = 0; i < line.length; ++i) {
-      switch (line[i]) {
-        case ' ':
-          if (!inQuotes) {
-            args.push(tmp);
-            tmp = '';
-          } else {
-            tmp += ' ';
-          }
-          break;
-        case '"':
-          const prev = line[i - 1];
-          if (prev === '\\') {
-            tmp += line[i];
-            continue loop;
-          }
-          if (!inQuotes) {
-            if (prev !== ' ') throw new Error(`Unexpected " character at pos ${i}`);
-            inQuotes = true;
-          } else {
-            const cont = (++i < line.length) ? line[i] : undefined;
-            if (cont !== undefined && cont !== ' ') {
-              throw new Error(`Unexpected " character at pos ${i}`);
-            }
-            args.push(tmp);
-            tmp = '';
-            inQuotes = false;
-          }
-          break;
-        case '\\':
-          continue loop;
-        default:
-          tmp += line[i];
-      }
-    }
-    if (tmp.length) {
-      if (inQuotes) throw new Error('Expected closing " character');
-      args.push(tmp);
-      tmp = '';
-    }
-    return args;
-  }
-
-  static writeHelp(header: string, cmds: string[][]) {
-    let maxLen = 0;
-    for (const cmd of cmds) {
-      assert(cmd.length === 2);
-      const cmdLen = cmd[0].length;
-      if (cmdLen > maxLen) maxLen = cmdLen;
-    }
-
-    write(header);
-    for (const cmd of cmds) {
-      let c = cmd[0];
-      if (c.length < maxLen) c += ' '.repeat(maxLen - c.length);
-      write('  ' + c + '  ' + cmd[1]);
     }
   }
 }

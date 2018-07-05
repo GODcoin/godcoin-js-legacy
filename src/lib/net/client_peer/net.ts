@@ -1,8 +1,8 @@
+import * as assert from 'assert';
+import * as WebSocket from 'uws';
+import { Lock } from '../../lock';
 import { PromiseLike } from '../../node-util';
 import { WsCloseCode } from '../errors';
-import { Lock } from '../../lock';
-import * as WebSocket from 'uws';
-import * as assert from 'assert';
 import { Net } from '../net';
 
 export class ClientNet extends Net {
@@ -50,48 +50,6 @@ export class ClientNet extends Net {
     await this.openLock.lock();
     if (this.ws) this.ws.close();
     this.openLock.unlock();
-  }
-
-  private async open(): Promise<void> {
-    return new Promise<void>(async (resolve, reject) => {
-      if (!this.running) return;
-
-      await this.openLock.lock();
-      if (this.ws && (this.ws.readyState === WebSocket.OPEN
-                      || this.ws.readyState === WebSocket.CONNECTING)) {
-        this.openLock.unlock();
-        return resolve();
-      }
-
-      this.ws = new WebSocket(this.nodeUrl);
-      this.openPromise = { resolve, reject };
-    });
-  }
-
-  private async startOpenTimer(tries = 1): Promise<boolean> {
-    return new Promise<boolean>(resolve => {
-      if (this.openTimer) clearTimeout(this.openTimer);
-      this.openTimer = setTimeout(async () => {
-        try {
-          await this.open();
-          resolve(true);
-        } catch (e) {
-          console.log(`[${this.nodeUrl}] Failed to connect to peer`, e);
-          resolve(false);
-          if (this.running) this.startOpenTimer(++tries);
-        }
-      }, tries === 0 ? 0 : Math.min(10000, Math.floor(Math.pow(2, tries) * 700 * Math.random())));
-    });
-  }
-
-  private startPingTimer() {
-    if (this.pingTimer) return;
-    this.pingTimer = setInterval(() => {
-      const now = Date.now();
-      if (now - this.lastPing > 4000 && this.isOpen) {
-        this.ws!.close();
-      }
-    }, 4000);
   }
 
   protected async onOpen() {
@@ -168,5 +126,47 @@ export class ClientNet extends Net {
     this.openLock.unlock();
     this.openPromise.reject(err);
     this.openPromise = undefined;
+  }
+
+  private async open(): Promise<void> {
+    return new Promise<void>(async (resolve, reject) => {
+      if (!this.running) return;
+
+      await this.openLock.lock();
+      if (this.ws && (this.ws.readyState === WebSocket.OPEN
+                      || this.ws.readyState === WebSocket.CONNECTING)) {
+        this.openLock.unlock();
+        return resolve();
+      }
+
+      this.ws = new WebSocket(this.nodeUrl);
+      this.openPromise = { resolve, reject };
+    });
+  }
+
+  private async startOpenTimer(tries = 1): Promise<boolean> {
+    return new Promise<boolean>(resolve => {
+      if (this.openTimer) clearTimeout(this.openTimer);
+      this.openTimer = setTimeout(async () => {
+        try {
+          await this.open();
+          resolve(true);
+        } catch (e) {
+          console.log(`[${this.nodeUrl}] Failed to connect to peer`, e);
+          resolve(false);
+          if (this.running) this.startOpenTimer(++tries);
+        }
+      }, tries === 0 ? 0 : Math.min(10000, Math.floor(Math.pow(2, tries) * 700 * Math.random())));
+    });
+  }
+
+  private startPingTimer() {
+    if (this.pingTimer) return;
+    this.pingTimer = setInterval(() => {
+      const now = Date.now();
+      if (now - this.lastPing > 4000 && this.isOpen) {
+        this.ws!.close();
+      }
+    }, 4000);
   }
 }

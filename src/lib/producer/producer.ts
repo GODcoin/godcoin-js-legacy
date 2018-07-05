@@ -1,14 +1,14 @@
-import { Blockchain, SignedBlock } from '../blockchain';
-import { LocalMinter } from './local_minter';
-import * as sodium from 'libsodium-wrappers';
-import { Scheduler } from './scheduler';
-import { GODcoin } from '../constants';
-import { IndexProp } from '../indexer';
-import { PublicKey } from '../crypto';
-import { TxPool } from './tx_pool';
 import * as assert from 'assert';
+import * as sodium from 'libsodium-wrappers';
 import { Asset } from '../asset';
+import { Blockchain, SignedBlock } from '../blockchain';
+import { GODcoin } from '../constants';
+import { PublicKey } from '../crypto';
+import { IndexProp } from '../indexer';
 import { Lock } from '../lock';
+import { LocalMinter } from './local_minter';
+import { Scheduler } from './scheduler';
+import { TxPool } from './tx_pool';
 
 export class Producer {
 

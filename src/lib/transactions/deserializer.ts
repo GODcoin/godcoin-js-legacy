@@ -1,12 +1,12 @@
+import * as assert from 'assert';
 import {
   TypeDeserializer as TD,
   TypeSerializer as TS
 } from '../serializer';
-import { Tx, TxType, TxData } from './transaction';
-import { TransferTx } from './transfer';
-import { RewardTx } from './reward';
-import * as assert from 'assert';
 import { BondTx } from './bond';
+import { RewardTx } from './reward';
+import { Tx, TxData, TxType } from './transaction';
+import { TransferTx } from './transfer';
 
 export function deserialize<T extends Tx>(buf: ByteBuffer, includeSigs = true): T {
   const txData = deserializePartial(buf, includeSigs);

@@ -1,20 +1,20 @@
-import {
-  SignedBlock,
-  Blockchain,
-  Block,
-} from '../src/lib/blockchain';
-import { TxType, RewardTx, TransferTx } from '../src/lib/transactions';
-import { generateKeyPair, KeyPair } from '../src/lib/crypto';
-import { Asset, AssetSymbol } from '../src/lib/asset';
-import { SkipFlags } from '../src/lib/skip_flags';
-import { TxPool } from '../src/lib/producer';
 import { AssertionError } from 'assert';
 import { expect } from 'chai';
-import * as path from 'path';
-import * as Long from 'long';
 import * as del from 'del';
-import * as os from 'os';
 import * as fs from 'fs';
+import * as Long from 'long';
+import * as os from 'os';
+import * as path from 'path';
+import { Asset, AssetSymbol } from '../src/lib/asset';
+import {
+  Block,
+  Blockchain,
+  SignedBlock,
+} from '../src/lib/blockchain';
+import { generateKeyPair, KeyPair } from '../src/lib/crypto';
+import { TxPool } from '../src/lib/producer';
+import { SkipFlags } from '../src/lib/skip_flags';
+import { RewardTx, TransferTx, TxType } from '../src/lib/transactions';
 
 let genesisKeys: KeyPair;
 let testDir: string;
@@ -85,8 +85,8 @@ it('should read any previous block', async () => {
     if (i === 5) block = b;
     await chain.addBlock(b);
   }
-  const b = await chain.getBlock(5);
-  expect(b).to.eql(block);
+  const bl = await chain.getBlock(5);
+  expect(bl).to.eql(block);
 });
 
 it('should fail previous hash validation', async () => {

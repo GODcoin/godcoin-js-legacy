@@ -1,17 +1,19 @@
-import {
-  TypeDeserializer as TD,
-  TypeSerializer as TS,
-  ObjectType
-} from '../serializer';
+/* tslint:disable:max-classes-per-file */
+
+import * as assert from 'assert';
+import * as ByteBuffer from 'bytebuffer';
+import * as Long from 'long';
 import {
   doubleSha256,
   KeyPair,
   SigPair
 } from '../crypto';
-import { Tx, deserialize } from '../transactions';
-import * as ByteBuffer from 'bytebuffer';
-import * as assert from 'assert';
-import * as Long from 'long';
+import {
+  ObjectType,
+  TypeDeserializer as TD,
+  TypeSerializer as TS
+} from '../serializer';
+import { deserialize, Tx } from '../transactions';
 
 export interface BlockOpts {
   height: Long;
@@ -35,6 +37,15 @@ export class Block implements BlockOpts {
   ];
   static readonly SERIALIZER = TS.object(Block.SERIALIZER_FIELDS);
   static readonly DESERIALIZER = TD.object(Block.SERIALIZER_FIELDS);
+
+  static create(prevBlock: SignedBlock, tx: Tx[]): Block {
+    return new Block({
+      height: prevBlock.height.add(1),
+      previous_hash: prevBlock.getHash(),
+      timestamp: new Date(),
+      transactions: tx
+    });
+  }
 
   readonly height: Long;
   readonly previous_hash: Buffer;
@@ -67,17 +78,6 @@ export class Block implements BlockOpts {
     });
   }
 
-  serialize(): Buffer {
-    return Buffer.from(this.rawSerialize().flip().toBuffer());
-  }
-
-  protected rawSerialize(): ByteBuffer {
-    const buf = ByteBuffer.allocate(ByteBuffer.DEFAULT_CAPACITY,
-                                    ByteBuffer.BIG_ENDIAN);
-    Block.SERIALIZER(buf, this);
-    return buf;
-  }
-
   getMerkleRoot(): Buffer {
     const buf = ByteBuffer.allocate(ByteBuffer.DEFAULT_CAPACITY,
                                     ByteBuffer.BIG_ENDIAN);
@@ -89,13 +89,15 @@ export class Block implements BlockOpts {
     return doubleSha256(Buffer.from(buf.flip().toBuffer()));
   }
 
-  static create(prevBlock: SignedBlock, tx: Tx[]): Block {
-    return new Block({
-      height: prevBlock.height.add(1),
-      previous_hash: prevBlock.getHash(),
-      timestamp: new Date(),
-      transactions: tx
-    });
+  serialize(): Buffer {
+    return Buffer.from(this.rawSerialize().flip().toBuffer());
+  }
+
+  protected rawSerialize(): ByteBuffer {
+    const buf = ByteBuffer.allocate(ByteBuffer.DEFAULT_CAPACITY,
+                                    ByteBuffer.BIG_ENDIAN);
+    Block.SERIALIZER(buf, this);
+    return buf;
   }
 }
 
@@ -106,6 +108,19 @@ export class SignedBlock extends Block implements SignedBlockOpts {
   ];
   static readonly SERIALIZER = TS.object(SignedBlock.SERIALIZER_FIELDS);
   static readonly DESERIALIZER = TD.object(SignedBlock.SERIALIZER_FIELDS);
+
+  static fullyDeserialize(buf: ByteBuffer, includeTx = true): SignedBlock {
+    const data = Block.DESERIALIZER(buf);
+    Object.assign(data, SignedBlock.DESERIALIZER(buf));
+    if (includeTx) {
+      data.transactions = [];
+      const len = buf.readUint32();
+      for (let i = 0; i < len; ++i) {
+        data.transactions.push(deserialize(buf, true));
+      }
+    }
+    return new SignedBlock(data);
+  }
 
   readonly signature_pair: SigPair;
 
@@ -141,18 +156,5 @@ export class SignedBlock extends Block implements SignedBlockOpts {
         signature: this.signature_pair.signature.toString('hex')
       }
     }, undefined, 2);
-  }
-
-  static fullyDeserialize(buf: ByteBuffer, includeTx = true): SignedBlock {
-    const data = Block.DESERIALIZER(buf);
-    Object.assign(data, SignedBlock.DESERIALIZER(buf));
-    if (includeTx) {
-      data.transactions = [];
-      const len = buf.readUint32();
-      for (let i = 0; i < len; ++i) {
-        data.transactions.push(deserialize(buf, true));
-      }
-    }
-    return new SignedBlock(data);
   }
 }
