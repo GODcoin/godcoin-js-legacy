@@ -10,7 +10,8 @@
     "prepare": "yarn run build",
     "build": "gulp build",
     "test": "cross-env NODE_ENV=TEST nyc mocha -r ts-node/register test/index.ts",
-    "benchmark": "ts-node bench/index.ts"
+    "benchmark": "ts-node bench/index.ts",
+    "lint": "tslint --project . --fix"
   },
   "files": [
     "tsconfig.json",
