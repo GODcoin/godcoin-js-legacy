@@ -17,7 +17,7 @@ export interface DaemonOpts {
   port: number;
 }
 
-export class Daemon {
+export class Node {
 
   readonly blockchain: Blockchain;
   readonly peerPool: ClientPeerPool;

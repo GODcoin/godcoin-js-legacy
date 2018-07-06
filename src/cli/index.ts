@@ -2,17 +2,17 @@ import * as fs from 'fs';
 import * as sodium from 'libsodium-wrappers';
 import * as yargs from 'yargs';
 import {
-  Daemon,
   generateKeyPair,
   GODcoinEnv,
   hookSigInt,
+  Node,
   PrivateKey
 } from '../lib';
 import { Wallet } from './wallet';
 
 function startDaemon(argv: any): void {
   const wif = argv['minter-wif'];
-  const daemon = new Daemon({
+  const daemon = new Node({
     signingKeys: wif ? PrivateKey.fromWif(wif) : undefined as any,
     reindex: argv.reindex,
     peers: argv.peers,
