@@ -1,5 +1,4 @@
 import * as ByteBuffer from 'bytebuffer';
-import * as newDebug from 'debug';
 import { Asset } from '../asset';
 import { PrivateKey, PublicKey, SigPair } from '../crypto';
 import {
@@ -7,8 +6,6 @@ import {
   TypeDeserializer as TD,
   TypeSerializer as TS
 } from '../serializer';
-
-const debug = newDebug('godcoin:tx');
 
 export enum TxType {
   REWARD = 0,
@@ -62,8 +59,6 @@ export abstract class Tx {
 
   sign(key: PrivateKey): SigPair {
     const buf = this.serialize(false);
-    /* istanbul ignore if */
-    if (debug.enabled) debug('Signing TX\nTX: %o\nHex: %s', this, buf.toHex());
     return key.sign(buf.toBuffer());
   }
 
