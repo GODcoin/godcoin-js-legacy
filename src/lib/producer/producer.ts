@@ -120,11 +120,17 @@ export class Producer {
     if (this.timer) clearTimeout(this.timer);
     const head = this.blockchain.head;
     const next = head.timestamp.getTime() + GODcoin.BLOCK_PROD_TIME;
-    const schedule = Math.min(Math.max(next - Date.now(), 0), GODcoin.BLOCK_PROD_TIME);
+    let schedule: number;
+    if (forceLaterSchedule) {
+      schedule = GODcoin.BLOCK_PROD_TIME;
+    } else {
+      const lowerBound = Math.max(next - Date.now(), 0);
+      schedule = Math.min(lowerBound, GODcoin.BLOCK_PROD_TIME);
+    }
 
     this.timer = setTimeout(async () => {
       await this.tryProducingBlock();
-    }, !forceLaterSchedule ? schedule : GODcoin.BLOCK_PROD_TIME);
+    }, schedule);
   }
 
   private startMissedBlockTimer(minter: PublicKey, height: Long) {
