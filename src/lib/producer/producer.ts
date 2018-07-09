@@ -1,4 +1,5 @@
 import * as assert from 'assert';
+import * as newDebug from 'debug';
 import * as sodium from 'libsodium-wrappers';
 import { Asset } from '../asset';
 import { Blockchain, SignedBlock } from '../blockchain';
@@ -9,6 +10,8 @@ import { Lock } from '../lock';
 import { LocalMinter } from './local_minter';
 import { Scheduler } from './scheduler';
 import { TxPool } from './tx_pool';
+
+const debug = newDebug('godcoin:producer');
 
 export class Producer {
 
@@ -84,23 +87,29 @@ export class Producer {
     }
   }
 
-  async onBlock(block: SignedBlock): Promise<void> {
-    if (!this._running) return;
+  async onBlock(block: SignedBlock): Promise<boolean> {
+    if (!this._running) return false;
     await this.lock.lock();
     try {
       const head = this.blockchain.head;
       const bond = this.scheduler.nextMinter(head, this.missed);
       const signer = block.signature_pair.public_key;
       if (!bond.minter.equals(signer)) {
-        console.log('Unexpected minter, dropped block from', signer.toWif());
-        return;
+        console.log(`[rejected block ${block.height.toString()}] \
+Unexpected minter, dropped block from ${signer.toWif()}`);
+        return false;
       }
 
       {
         const delta = block.timestamp.getTime() - head.timestamp.getTime();
         if (delta < GODcoin.BLOCK_PROD_TIME) {
-          console.log('Attempted to produce blocks too quickly from', signer.toWif());
-          return;
+          console.log(`[rejected block ${block.height.toString()}] Attempted \
+to produce blocks too quickly from ${signer.toWif()}`);
+          debug('head timestamp: %s, block timestamp %s, delta %j',
+                  head.timestamp.toISOString(),
+                  block.timestamp.toISOString(),
+                  delta);
+          return false;
         }
       }
 
@@ -110,8 +119,10 @@ export class Producer {
       this.txPool.popAll();
       this.missed = 0;
       this.startTimer();
+      return true;
     } catch (e) {
       console.log('Failed to handle incoming new block', e);
+      return false;
     } finally {
       this.lock.unlock();
     }
