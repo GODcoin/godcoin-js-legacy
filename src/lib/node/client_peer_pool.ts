@@ -10,7 +10,6 @@ import {
   EndOfClients,
   PeerOpts
 } from '../net';
-import { Synchronizer } from './synchronizer';
 
 export class ClientPeerPool extends EventEmitter {
 
@@ -49,11 +48,11 @@ export class ClientPeerPool extends EventEmitter {
     for (const client of this.clients) await client.stop();
   }
 
-  subscribeTx(sync: Synchronizer) {
+  subscribeTx(cb: (tx: Buffer) => Promise<void>) {
     for (const client of this.clients) {
-      client.on('net_event_tx', (data: any) => {
+      client.on('net_event_tx', async (data: any) => {
         try {
-          if (data.tx) sync.handleTx(Buffer.from(data.tx));
+          if (data.tx) cb(Buffer.from(data.tx));
         } catch (e) {
           console.log(`[${client.net.nodeUrl}] Failed to handle transaction`, e);
         }
@@ -61,12 +60,15 @@ export class ClientPeerPool extends EventEmitter {
     }
   }
 
-  subscribeBlock(sync: Synchronizer) {
+  subscribeBlock(cb: (b: SignedBlock) => Promise<void>) {
     for (const client of this.clients) {
       client.on('net_event_block', async (data: any) => {
         try {
-          const block = SignedBlock.fullyDeserialize(ByteBuffer.wrap(data.block));
-          await sync.handleBlock(block);
+          if (data.block) {
+            const byteBuf = ByteBuffer.wrap(data.block);
+            const block = SignedBlock.fullyDeserialize(byteBuf);
+            await cb(block);
+          }
         } catch (e) {
           console.log(`[${client.net.nodeUrl}] Failed to deserialize block`, e);
         }

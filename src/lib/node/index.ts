@@ -71,8 +71,8 @@ export class Node {
           }, peer);
         }
         await this.peerPool.start();
-        this.peerPool.subscribeBlock(this.sync);
-        this.peerPool.subscribeTx(this.sync);
+        this.peerPool.subscribeBlock(this.sync.handleBlock.bind(this.sync));
+        this.peerPool.subscribeTx(this.sync.handleTx.bind(this.sync));
       }
 
       await this.sync.start();
