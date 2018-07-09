@@ -59,7 +59,7 @@ export class Synchronizer {
     try {
       const height = block.height.toString();
       const len = block.transactions.length;
-      if (block.height.gt(this.blockchain.head.height)) {
+      if (block.height.gt(this.blockchain.head.height) && this.producer.running) {
         await this.producer.onBlock(block);
         console.log(`Received block at height ${height} with ${len} transaction${len === 1 ? '' : 's'}`);
       }

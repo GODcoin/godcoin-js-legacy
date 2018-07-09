@@ -15,11 +15,13 @@ export class Producer {
   readonly scheduler = new Scheduler();
 
   private readonly lock = new Lock();
-  private running = false;
+  private _running = false;
   private initd = false;
 
   private timer?: NodeJS.Timer;
   private missed = 0;
+
+  get running() { return this._running; }
 
   constructor(readonly blockchain: Blockchain,
               public txPool: TxPool,
@@ -29,8 +31,8 @@ export class Producer {
   async start(forceLaterSchedule = false) {
     await this.lock.lock();
     try {
-      if (this.running) return;
-      this.running = true;
+      if (this._running) return;
+      this._running = true;
 
       if (!this.initd) {
         this.initd = true;
@@ -72,7 +74,7 @@ export class Producer {
   async stop() {
     await this.lock.lock();
     try {
-      this.running = false;
+      this._running = false;
       if (this.timer) {
         clearTimeout(this.timer);
         this.timer = undefined;
@@ -83,7 +85,7 @@ export class Producer {
   }
 
   async onBlock(block: SignedBlock): Promise<void> {
-    if (!this.running) return;
+    if (!this._running) return;
     await this.lock.lock();
     try {
       const head = this.blockchain.head;
@@ -116,7 +118,7 @@ export class Producer {
   }
 
   private startTimer(forceLaterSchedule = false) {
-    assert(this.running, 'producer must be running');
+    assert(this._running, 'producer must be running');
     if (this.timer) clearTimeout(this.timer);
     const head = this.blockchain.head;
     const next = head.timestamp.getTime() + GODcoin.BLOCK_PROD_TIME;
