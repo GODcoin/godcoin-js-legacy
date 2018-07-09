@@ -28,25 +28,27 @@ export class Synchronizer {
     }
     const height = this.blockchain.head.height;
     console.log('Synchronization completed at height', height.toString());
+  }
 
-    this.peerPool.on('open', async () => {
+  async resume() {
+    if (!this.running) {
+      this.running = true;
+      console.log('Resuming synchronization...');
+      await this.synchronizeChain();
+      console.log('Synchronized at height', this.blockchain.head.height.toString());
+    }
+  }
+
+  async pause() {
+    try {
+      await this.lock.lock();
       if (this.running) {
-        console.log('Resuming synchronization...');
-        await this.synchronizeChain();
-        console.log('Synchronized at height', this.blockchain.head.height.toString());
+        console.log('Node synchronization paused');
+        this.running = false;
       }
-    });
-
-    this.peerPool.on('close', async () => {
-      try {
-        await this.lock.lock();
-        if (this.running) {
-          console.log('Synchronization paused until more clients are connected in the peer pool');
-        }
-      } finally {
-        this.lock.unlock();
-      }
-    });
+    } finally {
+      this.lock.unlock();
+    }
   }
 
   async stop() {

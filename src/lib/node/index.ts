@@ -82,10 +82,15 @@ export class Node {
         this.producer.start(true).catch(e => {
           console.log('Failed to start the producer after resuming the peer pool', e);
         });
+
+        this.sync.resume().catch(e => {
+          console.log('Failed to resume the synchronizer', e);
+        });
       });
 
       this.peerPool.on('close', () => {
         if (this.server && this.server.clientCount > 0) return;
+        this.sync.pause();
         this.producer.stop().catch(e => {
           console.log('Failed to stop the producer after stopping the peer pool', e);
         });
