@@ -63,10 +63,10 @@ export class ClientPeerPool extends EventEmitter {
 
   subscribeBlock(sync: Synchronizer) {
     for (const client of this.clients) {
-      client.on('net_event_block', (data: any) => {
+      client.on('net_event_block', async (data: any) => {
         try {
           const block = SignedBlock.fullyDeserialize(ByteBuffer.wrap(data.block));
-          sync.handleBlock(block);
+          await sync.handleBlock(block);
         } catch (e) {
           console.log(`[${client.net.nodeUrl}] Failed to deserialize block`, e);
         }

@@ -62,11 +62,11 @@ export class Server {
         }, net);
         try {
           await peer.init();
-          peer.on('net_event_block', (data: any) => {
+          peer.on('net_event_block', async (data: any) => {
             try {
               if (data.block) {
                 const block = SignedBlock.fullyDeserialize(ByteBuffer.wrap(data.block));
-                sync.handleBlock(block);
+                await sync.handleBlock(block);
               }
             } catch (e) {
               console.log(`[${net.nodeUrl}] Failed to deserialize block`, e);
