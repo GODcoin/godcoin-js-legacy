@@ -1,11 +1,8 @@
 import * as assert from 'assert';
 import * as newDebug from 'debug';
-import * as sodium from 'libsodium-wrappers';
-import { Asset } from '../asset';
 import { Blockchain, SignedBlock } from '../blockchain';
 import { GODcoin } from '../constants';
 import { PublicKey } from '../crypto';
-import { IndexProp } from '../indexer';
 import { Lock } from '../lock';
 import { LocalMinter } from './local_minter';
 import { Scheduler } from './scheduler';
@@ -39,33 +36,7 @@ export class Producer {
 
       if (!this.initd) {
         this.initd = true;
-        await new Promise((resolve, reject) => {
-          this.blockchain.indexer.db.createReadStream({
-            gte: IndexProp.NAMESPACE_BOND,
-            lt: Buffer.from([IndexProp.NAMESPACE_BOND[0] + 1])
-          }).on('data', data => {
-            try {
-              const key = data.key as Buffer;
-              const value = data.value as Buffer;
-
-              const minter = new PublicKey(key.slice(IndexProp.NAMESPACE_BOND.length));
-              const staker = new PublicKey(value.slice(0, sodium.crypto_sign_PUBLICKEYBYTES));
-              const amt = Asset.fromString(value.slice(sodium.crypto_sign_PUBLICKEYBYTES).toString('utf8'));
-              this.scheduler.addBond({
-                minter,
-                staker,
-                stake_amt: amt
-              });
-              console.log('Registered bond from minter:', minter.toWif());
-            } catch (e) {
-              console.log('Failed to register bond', e);
-            }
-          }).on('end', () => {
-            resolve();
-          }).on('error', err => {
-            reject(err);
-          });
-        });
+        await this.scheduler.initialize(this.blockchain.indexer);
       }
 
       this.startTimer(forceLaterSchedule);
