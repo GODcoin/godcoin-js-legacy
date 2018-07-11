@@ -1,7 +1,5 @@
-import * as assert from 'assert';
 import * as newDebug from 'debug';
 import { Asset } from '../asset';
-import { GODcoin } from '../constants';
 import { PublicKey, SigPair } from '../crypto';
 import { Deserializer, ObjectDeserializer, Serializer } from './index';
 import { ObjectType } from './object_type';
@@ -50,7 +48,6 @@ export class TypeDeserializer {
 
   static asset(buf: ByteBuffer): Asset {
     const asset = TypeDeserializer.string(buf) as string;
-    assert(asset.length <= GODcoin.MAX_ASSET_STR_LEN, 'asset string is too large');
     return Asset.fromString(asset);
   }
 

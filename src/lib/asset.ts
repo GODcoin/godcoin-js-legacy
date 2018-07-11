@@ -1,3 +1,5 @@
+/// <reference path="../../typings/bigint.d.ts" />
+
 import * as assert from 'assert';
 
 export const enum AssetSymbol {
@@ -7,9 +9,12 @@ export const enum AssetSymbol {
 
 export class Asset {
 
+  static readonly MAX_ASSET_STR_LEN = 32;
+  static readonly MAX_PRECISION = 8;
+
   static fromString(str: string): Asset {
-    assert(str.length <= 32, 'asset string is too big');
-    const split = str.trim().split(' ');
+    assert(str.length <= Asset.MAX_ASSET_STR_LEN, 'asset string is too big');
+    const split = str.split(' ');
     assert.strictEqual(split.length, 2, 'invalid asset format');
     assert(/^-?[0-9]*\.?[0-9]+\.?$/.test(split[0]), 'asset amount must be a valid number');
     assert(split[1] === AssetSymbol.GOLD || split[1] === AssetSymbol.SILVER,
@@ -29,7 +34,9 @@ export class Asset {
 
   constructor(readonly amount: BigInt,
               readonly decimals: number,
-              readonly symbol: AssetSymbol) {}
+              readonly symbol: AssetSymbol) {
+    assert(decimals <= Asset.MAX_PRECISION);
+  }
 
   add(other: Asset): Asset {
     assert.strictEqual(this.symbol, other.symbol, 'asset type mismatch');

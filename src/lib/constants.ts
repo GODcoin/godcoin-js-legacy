@@ -33,7 +33,4 @@ export namespace GODcoin {
 
   export const BLOCK_PROD_TIME = 3000;
   export const TX_EXPIRY_TIME = 60000;
-
-  export const MAX_PRECISION = 8;
-  export const MAX_ASSET_STR_LEN = 32;
 }

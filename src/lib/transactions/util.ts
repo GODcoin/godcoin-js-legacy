@@ -1,8 +1,7 @@
 import * as assert from 'assert';
 import { Asset, AssetSymbol } from '../asset';
-import { GODcoin } from '../constants';
 
 export function checkAsset(name: string, amt: Asset, symbol?: AssetSymbol) {
   if (symbol) assert(amt.symbol === symbol, `${name} must be in ${symbol}`);
-  assert(amt.decimals <= GODcoin.MAX_PRECISION, `${name} can have a maximum of ${GODcoin.MAX_PRECISION} decimals`);
+  assert(amt.decimals <= Asset.MAX_PRECISION, `${name} can have a maximum of ${Asset.MAX_PRECISION} decimals`);
 }

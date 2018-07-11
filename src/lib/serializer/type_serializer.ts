@@ -55,7 +55,7 @@ export class TypeSerializer {
 
   static asset(buf: ByteBuffer, value: Asset) {
     const str = value.toString();
-    assert(value.decimals <= GODcoin.MAX_ASSET_STR_LEN);
+    assert(str.length <= Asset.MAX_ASSET_STR_LEN);
     TypeSerializer.string(buf, str);
   }
 

@@ -83,8 +83,8 @@ it('should correctly perform arithmetic and format', () => {
   check(a.add(Asset.fromString('-2.0 GOLD')), '121.456 GOLD');
   check(a.sub(Asset.fromString('2.0 GOLD')), '121.456 GOLD');
   check(a.sub(Asset.fromString('-2.0 GOLD')), '125.456 GOLD');
-  check(a.mul(Asset.fromString('100000.11111111 GOLD')), '12345613.7173331961600000 GOLD');
-  check(a.mul(Asset.fromString('-100000.11111111 GOLD')), '-12345613.7173331961600000 GOLD');
+  check(a.mul(Asset.fromString('100000.11111111 GOLD'), 8), '12345613.71733319 GOLD');
+  check(a.mul(Asset.fromString('-100000.11111111 GOLD'), 8), '-12345613.71733319 GOLD');
   check(a.div(Asset.fromString('23 GOLD')), '5.367 GOLD');
   check(a.div(Asset.fromString('-23 GOLD'), 8), '-5.36765217 GOLD');
   check(a.pow(2), '15241.383 GOLD');
