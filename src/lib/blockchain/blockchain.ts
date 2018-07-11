@@ -213,8 +213,8 @@ export class Blockchain extends EventEmitter {
       else if (i.eq(0)) break;
     }
 
-    const goldFee = GODcoin.MIN_GOLD_FEE.mul(GODcoin.GOLD_FEE_MULT.pow(txCount), 8);
-    const silverFee = GODcoin.MIN_SILVER_FEE.mul(GODcoin.SILVER_FEE_MULT.pow(txCount), 8);
+    const goldFee = GODcoin.MIN_GOLD_FEE.mul(GODcoin.GOLD_FEE_MULT.pow(txCount), Asset.MAX_PRECISION);
+    const silverFee = GODcoin.MIN_SILVER_FEE.mul(GODcoin.SILVER_FEE_MULT.pow(txCount), Asset.MAX_PRECISION);
     return [goldFee, silverFee];
   }
 
@@ -398,8 +398,8 @@ export class Blockchain extends EventEmitter {
     for (; minHeight.lte(maxHeight); minHeight = minHeight.add(1)) {
       txCount += (await this.getBlock(minHeight))!.transactions.length;
     }
-    const goldFee = GODcoin.MIN_GOLD_FEE.mul(GODcoin.NETWORK_FEE_GOLD_MULT.pow(txCount), 8);
-    const silverFee = GODcoin.MIN_SILVER_FEE.mul(GODcoin.NETWORK_FEE_SILVER_MULT.pow(txCount), 8);
+    const goldFee = GODcoin.MIN_GOLD_FEE.mul(GODcoin.NETWORK_FEE_GOLD_MULT.pow(txCount), Asset.MAX_PRECISION);
+    const silverFee = GODcoin.MIN_SILVER_FEE.mul(GODcoin.NETWORK_FEE_SILVER_MULT.pow(txCount), Asset.MAX_PRECISION);
     return [goldFee, silverFee];
   }
 }
