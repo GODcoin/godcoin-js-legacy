@@ -86,9 +86,7 @@ to produce blocks too quickly from ${signer.toWif()}`);
 
       if (this.timer) clearTimeout(this.timer);
       await this.blockchain.addBlock(block);
-      // TODO: scan for left over transactions
-      this.txPool.popAll();
-      this.missed = 0;
+      await this.postProduction();
       this.startTimer();
       return true;
     } catch (e) {
@@ -112,6 +110,7 @@ to produce blocks too quickly from ${signer.toWif()}`);
       schedule = Math.min(lowerBound, GODcoin.BLOCK_PROD_TIME);
     }
 
+    debug('attempting to produce a block in %jms', schedule);
     this.timer = setTimeout(async () => {
       await this.tryProducingBlock();
     }, schedule);
@@ -123,6 +122,7 @@ to produce blocks too quickly from ${signer.toWif()}`);
       if (this.blockchain.head.height.neq(height)) {
         console.log(`Minter (${minter.toWif()}) missed block`);
         ++this.missed;
+        debug('current missed counter is at %j', this.missed);
         this.tryProducingBlock();
       }
       this.lock.unlock();
@@ -136,6 +136,7 @@ to produce blocks too quickly from ${signer.toWif()}`);
     try {
       if (this.minter && bond.minter.equals(this.minter.keys.publicKey)) {
         await this.minter.produceBlock();
+        await this.postProduction();
         this.startTimer();
       } else {
         this.startMissedBlockTimer(bond.minter, head.height.add(1));
@@ -146,5 +147,11 @@ to produce blocks too quickly from ${signer.toWif()}`);
     } finally {
       this.lock.unlock();
     }
+  }
+
+  private async postProduction() {
+    // TODO: scan for left over transactions
+    await this.txPool.popAll();
+    this.missed = 0;
   }
 }

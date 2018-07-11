@@ -62,10 +62,10 @@ export class TypeDeserializer {
         const ds = f[1].name;
         if (ds === 'array') {
           const s = (f[1] as any).serializer;
-          debug('Deserializing key %s (type: %s[%s])', key, ds, s.name);
+          debug('deserializing key %s (type: %s[%s])', key, ds, s.name);
           data[key] = TypeDeserializer.array(s)(buf);
         } else {
-          debug('Deserializing key %s (type: %s)', key, ds);
+          debug('deserializing key %s (type: %s)', key, ds);
           data[key] = TypeDeserializer[ds](buf);
         }
       }

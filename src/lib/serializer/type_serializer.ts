@@ -64,12 +64,12 @@ export class TypeSerializer {
       for (const f of fields) {
         const key = f[0];
         const val = value[key];
-        debug('Serializing %s with %s', key, val);
+        debug('serializing %s with %s', key, val);
         f[1](buf, val);
         /* istanbul ignore if  */
         if (debug.enabled) {
           buf.mark();
-          debug('Updated hex', buf.flip().toHex());
+          debug('updated hex', buf.flip().toHex());
           buf.reset();
         }
       }
