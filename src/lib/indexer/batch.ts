@@ -5,7 +5,13 @@ import { Asset } from '../asset';
 import { ChainStore, SignedBlock } from '../blockchain';
 import { PublicKey } from '../crypto';
 import { Lock } from '../lock';
-import { BondTx, RewardTx, TransferTx } from '../transactions';
+import {
+  addBalAgnostic,
+  BondTx,
+  RewardTx,
+  subBalAgnostic,
+  TransferTx
+} from '../transactions';
 import { Indexer, IndexProp } from './index';
 
 export type CacheMissCallback = (key: PublicKey) => Promise<[Asset, Asset]>;
@@ -76,32 +82,21 @@ export class BatchIndex {
       if (tx instanceof TransferTx) {
         const fromBal = await this.getBal(tx.data.from);
         const toBal = await this.getBal(tx.data.to);
-        if (tx.data.amount.symbol === AssetSymbol.GOLD) {
-          fromBal[0] = fromBal[0].sub(tx.data.amount).sub(tx.data.fee);
-          toBal[0] = toBal[0].add(tx.data.amount);
-        } else if (tx.data.amount.symbol === AssetSymbol.SILVER) {
-          fromBal[1] = fromBal[1].sub(tx.data.amount).sub(tx.data.fee);
-          toBal[1] = toBal[1].add(tx.data.amount);
-        } else {
-          throw new Error('unhandled symbol: ' + tx.data.amount.symbol);
-        }
-      } else if (tx instanceof RewardTx) {
-        const toBal = await this.getBal(tx.data.to);
-        for (const reward of tx.data.rewards) {
-          if (reward.symbol === AssetSymbol.GOLD) {
-            toBal[0] = toBal[0].add(reward);
-          } else if (reward.symbol === AssetSymbol.SILVER) {
-            toBal[1] = toBal[1].add(reward);
-          } else {
-            throw new Error('unhandled symbol: ' + reward.symbol);
-          }
-        }
+        subBalAgnostic(fromBal, tx.data.amount);
+        subBalAgnostic(fromBal, tx.data.fee);
+        addBalAgnostic(toBal, tx.data.amount);
       } else if (tx instanceof BondTx) {
         const bal = await this.getBal(tx.data.staker);
-        bal[0] = bal[0].sub(tx.data.fee).sub(tx.data.bond_fee).sub(tx.data.stake_amt);
+        subBalAgnostic(bal, tx.data.fee);
+        subBalAgnostic(bal, tx.data.bond_fee);
+        subBalAgnostic(bal, tx.data.stake_amt);
+
         // Bonds don't happen often so it's safe to immediately flush without a
         // loss of performance
         await this.indexer.setBond(tx.data);
+      } else if (tx instanceof RewardTx) {
+        const toBal = await this.getBal(tx.data.to);
+        for (const reward of tx.data.rewards) addBalAgnostic(toBal, reward);
       }
     }
   }
@@ -135,7 +130,7 @@ export class BatchIndex {
   private async flushOps() {
     if (this.ops.length) {
       await new Promise<void>((res, rej) => {
-        const batch = this.indexer.db.db.batch(this.ops, err => {
+        this.indexer.db.db.batch(this.ops, err => {
           if (err) return rej(err);
           res();
         });

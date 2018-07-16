@@ -14,10 +14,12 @@ import { BatchIndex, Indexer } from '../indexer';
 import { Lock } from '../lock';
 import { SkipFlags } from '../skip_flags';
 import {
+  addBalAgnostic,
   BondTx,
   checkAsset,
   deserialize,
   RewardTx,
+  subBalAgnostic,
   TransferTx,
   Tx
 } from '../transactions';
@@ -225,24 +227,17 @@ export class Blockchain extends EventEmitter {
       for (const tx of additionalTxs) {
         if (tx instanceof TransferTx) {
           if (tx.data.from.equals(addr)) {
-            if (tx.data.amount.symbol === AssetSymbol.GOLD) {
-              bal[0] = bal[0].sub(tx.data.amount).sub(tx.data.fee);
-            } else if (tx.data.amount.symbol === AssetSymbol.SILVER) {
-              bal[1] = bal[1].sub(tx.data.amount).sub(tx.data.fee);
-            } else {
-              throw new Error('unhandled symbol: ' + tx.data.amount.symbol);
-            }
+            subBalAgnostic(bal, tx.data.amount);
+            subBalAgnostic(bal, tx.data.fee);
           } else if (tx.data.to.equals(addr)) {
-            if (tx.data.amount.symbol === AssetSymbol.GOLD) {
-              bal[0] = bal[0].add(tx.data.amount);
-            } else if (tx.data.amount.symbol === AssetSymbol.SILVER) {
-              bal[1] = bal[1].add(tx.data.amount);
-            } else {
-              throw new Error('unhandled symbol: ' + tx.data.amount.symbol);
-            }
+            addBalAgnostic(bal, tx.data.amount);
           }
         } else if (tx instanceof BondTx && tx.data.staker.equals(addr)) {
-          bal[0] = bal[0].sub(tx.data.fee).sub(tx.data.bond_fee).sub(tx.data.stake_amt);
+          subBalAgnostic(bal, tx.data.fee);
+          subBalAgnostic(bal, tx.data.bond_fee);
+          subBalAgnostic(bal, tx.data.stake_amt);
+        } else if (tx instanceof RewardTx && tx.data.to.equals(addr)) {
+          for (const reward of tx.data.rewards) addBalAgnostic(bal, reward);
         }
       }
     }
