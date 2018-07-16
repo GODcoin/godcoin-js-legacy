@@ -17,6 +17,7 @@
     "no-unused-expression": false,
 		"object-literal-sort-keys": false,
 		"quotemark": [true, "single"],
+		"radix": false,
 		"trailing-comma": "never",
 		"variable-name": [
 			true,
