@@ -5,11 +5,12 @@ const gulp = require('gulp');
 const del = require('del');
 
 const outDir = 'out';
+const tsProject = ts.createProject('tsconfig.json');
 
 gulp.task('build', () => {
   const res = gulp.src(['src/**/*.ts', 'typings/**/*.d.ts'])
                     .pipe(sourceMaps.init())
-                    .pipe(ts.createProject('tsconfig.json')())
+                    .pipe(tsProject())
                     .on('error', () => {});
 
   const js = res.js.pipe(sourceMaps.write('.', {
