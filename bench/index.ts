@@ -29,8 +29,6 @@ import { TransferTx, TxType } from '../src/lib/transactions';
   suite = new Benchmark.Suite('Crypto');
   suite.add('sign transaction', () => {
     tx.sign(keyA.privateKey);
-  }).add('verify transaction', () => {
-    tx.validate();
   }).on('start', evt => {
     console.log(evt.currentTarget.name);
   }).on('cycle', evt => {
