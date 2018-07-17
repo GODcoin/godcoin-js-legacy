@@ -119,10 +119,7 @@ export class Blockchain extends EventEmitter {
       });
       if (!this.running) return;
 
-      if (head) {
-        await batch.flush();
-        await this.indexer.setChainHeight(head.height);
-      }
+      if (head) await batch.flush();
       const end = Date.now();
       console.log(`Finished indexing in ${end - start}ms`);
     }

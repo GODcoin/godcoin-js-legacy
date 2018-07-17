@@ -77,7 +77,6 @@ export class ChainStore {
       }
     }
     assert(found, 'unable to chop at designated block height');
-    await this.index.setChainHeight(found!.height);
   }
 
   async close(): Promise<void> {
@@ -88,7 +87,7 @@ export class ChainStore {
     }
   }
 
-  async write(block: SignedBlock): Promise<void> {
+  async write(block: SignedBlock): Promise<Long> {
     if (!this._blockHead) {
       assert(block.height.eq(0), 'New db must start with genesis block');
     }
@@ -96,10 +95,7 @@ export class ChainStore {
     const serBlock = Buffer.from(block.fullySerialize(true).toBuffer());
     const blockLen = serBlock.length;
 
-    const val = Long.fromNumber(this.blockTailPos, true);
-    await this.index.setBlockPos(block.height, val);
-    await this.index.setChainHeight(block.height);
-
+    const bytePos = Long.fromNumber(this.blockTailPos, true);
     const tmp = Buffer.allocUnsafe(4);
     {
       // Write the block length
@@ -115,6 +111,8 @@ export class ChainStore {
     this._blockHead = block;
     this.blockTailPos += blockLen + 8; // blockLen + len num + checksum
     this.blockCache.push(block);
+
+    return bytePos;
   }
 
   async read(blockHeight: Long): Promise<SignedBlock|undefined> {

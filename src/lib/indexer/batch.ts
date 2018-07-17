@@ -29,6 +29,7 @@ export class BatchIndex {
 
   private ops: any[] = [];
   private map: AssetMap = {};
+  private height: Long = Long.fromNumber(0, true);
   private supply: [Asset, Asset] = [EMPTY_GOLD, EMPTY_SILVER];
 
   constructor(readonly indexer: Indexer,
@@ -40,24 +41,31 @@ export class BatchIndex {
     await this.lock.lock();
     try {
       await this.indexTransactions(block);
-      if (bytePos !== undefined) {
-        const buf = Buffer.allocUnsafe(8);
-        buf.writeInt32BE(block.height.high, 0, true);
-        buf.writeInt32BE(block.height.low, 4, true);
+      if (block.height.gt(this.height)) this.height = block.height;
 
-        const val = Long.fromNumber(bytePos, true);
+      {
+        let posLong: Long;
+        if (bytePos === undefined) {
+          posLong = await this.store.write(block);
+        } else {
+          posLong = Long.fromNumber(bytePos, true);
+        }
+
         const pos = Buffer.allocUnsafe(8);
-        pos.writeInt32BE(val.high, 0, true);
-        pos.writeInt32BE(val.low, 4, true);
+        pos.writeInt32BE(posLong.high, 0, true);
+        pos.writeInt32BE(posLong.low, 4, true);
+
+        const blkHeightBuf = Buffer.allocUnsafe(8);
+        blkHeightBuf.writeInt32BE(block.height.high, 0, true);
+        blkHeightBuf.writeInt32BE(block.height.low, 4, true);
 
         this.ops.push({
           type: 'put',
-          key: Buffer.concat([IndexProp.NAMESPACE_BLOCK, buf]),
+          key: Buffer.concat([IndexProp.NAMESPACE_BLOCK, blkHeightBuf]),
           value: pos
         });
-      } else {
-        await this.store.write(block);
       }
+
       if (this.ops.length >= 1000) await this.flushOps();
       if (block.height.mod(1000).eq(0) && process.env.NODE_ENV !== 'TEST') {
         console.log('=> Indexed block:', block.height.toString());
@@ -72,6 +80,7 @@ export class BatchIndex {
     try {
       await this.flushBalances();
       await this.flushOps();
+      await this.indexer.setChainHeight(this.height);
 
       const supply = await this.indexer.getTokenSupply();
       supply[0] = supply[0].add(this.supply[0]);
@@ -137,7 +146,7 @@ export class BatchIndex {
     });
   }
 
-  private async flushOps() {
+  private async flushOps(): Promise<void> {
     if (this.ops.length) {
       await new Promise<void>((res, rej) => {
         this.indexer.db.db.batch(this.ops, err => {
