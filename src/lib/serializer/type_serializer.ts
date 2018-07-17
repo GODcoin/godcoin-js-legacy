@@ -1,9 +1,9 @@
 import * as assert from 'assert';
 import * as ByteBuffer from 'bytebuffer';
 import * as newDebug from 'debug';
+import { Serializer } from '.';
 import { Asset } from '../asset';
 import { PublicKey, SigPair } from '../crypto';
-import { Serializer } from './index';
 import { ObjectType } from './object_type';
 
 const debug = newDebug('godcoin:serializer');

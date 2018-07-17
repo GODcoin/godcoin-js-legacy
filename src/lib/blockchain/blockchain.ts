@@ -10,7 +10,7 @@ import * as path from 'path';
 import { Asset, AssetSymbol, EMPTY_GOLD, EMPTY_SILVER } from '../asset';
 import { GODcoin } from '../constants';
 import { PublicKey } from '../crypto';
-import { BatchIndex, Indexer } from '../indexer';
+import { BlockIndexer, Indexer } from '../indexer';
 import { Lock } from '../lock';
 import { SkipFlags } from '../skip_flags';
 import {
@@ -55,7 +55,7 @@ export class Blockchain extends EventEmitter {
   private genesisBlock!: SignedBlock;
   private reindex = false;
 
-  private readonly batchIndex: BatchIndex;
+  private readonly batchIndex: BlockIndexer;
   private readonly store: ChainStore;
 
   private _networkFee!: [Asset, Asset];
@@ -145,8 +145,8 @@ export class Blockchain extends EventEmitter {
     if (this.head) await this.cacheNetworkFee();
   }
 
-  prepareBatch(): BatchIndex {
-    return new BatchIndex(this.indexer, this.store, this.getBalance.bind(this));
+  prepareBatch(): BlockIndexer {
+    return new BlockIndexer(this.indexer, this.store, this.getBalance.bind(this));
   }
 
   async addBlock(block: SignedBlock, skipFlags?: SkipFlags): Promise<void> {

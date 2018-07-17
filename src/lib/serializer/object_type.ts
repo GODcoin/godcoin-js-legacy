@@ -1,4 +1,4 @@
-import { Serializer } from './index';
+import { Serializer } from '.';
 
 export interface ObjectType {
   0: string;

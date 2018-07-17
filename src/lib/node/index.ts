@@ -2,13 +2,13 @@ import * as mkdirp from 'mkdirp';
 import * as path from 'path';
 import { Blockchain } from '../blockchain';
 import { KeyPair } from '../crypto';
-import { GODcoinEnv } from '../env';
 import { LocalMinter, Producer, TxPool } from '../producer';
 import { ClientPeerPool } from './client_peer_pool';
 import { Server } from './server';
 import { Synchronizer } from './synchronizer';
 
 export interface DaemonOpts {
+  homeDir: string;
   signingKeys: KeyPair;
   reindex: boolean;
   peers: string[];
@@ -30,7 +30,7 @@ export class Node {
   private server?: Server;
 
   constructor(readonly opts: DaemonOpts) {
-    const dir = path.join(GODcoinEnv.GODCOIN_HOME, 'blockchain', 'data');
+    const dir = path.join(opts.homeDir, 'blockchain', 'data');
     mkdirp.sync(dir);
 
     this.blockchain = new Blockchain(dir, opts.reindex);

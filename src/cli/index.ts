@@ -12,7 +12,8 @@ import { Wallet } from './wallet';
 
 function startDaemon(argv: any): void {
   const wif = argv['minter-wif'];
-  const daemon = new Node({
+  const node = new Node({
+    homeDir: GODcoinEnv.GODCOIN_HOME,
     signingKeys: wif ? PrivateKey.fromWif(wif) : undefined as any,
     reindex: argv.reindex,
     peers: argv.peers,
@@ -22,12 +23,12 @@ function startDaemon(argv: any): void {
   });
   hookSigInt(() => {
     console.log('Shutting down daemon...');
-    daemon.stop().catch(e => {
+    node.stop().catch(e => {
       console.log('Failed to stop daemon properly', e);
     });
   });
 
-  daemon.start().catch(e => {
+  node.start().catch(e => {
     console.log('Failed to start daemon', e);
   });
 }

@@ -1,7 +1,7 @@
 import * as newDebug from 'debug';
+import { Deserializer, ObjectDeserializer, Serializer } from '.';
 import { Asset } from '../asset';
 import { PublicKey, SigPair } from '../crypto';
-import { Deserializer, ObjectDeserializer, Serializer } from './index';
 import { ObjectType } from './object_type';
 
 const debug = newDebug('godcoin:serializer');

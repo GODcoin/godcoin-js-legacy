@@ -6,7 +6,7 @@ import { Asset, EMPTY_GOLD, EMPTY_SILVER } from '../asset';
 import { PublicKey } from '../crypto';
 import { Bond } from '../transactions';
 
-export * from './batch';
+export * from './block_indexer';
 
 export namespace IndexProp {
   export const NAMESPACE_MAIN = Buffer.from([0]);

@@ -1,5 +1,3 @@
-/* tslint:disable:max-classes-per-file */
-
 import * as assert from 'assert';
 import * as ByteBuffer from 'bytebuffer';
 import * as fs from 'fs';

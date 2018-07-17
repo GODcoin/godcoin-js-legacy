@@ -1,7 +1,7 @@
 import * as bs58 from 'bs58';
 import * as sodium from 'libsodium-wrappers';
-import { SigPair } from './index';
-import { KeyPair } from './index';
+import { SigPair } from '.';
+import { KeyPair } from '.';
 import { InvalidWif } from './invalid_wif';
 import { Key } from './key';
 import { PublicKey } from './public_key';
