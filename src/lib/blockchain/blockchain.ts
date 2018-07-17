@@ -7,19 +7,24 @@ import { EventEmitter } from 'events';
 import * as fs from 'fs';
 import * as Long from 'long';
 import * as path from 'path';
-import { Asset, AssetSymbol, EMPTY_GOLD, EMPTY_SILVER } from '../asset';
+import {
+  addBalAgnostic,
+  Asset,
+  AssetSymbol,
+  checkAsset,
+  EMPTY_GOLD,
+  EMPTY_SILVER,
+  subBalAgnostic
+} from '../asset';
 import { GODcoin } from '../constants';
 import { PublicKey } from '../crypto';
 import { BlockIndexer, Indexer } from '../indexer';
 import { Lock } from '../lock';
 import { SkipFlags } from '../skip_flags';
 import {
-  addBalAgnostic,
   BondTx,
-  checkAsset,
   deserialize,
   RewardTx,
-  subBalAgnostic,
   TransferTx,
   Tx
 } from '../transactions';

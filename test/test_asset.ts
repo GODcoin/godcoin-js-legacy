@@ -1,9 +1,13 @@
 import { AssertionError } from 'assert';
 import { expect } from 'chai';
 import {
+  addBalAgnostic,
   ArithmeticError,
   Asset,
-  AssetSymbol
+  AssetSymbol,
+  EMPTY_GOLD,
+  EMPTY_SILVER,
+  subBalAgnostic
 } from '../src/lib/asset';
 
 it('should parse valid input', () => {
@@ -134,4 +138,15 @@ it('should throw performing arithmetic on different asset types', () => {
   check(a.lt);
   check(a.leq);
   check(a.eq);
+});
+
+it('should throw on invalid agnostic operations', () => {
+  const set: [Asset, Asset] = [EMPTY_GOLD, EMPTY_SILVER];
+  const a = new Asset(0, 0, undefined!);
+  expect(() => {
+    addBalAgnostic(set, a);
+  }).to.throw(Error, 'unhandled symbol: undefined');
+  expect(() => {
+    subBalAgnostic(set, a);
+  }).to.throw(Error, 'unhandled symbol: undefined');
 });

@@ -1,13 +1,17 @@
 import * as Long from 'long';
-import { Asset, EMPTY_GOLD, EMPTY_SILVER } from '../asset';
+import {
+  addBalAgnostic,
+  Asset,
+  EMPTY_GOLD,
+  EMPTY_SILVER,
+  subBalAgnostic
+} from '../asset';
 import { ChainStore, SignedBlock } from '../blockchain';
 import { PublicKey } from '../crypto';
 import { Lock } from '../lock';
 import {
-  addBalAgnostic,
   BondTx,
   RewardTx,
-  subBalAgnostic,
   TransferTx
 } from '../transactions';
 import { AssetMap, BatchIndex } from './batch';
