@@ -2,7 +2,6 @@ import * as assert from 'assert';
 import * as ByteBuffer from 'bytebuffer';
 import * as newDebug from 'debug';
 import { Asset } from '../asset';
-import { GODcoin } from '../constants';
 import { PublicKey, SigPair } from '../crypto';
 import { Serializer } from './index';
 import { ObjectType } from './object_type';
