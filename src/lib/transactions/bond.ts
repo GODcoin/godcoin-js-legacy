@@ -16,7 +16,7 @@ export interface Bond {
 
 export interface BondTxData extends TxData, Bond {
   type: TxType.BOND;
-  bond_fee: Asset;
+  bond_fee: Asset; // This fee is not redistributed to minters
 }
 
 export class BondTx extends Tx {
