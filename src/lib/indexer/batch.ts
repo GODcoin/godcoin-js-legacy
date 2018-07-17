@@ -1,7 +1,6 @@
 import * as Codec from 'level-codec';
 import * as Long from 'long';
-import { AssetSymbol } from '../asset';
-import { Asset } from '../asset';
+import { Asset, EMPTY_GOLD, EMPTY_SILVER } from '../asset';
 import { ChainStore, SignedBlock } from '../blockchain';
 import { PublicKey } from '../crypto';
 import { Lock } from '../lock';
@@ -30,6 +29,7 @@ export class BatchIndex {
 
   private ops: any[] = [];
   private map: AssetMap = {};
+  private supply: [Asset, Asset] = [EMPTY_GOLD, EMPTY_SILVER];
 
   constructor(readonly indexer: Indexer,
               readonly store: ChainStore,
@@ -72,6 +72,12 @@ export class BatchIndex {
     try {
       await this.flushBalances();
       await this.flushOps();
+
+      const supply = await this.indexer.getTokenSupply();
+      supply[0] = supply[0].add(this.supply[0]);
+      supply[1] = supply[1].add(this.supply[1]);
+      await this.indexer.setTokenSupply(supply);
+      this.supply = [EMPTY_GOLD, EMPTY_SILVER];
     } finally {
       this.lock.unlock();
     }
@@ -90,13 +96,17 @@ export class BatchIndex {
         subBalAgnostic(bal, tx.data.fee);
         subBalAgnostic(bal, tx.data.bond_fee);
         subBalAgnostic(bal, tx.data.stake_amt);
+        subBalAgnostic(this.supply, tx.data.bond_fee);
 
         // Bonds don't happen often so it's safe to immediately flush without a
         // loss of performance
         await this.indexer.setBond(tx.data);
       } else if (tx instanceof RewardTx) {
         const toBal = await this.getBal(tx.data.to);
-        for (const reward of tx.data.rewards) addBalAgnostic(toBal, reward);
+        for (const reward of tx.data.rewards) {
+          addBalAgnostic(toBal, reward);
+          addBalAgnostic(this.supply, reward);
+        }
       }
     }
   }

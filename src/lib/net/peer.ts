@@ -219,8 +219,13 @@ export class Peer extends EventEmitter {
         return {};
       }
       case 'get_properties': {
+        const supply = await this.opts.blockchain.indexer.getTokenSupply();
         return {
           block_height: this.opts.blockchain.head.height.toString(),
+          supply: [
+            supply[0].toString(),
+            supply[1].toString()
+          ],
           network_fee: [
             this.opts.blockchain.networkFee[0].toString(),
             this.opts.blockchain.networkFee[1].toString()
