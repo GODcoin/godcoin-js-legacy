@@ -63,38 +63,9 @@ export class Node {
         await this.minter.createGenesisBlock();
       }
 
-      {
-        for (const peer of this.opts.peers) {
-          this.peerPool.addNode({
-            blockchain: this.blockchain,
-            pool: this.txPool
-          }, peer);
-        }
-        await this.peerPool.start();
-        this.peerPool.subscribeBlock(this.sync.handleBlock.bind(this.sync));
-        this.peerPool.subscribeTx(this.sync.handleTx.bind(this.sync));
-      }
-
+      await this.initPeerPool();
       await this.sync.start();
       await this.producer.start();
-
-      this.peerPool.on('open', () => {
-        this.producer.start(true).catch(e => {
-          console.log('Failed to start the producer after resuming the peer pool', e);
-        });
-
-        this.sync.resume().catch(e => {
-          console.log('Failed to resume the synchronizer', e);
-        });
-      });
-
-      this.peerPool.on('close', () => {
-        if (this.server && this.server.clientCount > 0) return;
-        this.sync.pause();
-        this.producer.stop().catch(e => {
-          console.log('Failed to stop the producer after stopping the peer pool', e);
-        });
-      });
 
       if (this.opts.listen) {
         this.server = new Server({
@@ -122,5 +93,35 @@ export class Node {
     }
 
     await this.blockchain.stop();
+  }
+
+  private async initPeerPool() {
+    for (const peer of this.opts.peers) {
+      this.peerPool.addNode({
+        blockchain: this.blockchain,
+        pool: this.txPool
+      }, peer);
+    }
+    await this.peerPool.start();
+    this.peerPool.subscribeBlock(this.sync.handleBlock.bind(this.sync));
+    this.peerPool.subscribeTx(this.sync.handleTx.bind(this.sync));
+
+    this.peerPool.on('open', () => {
+      this.producer.start(true).catch(e => {
+        console.log('Failed to start the producer after resuming the peer pool', e);
+      });
+
+      this.sync.resume().catch(e => {
+        console.log('Failed to resume the synchronizer', e);
+      });
+    });
+
+    this.peerPool.on('close', () => {
+      if (this.server && this.server.clientCount > 0) return;
+      this.sync.pause();
+      this.producer.stop().catch(e => {
+        console.log('Failed to stop the producer after stopping the peer pool', e);
+      });
+    });
   }
 }

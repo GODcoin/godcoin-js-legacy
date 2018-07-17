@@ -9,7 +9,7 @@ export class Scheduler {
 
   private bonds: Bond[] = [];
 
-  async initialize(indexer: Indexer) {
+  async init(indexer: Indexer) {
     await new Promise((resolve, reject) => {
       indexer.db.createReadStream({
         gte: IndexProp.NAMESPACE_BOND,

@@ -36,7 +36,7 @@ export class Producer {
 
       if (!this.initd) {
         this.initd = true;
-        await this.scheduler.initialize(this.blockchain.indexer);
+        await this.scheduler.init(this.blockchain.indexer);
       }
 
       this.startTimer(forceLaterSchedule);
