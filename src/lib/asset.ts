@@ -54,22 +54,16 @@ export class Asset {
     return new Asset(t - o, decimals, this.symbol);
   }
 
-  mul(other: Asset, precision?: number): Asset {
+  mul(other: Asset, precision: number = this.decimals): Asset {
     assert.strictEqual(this.symbol, other.symbol, 'asset type mismatch');
-    let decimals = Math.max(this.decimals, other.decimals);
+    const decimals = Math.max(this.decimals, other.decimals);
     const t = setDecimals(this.amount, this.decimals, decimals);
     const o = setDecimals(other.amount, other.decimals, decimals);
-
-    decimals *= 2;
-    let mult = t * o;
-    if (precision !== undefined) {
-      mult = setDecimals(mult, decimals, precision);
-      decimals = precision;
-    }
-    return new Asset(mult, decimals, this.symbol);
+    const mult = setDecimals(t * o, decimals * 2, precision);
+    return new Asset(mult, precision, this.symbol);
   }
 
-  div(other: Asset, precision: number = 0): Asset {
+  div(other: Asset, precision: number = this.decimals): Asset {
     assert.strictEqual(this.symbol, other.symbol, 'asset type mismatch');
     if (other.amount === BigInt(0)) throw new ArithmeticError('divide by zero');
     const decimals = Math.max(this.decimals, other.decimals, precision);
