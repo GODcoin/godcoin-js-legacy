@@ -7,7 +7,7 @@ import { ClientPeerPool } from './client_peer_pool';
 import { Server } from './server';
 import { Synchronizer } from './synchronizer';
 
-export interface DaemonOpts {
+export interface NodeOpts {
   homeDir: string;
   signingKeys: KeyPair;
   reindex: boolean;
@@ -29,7 +29,7 @@ export class Node {
   private readonly producer: Producer;
   private server?: Server;
 
-  constructor(readonly opts: DaemonOpts) {
+  constructor(readonly opts: NodeOpts) {
     const dir = path.join(opts.homeDir, 'blockchain', 'data');
     mkdirp.sync(dir);
 

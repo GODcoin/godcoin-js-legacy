@@ -10,7 +10,7 @@ import {
 } from '../lib';
 import { Wallet } from './wallet';
 
-function startDaemon(argv: any): void {
+function startNode(argv: any): void {
   const wif = argv['minter-wif'];
   const node = new Node({
     homeDir: GODcoinEnv.GODCOIN_HOME,
@@ -22,14 +22,14 @@ function startDaemon(argv: any): void {
     port: argv.port
   });
   hookSigInt(() => {
-    console.log('Shutting down daemon...');
+    console.log('Shutting down node...');
     node.stop().catch(e => {
-      console.log('Failed to stop daemon properly', e);
+      console.log('Failed to stop node properly', e);
     });
   });
 
   node.start().catch(e => {
-    console.log('Failed to start daemon', e);
+    console.log('Failed to start node', e);
   });
 }
 
@@ -68,7 +68,7 @@ function keygen(argv: any): void {
   const cmd: string|undefined = conf.$0;
   delete conf.$0;
 
-  yargs.command(cmd === 'daemon' ? ['daemon', '$0'] : ['daemon'], 'Start the full node server', () => {
+  yargs.command(cmd === 'node' ? ['node', '$0'] : ['node'], 'Start the full node server', () => {
     return yargs.option('listen', {
       boolean: true,
       default: true,
@@ -97,7 +97,7 @@ function keygen(argv: any): void {
       default: false,
       desc: 'Reindexes the blockchain log'
     });
-  }, startDaemon).command(cmd === 'wallet' ? ['wallet', '$0'] : ['wallet'], '', () => {
+  }, startNode).command(cmd === 'wallet' ? ['wallet', '$0'] : ['wallet'], '', () => {
     return yargs.option('server', {
       string: true,
       default: 'ws://127.0.0.1:7777',
