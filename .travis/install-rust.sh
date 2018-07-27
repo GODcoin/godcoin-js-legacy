@@ -10,4 +10,3 @@ else
   rustup update
   rustup default stable
 fi
-
