@@ -8,5 +8,6 @@ if [ ! -f "$HOME/.cargo/bin/rustup" ]; then
 else
   echo 'Using cached directory.'
   rustup update
+  rustup default stable
 fi
 
