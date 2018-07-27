@@ -78,10 +78,10 @@ it('should throw performing arithmetic on different asset types', () => {
     expect(func.call(a, b, 0)).to.be.undefined;
   }
 
-  checkArithmetic(a.add);
-  checkArithmetic(a.sub);
-  checkArithmetic(a.div);
-  checkArithmetic(a.mul);
+  checkArithmetic(a.add as any);
+  checkArithmetic(a.sub as any);
+  checkArithmetic(a.div as any);
+  checkArithmetic(a.mul as any);
 
   function checkComparison(func: (asset: Asset) => void) {
     expect(() => {
