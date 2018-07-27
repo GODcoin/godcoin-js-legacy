@@ -1,13 +1,13 @@
 import * as assert from 'assert';
+import { Asset, AssetSymbol } from 'godcoin-neon';
 import * as Long from 'long';
-import { Asset, AssetSymbol, EMPTY_GOLD } from '../asset';
 import { Block, Blockchain } from '../blockchain';
 import { generateKeyPair, KeyPair } from '../crypto';
 import { BondTx, RewardTx, TxType } from '../transactions';
 import { TxPool } from './tx_pool';
 
-const REWARD_GOLD = new Asset(BigInt(1), 0, AssetSymbol.GOLD);
-const REWARD_SILVER = new Asset(BigInt(100), 0, AssetSymbol.SILVER);
+const REWARD_GOLD = new Asset(1, 0, AssetSymbol.GOLD);
+const REWARD_SILVER = new Asset(100, 0, AssetSymbol.SILVER);
 
 export class LocalMinter {
 
@@ -35,14 +35,14 @@ export class LocalMinter {
           type: TxType.REWARD,
           timestamp: genesisTs,
           to: stakerKeys.publicKey,
-          fee: EMPTY_GOLD,
+          fee: Asset.EMPTY_GOLD,
           rewards: [ Asset.fromString('1 GOLD') ],
           signature_pairs: []
         }),
         new BondTx({
           type: TxType.BOND,
           timestamp: genesisTs,
-          fee: EMPTY_GOLD,
+          fee: Asset.EMPTY_GOLD,
           minter: this.keys.publicKey,
           staker: stakerKeys.publicKey,
           stake_amt: Asset.fromString('1 GOLD'),
@@ -69,7 +69,7 @@ export class LocalMinter {
           type: TxType.REWARD,
           timestamp: new Date(0),
           to: bond.staker,
-          fee: EMPTY_GOLD,
+          fee: Asset.EMPTY_GOLD,
           rewards: [ REWARD_GOLD, REWARD_SILVER ],
           signature_pairs: []
         })

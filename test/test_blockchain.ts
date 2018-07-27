@@ -2,10 +2,10 @@ import { AssertionError } from 'assert';
 import { expect } from 'chai';
 import * as del from 'del';
 import * as fs from 'fs';
+import { Asset, AssetSymbol } from 'godcoin-neon';
 import * as Long from 'long';
 import * as os from 'os';
 import * as path from 'path';
-import { Asset, AssetSymbol } from '../src/lib/asset';
 import {
   Block,
   Blockchain,
@@ -134,8 +134,8 @@ it('should fail with incorrect height', async () => {
 });
 
 it('should have correct balances in the blockchain', async () => {
-  const goldFee = new Asset(BigInt(1), 0, AssetSymbol.GOLD);
-  const silverFee = new Asset(BigInt(10), 0, AssetSymbol.SILVER);
+  const goldFee = new Asset(1, 0, AssetSymbol.GOLD);
+  const silverFee = new Asset(10, 0, AssetSymbol.SILVER);
   const txFrom = generateKeyPair();
   const txTo = generateKeyPair();
 

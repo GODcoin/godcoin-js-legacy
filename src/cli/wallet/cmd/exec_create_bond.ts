@@ -1,4 +1,5 @@
-import { Asset, BondTx, GODcoin, TxType } from '../../../lib';
+import { Asset } from 'godcoin-neon';
+import { BondTx, GODcoin, TxType } from '../../../lib';
 import { Util } from '../util';
 import { Wallet } from '../wallet';
 import { write } from '../writer';

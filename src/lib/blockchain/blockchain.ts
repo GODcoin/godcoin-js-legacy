@@ -1,19 +1,14 @@
-/// <reference path="../../../typings/bigint.d.ts" />
-
 import * as assert from 'assert';
 import * as ByteBuffer from 'bytebuffer';
 import * as del from 'del';
 import { EventEmitter } from 'events';
 import * as fs from 'fs';
+import { Asset, AssetSymbol } from 'godcoin-neon';
 import * as Long from 'long';
 import * as path from 'path';
 import {
   addBalAgnostic,
-  Asset,
-  AssetSymbol,
   checkAsset,
-  EMPTY_GOLD,
-  EMPTY_SILVER,
   subBalAgnostic
 } from '../asset';
 import { GODcoin } from '../constants';
@@ -217,14 +212,15 @@ export class Blockchain extends EventEmitter {
       else if (i.eq(0)) break;
     }
 
-    const goldFee = GODcoin.MIN_GOLD_FEE.mul(GODcoin.GOLD_FEE_MULT.pow(txCount), Asset.MAX_PRECISION);
-    const silverFee = GODcoin.MIN_SILVER_FEE.mul(GODcoin.SILVER_FEE_MULT.pow(txCount), Asset.MAX_PRECISION);
+    const prec = Asset.MAX_PRECISION;
+    const goldFee = GODcoin.MIN_GOLD_FEE.mul(GODcoin.GOLD_FEE_MULT.pow(txCount, prec), prec);
+    const silverFee = GODcoin.MIN_SILVER_FEE.mul(GODcoin.SILVER_FEE_MULT.pow(txCount, prec), prec);
     return [goldFee, silverFee];
   }
 
   async getBalance(addr: PublicKey, additionalTxs?: Tx[]): Promise<[Asset, Asset]> {
     let bal = await this.indexer.getBalance(addr);
-    if (!bal) bal = [EMPTY_GOLD, EMPTY_SILVER];
+    if (!bal) bal = [Asset.EMPTY_GOLD, Asset.EMPTY_SILVER];
     if (additionalTxs) {
       for (const tx of additionalTxs) {
         if (tx instanceof TransferTx) {
@@ -343,7 +339,7 @@ export class Blockchain extends EventEmitter {
       assert(tx.data.fee.geq(fee!), 'fee amount too small, expected ' + fee!.toString());
 
       const remaining = bal!.sub(tx.data.amount).sub(tx.data.fee);
-      assert(remaining.amount >= BigInt(0), 'insufficient balance');
+      assert(remaining.amount >= 0, 'insufficient balance');
     } else if (tx instanceof BondTx) {
       {
         const data = tx.data;
@@ -395,8 +391,9 @@ export class Blockchain extends EventEmitter {
     for (; minHeight.lte(maxHeight); minHeight = minHeight.add(1)) {
       txCount += (await this.getBlock(minHeight))!.transactions.length;
     }
-    const goldFee = GODcoin.MIN_GOLD_FEE.mul(GODcoin.NETWORK_FEE_GOLD_MULT.pow(txCount), Asset.MAX_PRECISION);
-    const silverFee = GODcoin.MIN_SILVER_FEE.mul(GODcoin.NETWORK_FEE_SILVER_MULT.pow(txCount), Asset.MAX_PRECISION);
+    const prec = Asset.MAX_PRECISION;
+    const goldFee = GODcoin.MIN_GOLD_FEE.mul(GODcoin.NETWORK_FEE_GOLD_MULT.pow(txCount, prec), prec);
+    const silverFee = GODcoin.MIN_SILVER_FEE.mul(GODcoin.NETWORK_FEE_SILVER_MULT.pow(txCount, prec), prec);
     return [goldFee, silverFee];
   }
 }

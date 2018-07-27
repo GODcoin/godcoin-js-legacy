@@ -1,9 +1,7 @@
+import { Asset } from 'godcoin-neon';
 import * as Long from 'long';
 import {
   addBalAgnostic,
-  Asset,
-  EMPTY_GOLD,
-  EMPTY_SILVER,
   subBalAgnostic
 } from '../asset';
 import { ChainStore, SignedBlock } from '../blockchain';
@@ -26,7 +24,7 @@ export class BlockIndexer {
 
   private height: Long = Long.fromNumber(0, true);
   private map: AssetMap = {};
-  private supply: [Asset, Asset] = [EMPTY_GOLD, EMPTY_SILVER];
+  private supply: [Asset, Asset] = [Asset.EMPTY_GOLD, Asset.EMPTY_SILVER];
 
   constructor(readonly indexer: Indexer,
               readonly store: ChainStore,
@@ -67,7 +65,7 @@ export class BlockIndexer {
       supply[1] = supply[1].add(this.supply[1]);
       await this.indexer.setTokenSupply(supply);
 
-      this.supply = [EMPTY_GOLD, EMPTY_SILVER];
+      this.supply = [Asset.EMPTY_GOLD, Asset.EMPTY_SILVER];
       this.map = {};
     } finally {
       this.lock.unlock();

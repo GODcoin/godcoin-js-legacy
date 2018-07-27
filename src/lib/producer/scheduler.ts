@@ -1,5 +1,5 @@
+import { Asset } from 'godcoin-neon';
 import * as sodium from 'libsodium-wrappers';
-import { Asset } from '../asset';
 import { SignedBlock } from '../blockchain';
 import { PublicKey } from '../crypto';
 import { Indexer, IndexProp } from '../indexer';

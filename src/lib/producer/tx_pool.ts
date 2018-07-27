@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import { EventEmitter } from 'events';
-import { Asset } from '../asset';
+import { Asset } from 'godcoin-neon';
 import { Blockchain } from '../blockchain';
 import { GODcoin } from '../constants';
 import { PublicKey } from '../crypto';

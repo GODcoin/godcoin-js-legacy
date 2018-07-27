@@ -1,5 +1,5 @@
 import * as ByteBuffer from 'bytebuffer';
-import { Asset } from '../asset';
+import { Asset } from 'godcoin-neon';
 import { PublicKey } from '../crypto';
 import {
   ObjectType,

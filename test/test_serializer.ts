@@ -1,8 +1,8 @@
 import { AssertionError } from 'assert';
 import * as ByteBuffer from 'bytebuffer';
 import { expect } from 'chai';
+import { Asset } from 'godcoin-neon';
 import * as Long from 'long';
-import { Asset, EMPTY_GOLD } from '../src/lib/asset';
 import { Block, SignedBlock } from '../src/lib/blockchain';
 import { generateKeyPair } from '../src/lib/crypto';
 import {
@@ -49,11 +49,11 @@ it('should serialize bond transactions', () => {
   const tx = new BondTx({
     type: TxType.BOND,
     timestamp: new Date(),
-    fee: EMPTY_GOLD,
+    fee: Asset.EMPTY_GOLD,
     minter: generateKeyPair().publicKey,
     staker: generateKeyPair().publicKey,
-    bond_fee: EMPTY_GOLD,
-    stake_amt: EMPTY_GOLD,
+    bond_fee: Asset.EMPTY_GOLD,
+    stake_amt: Asset.EMPTY_GOLD,
     signature_pairs: []
   });
 
@@ -66,7 +66,7 @@ it('should serialize reward transactions', () => {
   const tx = new RewardTx({
     type: TxType.REWARD,
     timestamp: new Date(),
-    fee: EMPTY_GOLD,
+    fee: Asset.EMPTY_GOLD,
     to: generateKeyPair().publicKey,
     rewards: [Asset.fromString('10 GOLD'), Asset.fromString('100 SILVER')],
     signature_pairs: []

@@ -1,5 +1,5 @@
+import { Asset } from 'godcoin-neon';
 import * as Codec from 'level-codec';
-import { Asset } from '../asset';
 import { Indexer, IndexProp } from './index';
 
 const jsonCodec = new Codec({

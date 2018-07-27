@@ -1,4 +1,4 @@
-import { Asset } from './asset';
+import { Asset } from 'godcoin-neon';
 
 export namespace GODcoin {
 

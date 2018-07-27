@@ -1,4 +1,5 @@
-import { Asset, ClientPeer, GODcoin, PublicKey, Tx } from '../../lib';
+import { Asset } from 'godcoin-neon';
+import { ClientPeer, GODcoin, PublicKey, Tx } from '../../lib';
 
 export namespace Util {
   export interface TotalFee {

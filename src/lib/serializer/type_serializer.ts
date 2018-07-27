@@ -1,8 +1,8 @@
 import * as assert from 'assert';
 import * as ByteBuffer from 'bytebuffer';
 import * as newDebug from 'debug';
+import { Asset } from 'godcoin-neon';
 import { Serializer } from '.';
-import { Asset } from '../asset';
 import { PublicKey, SigPair } from '../crypto';
 import { ObjectType } from './object_type';
 
@@ -54,7 +54,7 @@ export class TypeSerializer {
 
   static asset(buf: ByteBuffer, value: Asset) {
     const str = value.toString();
-    assert(str.length <= Asset.MAX_ASSET_STR_LEN);
+    assert(str.length <= Asset.MAX_STR_LEN);
     TypeSerializer.string(buf, str);
   }
 

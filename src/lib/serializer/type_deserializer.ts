@@ -1,6 +1,6 @@
 import * as newDebug from 'debug';
+import { Asset } from 'godcoin-neon';
 import { Deserializer, ObjectDeserializer, Serializer } from '.';
-import { Asset } from '../asset';
 import { PublicKey, SigPair } from '../crypto';
 import { ObjectType } from './object_type';
 

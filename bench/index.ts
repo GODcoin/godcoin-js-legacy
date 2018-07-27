@@ -1,6 +1,6 @@
 import * as Benchmark from 'benchmark';
+import { Asset, AssetSymbol } from 'godcoin-neon';
 import * as sodium from 'libsodium-wrappers';
-import { Asset, AssetSymbol } from '../src/lib/asset';
 import { generateKeyPair } from '../src/lib/crypto';
 import { TransferTx, TxType } from '../src/lib/transactions';
 
@@ -39,7 +39,7 @@ import { TransferTx, TxType } from '../src/lib/transactions';
   suite.add('string to asset', () => {
     Asset.fromString('1.123 GOLD');
   }).add('asset to string', () => {
-    new Asset(BigInt(1123), 3, AssetSymbol.GOLD).toString();
+    new Asset(1123, 3, AssetSymbol.GOLD).toString();
   }).add('serialize transaction', () => {
     tx.serialize(true);
   }).on('start', evt => {

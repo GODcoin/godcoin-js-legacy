@@ -1,8 +1,8 @@
 import * as assert from 'assert';
+import { Asset } from 'godcoin-neon';
 import * as level from 'level';
 import * as sodium from 'libsodium-wrappers';
 import * as Long from 'long';
-import { Asset, EMPTY_GOLD, EMPTY_SILVER } from '../asset';
 import { PublicKey } from '../crypto';
 import { Bond } from '../transactions';
 
@@ -138,7 +138,7 @@ export class Indexer {
     const bal = await this.getProp(IndexProp.NAMESPACE_MAIN, IndexProp.KEY_TOKEN_SUPPLY, {
       valueEncoding: 'json'
     });
-    if (!bal) return [EMPTY_GOLD, EMPTY_SILVER];
+    if (!bal) return [Asset.EMPTY_GOLD, Asset.EMPTY_SILVER];
     return [Asset.fromString(bal[0]), Asset.fromString(bal[1])];
   }
 

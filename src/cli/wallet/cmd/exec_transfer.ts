@@ -1,8 +1,6 @@
 import * as assert from 'assert';
+import { Asset, AssetSymbol } from 'godcoin-neon';
 import {
-  Asset,
-  AssetSymbol,
-  GODcoin,
   PublicKey,
   TransferTx,
   TxType

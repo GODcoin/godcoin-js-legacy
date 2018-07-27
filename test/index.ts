@@ -1,5 +1,3 @@
-/// <reference path="../typings/bigint.d.ts" />
-
 import * as chai from 'chai';
 import * as chaiAsPromised from 'chai-as-promised';
 import * as sodium from 'libsodium-wrappers';
