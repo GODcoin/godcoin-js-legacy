@@ -178,9 +178,9 @@
   version "9.6.6"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-9.6.6.tgz#439b91f9caf3983cad2eef1e11f6bedcbf9431d2"
 
-"@types/node@^10.5.2":
-  version "10.5.2"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-10.5.2.tgz#f19f05314d5421fe37e74153254201a7bf00a707"
+"@types/node@^10.5.4":
+  version "10.5.4"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-10.5.4.tgz#6eccc158504357d1da91434d75e86acde94bb10b"
 
 "@types/uws@^0.13.2":
   version "0.13.2"
@@ -189,9 +189,9 @@
     "@types/events" "*"
     "@types/node" "*"
 
-"@types/yargs@^11.1.0":
-  version "11.1.0"
-  resolved "https://registry.yarnpkg.com/@types/yargs/-/yargs-11.1.0.tgz#923caa0cca53745d83f139eeff4fa7906c52ebce"
+"@types/yargs@^11.1.1":
+  version "11.1.1"
+  resolved "https://registry.yarnpkg.com/@types/yargs/-/yargs-11.1.1.tgz#2e724257167fd6b615dbe4e54301e65fe597433f"
 
 abstract-leveldown@^5.0.0, abstract-leveldown@~5.0.0:
   version "5.0.0"
@@ -3539,9 +3539,9 @@ type-detect@^4.0.0:
   version "4.0.8"
   resolved "https://registry.yarnpkg.com/type-detect/-/type-detect-4.0.8.tgz#7646fb5f18871cfbb7749e69bd39a6388eb7450c"
 
-typescript@^2.9.2:
-  version "2.9.2"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-2.9.2.tgz#1cbf61d05d6b96269244eb6a3bce4bd914e0f00c"
+typescript@^3.0.1:
+  version "3.0.1"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-3.0.1.tgz#43738f29585d3a87575520a4b93ab6026ef11fdb"
 
 typical@^2.6.0, typical@^2.6.1:
   version "2.6.1"
