@@ -1,4 +1,4 @@
-import { PublicKey } from '../../../lib';
+import { PublicKey } from 'godcoin-neon';
 import { Wallet } from '../wallet';
 import { write } from '../writer';
 
@@ -9,7 +9,7 @@ export async function execGetBalance(wallet: Wallet, args: any[]) {
     return;
   } else if (await wallet.db.hasAccount(address)) {
     const acc = await wallet.db.getAccount(address);
-    address = acc.publicKey.toWif();
+    address = acc[0].toWif();
   }
 
   // Make sure the user can't accidentally input a private key

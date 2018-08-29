@@ -1,4 +1,4 @@
-import { generateKeyPair } from '../../../lib';
+import { PrivateKey } from 'godcoin-neon';
 import { Wallet } from '../wallet';
 import { write } from '../writer';
 
@@ -11,10 +11,10 @@ export async function execCreateAccount(wallet: Wallet, args: any[]) {
     write('Account already exists');
     return;
   }
-  const keypair = generateKeyPair();
-  await wallet.db.setAccount(name, keypair.privateKey);
+  const keypair = PrivateKey.genKeyPair();
+  await wallet.db.setAccount(name, keypair[1]);
   write({
-    private_key: keypair.privateKey.toWif(),
-    public_key: keypair.publicKey.toWif()
+    private_key: keypair[1].toWif(),
+    public_key: keypair[0].toWif()
   });
 }

@@ -1,11 +1,11 @@
 import { Asset } from 'godcoin-neon';
+import { PublicKey } from 'godcoin-neon';
 import * as Long from 'long';
 import {
   addBalAgnostic,
   subBalAgnostic
 } from '../asset';
 import { ChainStore, SignedBlock } from '../blockchain';
-import { PublicKey } from '../crypto';
 import { Lock } from '../lock';
 import {
   BondTx,

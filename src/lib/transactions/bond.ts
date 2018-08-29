@@ -1,6 +1,5 @@
 import * as ByteBuffer from 'bytebuffer';
-import { Asset } from 'godcoin-neon';
-import { PublicKey } from '../crypto';
+import { Asset, PublicKey } from 'godcoin-neon';
 import {
   ObjectType,
   TypeDeserializer as TD,

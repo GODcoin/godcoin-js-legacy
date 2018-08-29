@@ -1,7 +1,6 @@
 import * as assert from 'assert';
-import { Asset, AssetSymbol } from 'godcoin-neon';
+import { Asset, AssetSymbol, PublicKey } from 'godcoin-neon';
 import {
-  PublicKey,
   TransferTx,
   TxType
 } from '../../../lib';
@@ -23,7 +22,7 @@ export async function execTransfer(wallet: Wallet, args: any[]) {
 
   const toAddr = PublicKey.fromWif(toAddrStr);
   const amt = Asset.fromString(amtStr);
-  const totalFee = await Util.getTotalFee(wallet.client, acc.publicKey);
+  const totalFee = await Util.getTotalFee(wallet.client, acc[0]);
 
   let fee: Asset;
   if (amt.symbol === AssetSymbol.GOLD) fee = totalFee.fee[0];
@@ -34,13 +33,13 @@ export async function execTransfer(wallet: Wallet, args: any[]) {
   const tx = new TransferTx({
     type: TxType.TRANSFER,
     timestamp: new Date(),
-    from: acc.publicKey,
+    from: acc[0],
     to: toAddr,
     amount: amt,
     fee: fee!,
     memo: Buffer.from(memo),
     signature_pairs: []
-  }).appendSign(acc.privateKey);
+  }).appendSign(acc);
   write('Broadcasting tx\n', tx.toString(), '\n');
   const buf = Buffer.from(tx.serialize(true).toBuffer());
   await wallet.client.broadcast(buf);

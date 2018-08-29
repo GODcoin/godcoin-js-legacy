@@ -3,7 +3,7 @@ import * as ByteBuffer from 'bytebuffer';
 import * as del from 'del';
 import { EventEmitter } from 'events';
 import * as fs from 'fs';
-import { Asset, AssetSymbol } from 'godcoin-neon';
+import { Asset, AssetSymbol, PublicKey } from 'godcoin-neon';
 import * as Long from 'long';
 import * as path from 'path';
 import {
@@ -12,7 +12,6 @@ import {
   subBalAgnostic
 } from '../asset';
 import { GODcoin } from '../constants';
-import { PublicKey } from '../crypto';
 import { BlockIndexer, Indexer } from '../indexer';
 import { Lock } from '../lock';
 import { SkipFlags } from '../skip_flags';
@@ -172,9 +171,9 @@ export class Blockchain extends EventEmitter {
   }
 
   async isBondValid(block: SignedBlock): Promise<boolean> {
-    const m = block.signature_pair.public_key;
+    const m = block.signature_pair[0];
     return (await this.indexer.getBond(m)) !== undefined
-            || this.genesisBlock.signature_pair.public_key.equals(m);
+            || this.genesisBlock.signature_pair[0].equals(m);
   }
 
   async getTotalFee(addr: PublicKey, additionalTxs?: Tx[]): Promise<[Asset, Asset]> {
@@ -274,8 +273,8 @@ export class Blockchain extends EventEmitter {
     }
     {
       const serialized = block.serialize();
-      const key = block.signature_pair.public_key;
-      const sig = block.signature_pair.signature;
+      const key = block.signature_pair[0];
+      const sig = block.signature_pair[1];
       assert(key.verify(sig, serialized), 'invalid signature');
     }
   }
@@ -323,7 +322,7 @@ export class Blockchain extends EventEmitter {
       if ((opts.skipFlags & SkipFlags.SKIP_TX_SIGNATURE) === 0) {
         const buf = tx.serialize(false);
         const pair = tx.data.signature_pairs[0];
-        assert(tx.data.from.verify(pair.signature, buf.toBuffer()), 'invalid signature');
+        assert(tx.data.from.verify(pair[1], buf.buffer), 'invalid signature');
       }
 
       let bal: Asset|undefined;
@@ -355,10 +354,10 @@ export class Blockchain extends EventEmitter {
 
         assert(tx.data.signature_pairs.length === 2, 'transaction must be signed by the minter and staker');
         const minter = tx.data.signature_pairs[0];
-        assert(tx.data.minter.verify(minter.signature, buf.toBuffer()), 'invalid signature');
+        assert(tx.data.minter.verify(minter[1], buf.buffer), 'invalid signature');
 
         const staker = tx.data.signature_pairs[1];
-        assert(tx.data.staker.verify(staker.signature, buf.toBuffer()), 'invalid signature');
+        assert(tx.data.staker.verify(staker[1], buf.buffer), 'invalid signature');
       }
 
       // TODO: handle stake amount modifications

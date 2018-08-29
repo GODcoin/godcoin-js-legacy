@@ -1,8 +1,8 @@
 import * as assert from 'assert';
 import * as crypto from 'crypto';
+import { KeyPair, PrivateKey } from 'godcoin-neon';
 import * as level from 'level';
 import * as sodium from 'libsodium-wrappers';
-import { KeyPair, PrivateKey } from '../../lib';
 
 export class WalletDb {
 

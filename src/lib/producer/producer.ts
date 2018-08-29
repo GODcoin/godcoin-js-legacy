@@ -1,8 +1,8 @@
 import * as assert from 'assert';
 import * as newDebug from 'debug';
+import { PublicKey } from 'godcoin-neon';
 import { Blockchain, SignedBlock } from '../blockchain';
 import { GODcoin } from '../constants';
-import { PublicKey } from '../crypto';
 import { Lock } from '../lock';
 import { LocalMinter } from './local_minter';
 import { Scheduler } from './scheduler';
@@ -64,7 +64,7 @@ export class Producer {
     try {
       const head = this.blockchain.head;
       const bond = this.scheduler.nextMinter(head, this.missed);
-      const signer = block.signature_pair.public_key;
+      const signer = block.signature_pair[0];
       if (!bond.minter.equals(signer)) {
         console.log(`[rejected block ${block.height.toString()}] \
 Unexpected minter, dropped block from ${signer.toWif()}`);
@@ -134,7 +134,7 @@ to produce blocks too quickly from ${signer.toWif()}`);
     const head = this.blockchain.head;
     const bond = this.scheduler.nextMinter(head, this.missed);
     try {
-      if (this.minter && bond.minter.equals(this.minter.keys.publicKey)) {
+      if (this.minter && bond.minter.equals(this.minter.keys[0])) {
         await this.minter.produceBlock();
         await this.postProduction();
         this.startTimer();

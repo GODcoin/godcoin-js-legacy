@@ -1,8 +1,7 @@
 import * as assert from 'assert';
-import { Asset, AssetSymbol } from 'godcoin-neon';
+import { Asset, AssetSymbol, KeyPair, PrivateKey } from 'godcoin-neon';
 import * as Long from 'long';
 import { Block, Blockchain } from '../blockchain';
-import { generateKeyPair, KeyPair } from '../crypto';
 import { BondTx, RewardTx, TxType } from '../transactions';
 import { TxPool } from './tx_pool';
 
@@ -22,8 +21,8 @@ export class LocalMinter {
   async createGenesisBlock() {
     assert(!(await this.blockchain.getBlock(0)), 'genesis block already exists');
     console.log('=> Generating new block chain');
-    const stakerKeys = generateKeyPair();
-    console.log('=> Staker private key:', stakerKeys.privateKey.toString());
+    const stakerKeys = PrivateKey.genKeyPair();
+    console.log('=> Staker private key:', stakerKeys[1].toWif());
 
     const genesisTs = new Date();
     const genesisBlock = new Block({
@@ -34,7 +33,7 @@ export class LocalMinter {
         new RewardTx({
           type: TxType.REWARD,
           timestamp: genesisTs,
-          to: stakerKeys.publicKey,
+          to: stakerKeys[0],
           fee: Asset.EMPTY_GOLD,
           rewards: [ Asset.fromString('1 GOLD') ],
           signature_pairs: []
@@ -43,8 +42,8 @@ export class LocalMinter {
           type: TxType.BOND,
           timestamp: genesisTs,
           fee: Asset.EMPTY_GOLD,
-          minter: this.keys.publicKey,
-          staker: stakerKeys.publicKey,
+          minter: this.keys[0],
+          staker: stakerKeys[0],
           stake_amt: Asset.fromString('1 GOLD'),
           bond_fee: Asset.fromString('0 GOLD'),
           signature_pairs: []
@@ -56,7 +55,7 @@ export class LocalMinter {
 
   async produceBlock() {
     const head = this.blockchain.head;
-    const bond = (await this.blockchain.indexer.getBond(head.signature_pair.public_key))!;
+    const bond = (await this.blockchain.indexer.getBond(this.keys[0]))!;
     assert(bond, 'must be a minter to produce a block');
 
     const block = new Block({

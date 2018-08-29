@@ -1,9 +1,8 @@
 import * as assert from 'assert';
-import { Asset } from 'godcoin-neon';
+import { Asset, PublicKey } from 'godcoin-neon';
 import * as level from 'level';
 import * as sodium from 'libsodium-wrappers';
 import * as Long from 'long';
-import { PublicKey } from '../crypto';
 import { Bond } from '../transactions';
 
 export * from './block_indexer';

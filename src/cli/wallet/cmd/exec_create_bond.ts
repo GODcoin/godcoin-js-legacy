@@ -19,20 +19,20 @@ export async function execCreateBond(wallet: Wallet, args: any[]) {
   const stakerAcc = await wallet.db.getAccount(staker);
   if (!stakerAcc) return write('Staker account does not exist');
 
-  const fee = (await Util.getTotalFee(wallet.client, stakerAcc.publicKey)).fee;
+  const fee = (await Util.getTotalFee(wallet.client, stakerAcc[0])).fee;
 
   const props = await wallet.client.getProperties();
   const tx = new BondTx({
     type: TxType.BOND,
     timestamp: new Date(),
-    minter: minterAcc.publicKey,
-    staker: stakerAcc.publicKey,
+    minter: minterAcc[0],
+    staker: stakerAcc[0],
     stake_amt: Asset.fromString(stakeAmt),
     bond_fee: GODcoin.BOND_FEE,
     fee: fee[0],
     signature_pairs: []
-  }).appendSign(minterAcc.privateKey)
-    .appendSign(stakerAcc.privateKey);
+  }).appendSign(minterAcc)
+    .appendSign(stakerAcc);
   await wallet.client.broadcast(Buffer.from(tx.serialize(true).toBuffer()));
   write('Broadcasting tx\n', tx.toString(), '\n');
   const height = Number.parseInt(props.block_height);

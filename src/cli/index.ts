@@ -1,12 +1,11 @@
 import * as fs from 'fs';
+import { PrivateKey } from 'godcoin-neon';
 import * as sodium from 'libsodium-wrappers';
 import * as yargs from 'yargs';
 import {
-  generateKeyPair,
   GODcoinEnv,
   hookSigInt,
-  Node,
-  PrivateKey
+  Node
 } from '../lib';
 import { Wallet } from './wallet';
 
@@ -40,11 +39,11 @@ function startWallet(argv: any): void {
   });
 }
 
-function keygen(argv: any): void {
-  const keys = generateKeyPair();
+function keygen(): void {
+  const keys = PrivateKey.genKeyPair();
   console.log('Your keys have been generated');
-  console.log('Private key WIF: ' + keys.privateKey.toWif(argv.extended));
-  console.log('Public key WIF: ' + keys.publicKey.toWif());
+  console.log('Private key WIF: ' + keys[1].toWif());
+  console.log('Public key WIF: ' + keys[0].toWif());
   console.log('- YOUR COINS CANNOT BE RECOVERED IF YOU LOSE YOUR PRIVATE KEY!');
   console.log('- NEVER GIVE YOUR PRIVATE KEY TO ANYONE!');
 }
@@ -105,11 +104,7 @@ function keygen(argv: any): void {
       desc: 'Node to connect to for interacting with the blockchain'
     });
   }, startWallet).command(cmd === 'keygen' ? ['keygen', '$0'] : ['keygen'], 'Standalone keypair generator', () => {
-    return yargs.option('extended', {
-      boolean: true,
-      default: false,
-      desc: 'Whether to generate an extended private key'
-    });
+    return undefined!;
   }, keygen).demandCommand(1, 'No command provided')
     .usage('godcoin <command>')
     .version(false)

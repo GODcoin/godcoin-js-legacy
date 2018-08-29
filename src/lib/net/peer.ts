@@ -1,8 +1,8 @@
 import * as borc from 'borc';
 import * as ByteBuffer from 'bytebuffer';
 import { EventEmitter } from 'events';
+import { PublicKey } from 'godcoin-neon';
 import { Blockchain, SignedBlock } from '../blockchain';
-import { PublicKey } from '../crypto';
 import { PromiseLike } from '../node-util';
 import { LocalMinter, TxPool } from '../producer';
 import { Tx } from '../transactions';

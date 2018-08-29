@@ -1,4 +1,4 @@
-import { PrivateKey } from '../../../lib';
+import { PrivateKey } from 'godcoin-neon';
 import { Wallet } from '../wallet';
 import { write } from '../writer';
 
@@ -14,5 +14,5 @@ export async function execImportAccount(wallet: Wallet, args: any[]) {
   }
 
   const priv = PrivateKey.fromWif(pk);
-  await wallet.db.setAccount(name, priv.privateKey);
+  await wallet.db.setAccount(name, priv[1]);
 }

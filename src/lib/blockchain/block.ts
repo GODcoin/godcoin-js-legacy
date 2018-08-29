@@ -2,12 +2,9 @@
 
 import * as assert from 'assert';
 import * as ByteBuffer from 'bytebuffer';
+import { KeyPair, SigPair } from 'godcoin-neon';
 import * as Long from 'long';
-import {
-  doubleSha256,
-  KeyPair,
-  SigPair
-} from '../crypto';
+import { doubleSha256 } from '../crypto';
 import {
   ObjectType,
   TypeDeserializer as TD,
@@ -74,7 +71,7 @@ export class Block implements BlockOpts {
       timestamp: this.timestamp,
       transactions: this.transactions,
       tx_merkle_root: this.tx_merkle_root,
-      signature_pair: keys.privateKey.sign(serialized)
+      signature_pair: [keys[0], keys[1].sign(serialized)]
     });
   }
 
@@ -152,8 +149,8 @@ export class SignedBlock extends Block implements SignedBlockOpts {
       transactions: this.transactions.map(val => JSON.parse(val.toString())),
       tx_merkle_root: this.tx_merkle_root.toString('hex'),
       signature_pair: {
-        public_key: this.signature_pair.public_key.toWif(),
-        signature: this.signature_pair.signature.toString('hex')
+        public_key: this.signature_pair[0].toWif(),
+        signature: this.signature_pair[1].toString('hex')
       }
     }, undefined, 2);
   }

@@ -1,7 +1,7 @@
+import { KeyPair } from 'godcoin-neon';
 import * as mkdirp from 'mkdirp';
 import * as path from 'path';
 import { Blockchain } from '../blockchain';
-import { KeyPair } from '../crypto';
 import { LocalMinter, Producer, TxPool } from '../producer';
 import { ClientPeerPool } from './client_peer_pool';
 import { Server } from './server';

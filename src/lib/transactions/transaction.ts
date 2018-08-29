@@ -1,6 +1,5 @@
 import * as ByteBuffer from 'bytebuffer';
-import { Asset } from 'godcoin-neon';
-import { PrivateKey, PublicKey, SigPair } from '../crypto';
+import { Asset, KeyPair, PrivateKey, PublicKey, SigPair } from 'godcoin-neon';
 import {
   ObjectType,
   TypeDeserializer as TD,
@@ -57,12 +56,12 @@ export abstract class Tx {
 
   abstract rawSerialize(buf: ByteBuffer): void;
 
-  sign(key: PrivateKey): SigPair {
+  sign(key: KeyPair): SigPair {
     const buf = this.serialize(false);
-    return key.sign(buf.toBuffer());
+    return [key[0], key[1].sign(buf.buffer)];
   }
 
-  appendSign(key: PrivateKey) {
+  appendSign(key: KeyPair) {
     const sig = this.sign(key);
     this.data.signature_pairs.push(sig);
     return this;

@@ -1,7 +1,6 @@
 import * as newDebug from 'debug';
-import { Asset } from 'godcoin-neon';
+import { Asset, PublicKey, SigPair } from 'godcoin-neon';
 import { Deserializer, ObjectDeserializer, Serializer } from '.';
-import { PublicKey, SigPair } from '../crypto';
 import { ObjectType } from './object_type';
 
 const debug = newDebug('godcoin:serializer');
@@ -40,10 +39,7 @@ export class TypeDeserializer {
   static sigPair(buf: ByteBuffer): SigPair {
     const publicKey = TypeDeserializer.publicKey(buf);
     const signature = TypeDeserializer.buffer(buf)!;
-    return {
-      public_key: publicKey,
-      signature
-    };
+    return [ publicKey, signature ];
   }
 
   static asset(buf: ByteBuffer): Asset {
