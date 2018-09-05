@@ -1404,9 +1404,9 @@ glogg@^1.0.0:
   dependencies:
     sparkles "^1.0.0"
 
-"godcoin-neon@https://github.com/GODcoin/godcoin-neon.git#df4ac0a":
+"godcoin-neon@https://github.com/GODcoin/godcoin-neon.git#a165e79":
   version "0.0.1"
-  resolved "https://github.com/GODcoin/godcoin-neon.git#df4ac0adf853391e7032fa3c9c3fab0730595feb"
+  resolved "https://github.com/GODcoin/godcoin-neon.git#a165e795d6d3cf12cbaa40d9cb63f605c157d5c5"
   dependencies:
     neon-cli "^0.2.0"
 
