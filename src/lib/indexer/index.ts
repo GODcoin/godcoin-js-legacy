@@ -3,9 +3,14 @@ import { Asset, PublicKey } from 'godcoin-neon';
 import * as level from 'level';
 import * as sodium from 'libsodium-wrappers';
 import * as Long from 'long';
-import { Bond } from '../transactions';
 
 export * from './block_indexer';
+
+export interface Bond {
+  minter: PublicKey;
+  staker: PublicKey;
+  stake_amt: Asset;
+}
 
 export namespace IndexProp {
   export const NAMESPACE_MAIN = Buffer.from([0]);
@@ -106,10 +111,11 @@ export class Indexer {
     return new Long(low, high, true);
   }
 
-  async setBlockPos(height: Long, bytePos: Long): Promise<void> {
+  async setBlockPos(height: number, bytePos: Long): Promise<void> {
     const buf = Buffer.allocUnsafe(8);
-    buf.writeInt32BE(height.high, 0, true);
-    buf.writeInt32BE(height.low, 4, true);
+    const l = Long.fromNumber(height, true);
+    buf.writeInt32BE(l.high, 0, true);
+    buf.writeInt32BE(l.low, 4, true);
 
     const pos = Buffer.allocUnsafe(8);
     pos.writeInt32BE(bytePos.high, 0, true);
@@ -126,10 +132,11 @@ export class Indexer {
 
   }
 
-  async setChainHeight(height: Long): Promise<void> {
+  async setChainHeight(height: number): Promise<void> {
     const buf = Buffer.allocUnsafe(8);
-    buf.writeInt32BE(height.high, 0, true);
-    buf.writeInt32BE(height.low, 4, true);
+    const l = Long.fromNumber(height, true);
+    buf.writeInt32BE(l.high, 0, true);
+    buf.writeInt32BE(l.low, 4, true);
     await this.setProp(IndexProp.NAMESPACE_MAIN, IndexProp.KEY_CURRENT_BLOCK_HEIGHT, buf);
   }
 

@@ -1,4 +1,4 @@
-import { SignedBlock } from '../blockchain';
+import { SignedBlock } from 'godcoin-neon';
 
 export interface BroadcastResult {
   ref_block: string;

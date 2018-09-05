@@ -12,10 +12,6 @@ describe('Asset', () => {
   require('./test_asset');
 });
 
-describe('Serialization', () => {
-  require('./test_serializer');
-});
-
 describe('Blockchain', () => {
   require('./test_blockchain');
 });

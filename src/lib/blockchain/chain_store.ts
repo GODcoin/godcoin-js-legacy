@@ -1,11 +1,11 @@
 import * as assert from 'assert';
 import * as ByteBuffer from 'bytebuffer';
 import * as fs from 'fs';
+import { SignedBlock } from 'godcoin-neon';
 import * as Long from 'long';
 import * as crc32 from 'sse4_crc32';
 import * as util from 'util';
 import { Indexer } from '../indexer';
-import { SignedBlock } from './block';
 
 const fsOpen = util.promisify(fs.open);
 const fsClose = util.promisify(fs.close);
@@ -59,7 +59,7 @@ export class ChainStore {
     }
   }
 
-  async chop(height: Long): Promise<void> {
+  async chop(height: number): Promise<void> {
     assert(this.initialized, 'must be initialized');
 
     let found: SignedBlock|undefined;
@@ -67,7 +67,7 @@ export class ChainStore {
     while (blockPos < this.blockTailPos) {
       const block = await this.readBlock(blockPos);
       blockPos += block[1];
-      if (block[0].height.eq(height)) {
+      if (block[0].height === height) {
         found = block[0];
         await fsTruncate(this.dbFile, blockPos);
         this.blockTailPos = blockPos;
@@ -87,11 +87,11 @@ export class ChainStore {
 
   async write(block: SignedBlock): Promise<Long> {
     if (!this._blockHead) {
-      assert(block.height.eq(0), 'New db must start with genesis block');
+      assert(block.height === 0, 'New db must start with genesis block');
     }
 
-    const serBlock = Buffer.from(block.fullySerialize(true).toBuffer());
-    const blockLen = serBlock.length;
+    const encBlock = block.encodeWithTx();
+    const blockLen = encBlock.length;
 
     const bytePos = Long.fromNumber(this.blockTailPos, true);
     const tmp = Buffer.allocUnsafe(4);
@@ -100,9 +100,9 @@ export class ChainStore {
       tmp.writeUInt32BE(blockLen, 0, true);
       await fsWrite(this.dbFd!, tmp, 0, 4);
     }
-    await fsWrite(this.dbFd!, serBlock);
+    await fsWrite(this.dbFd!, encBlock);
 
-    const checksum = crc32.calculate(serBlock);
+    const checksum = crc32.calculate(encBlock);
     tmp.writeUInt32BE(checksum, 0, true);
     await fsWrite(this.dbFd!, tmp, 0, 4);
 
@@ -163,7 +163,7 @@ export class ChainStore {
     }
 
     // Deserialize and return
-    const block = SignedBlock.fullyDeserialize(ByteBuffer.wrap(buf));
+    const block = SignedBlock.decodeWithTx(buf);
     return [block, len + 8];
   }
 }
@@ -173,12 +173,12 @@ class BlockCache {
   static MAX_CACHE_SIZE = 1000;
 
   private readonly cache: {[key: string]: SignedBlock} = {};
-  private min?: Long;
+  private min?: number;
   private count = 0;
 
   get(height: Long): SignedBlock|undefined {
     if (!this.min) return;
-    else if (!(height.lt(this.min) || height.gt(this.min.add(this.count)))) return;
+    else if (!(height.lt(this.min) || height.gt(this.min + this.count))) return;
     return this.cache[height.toString()];
   }
 
@@ -186,7 +186,7 @@ class BlockCache {
     this.cache[block.height.toString()] = block;
     if (this.count + 1 > BlockCache.MAX_CACHE_SIZE) {
       delete this.cache[this.min!.toString()];
-      this.min = this.min!.add(1);
+      ++this.min!;
     } else {
       if (!this.min) this.min = block.height;
       ++this.count;

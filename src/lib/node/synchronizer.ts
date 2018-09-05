@@ -1,5 +1,6 @@
+import { SignedBlock } from 'godcoin-neon';
 import * as Long from 'long';
-import { Blockchain, SignedBlock } from '../blockchain';
+import { Blockchain } from '../blockchain';
 import { Lock } from '../lock';
 import { EndOfClients } from '../net';
 import { Producer, TxPool } from '../producer';
@@ -61,7 +62,7 @@ export class Synchronizer {
     try {
       const height = block.height.toString();
       const len = block.transactions.length;
-      if (block.height.gt(this.blockchain.head.height) && this.producer.running) {
+      if (block.height > this.blockchain.head.height && this.producer.running) {
         const accepted = await this.producer.onBlock(block);
         if (!accepted) return;
         console.log(`Received block at height ${height} with ${len} transaction${len === 1 ? '' : 's'}`);
@@ -97,9 +98,9 @@ export class Synchronizer {
                           | SkipFlags.SKIP_TX;
       while (this.running) {
         try {
-          const min = height ? height.add(1) : Long.fromNumber(0, true);
-          const max = height ? height.add(100) : min.add(100);
-          const range = await this.peerPool.getBlockRange(min.toNumber(), max.toNumber());
+          const min = height ? height + 1 : 0;
+          const max = height ? height + 100 : min + 100;
+          const range = await this.peerPool.getBlockRange(min, max);
           height = max;
 
           if (range.blocks.length) {

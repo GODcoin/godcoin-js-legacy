@@ -1,11 +1,10 @@
 import * as borc from 'borc';
 import * as ByteBuffer from 'bytebuffer';
 import { EventEmitter } from 'events';
-import { PublicKey } from 'godcoin-neon';
-import { Blockchain, SignedBlock } from '../blockchain';
+import { PublicKey, SignedBlock, Tx } from 'godcoin-neon';
+import { Blockchain } from '../blockchain';
 import { PromiseLike } from '../node-util';
 import { LocalMinter, TxPool } from '../producer';
-import { Tx } from '../transactions';
 import { ClientType } from './client_type';
 import {
   ApiError,
@@ -57,8 +56,7 @@ export class Peer extends EventEmitter {
       height
     });
     if (!data.block) return;
-    const buf = ByteBuffer.wrap(data.block);
-    return SignedBlock.fullyDeserialize(buf);
+    return SignedBlock.decodeWithTx(data.block);
   }
 
   async getBlockRange(minHeight: number, maxHeight: number): Promise<rpc.BlockRange> {
@@ -70,8 +68,7 @@ export class Peer extends EventEmitter {
 
     const blocks: SignedBlock[] = [];
     for (const block of data.blocks) {
-      const buf = ByteBuffer.wrap(block);
-      blocks.push(SignedBlock.fullyDeserialize(buf));
+      blocks.push(SignedBlock.decodeWithTx(block));
     }
     return {
       range_outside_height: data.range_outside_height,
@@ -140,7 +137,7 @@ export class Peer extends EventEmitter {
     this.txHandler = async tx => {
       try {
         await this.net.sendEvent('tx', {
-          tx: tx.serialize(true).toBuffer()
+          tx: tx.encodeWithSigs()
         });
       } catch (e) {
         if (!(e instanceof DisconnectedError)) {
@@ -152,7 +149,7 @@ export class Peer extends EventEmitter {
     this.blockHandler = async (block: SignedBlock) => {
       try {
         await this.net.sendEvent('block', {
-          block: block.fullySerialize().toBuffer()
+          block: block.encodeWithTx()
         });
       } catch (e) {
         if (!(e instanceof DisconnectedError)) {
@@ -239,7 +236,7 @@ export class Peer extends EventEmitter {
         const block = await this.opts.blockchain.getBlock(height);
         if (block) {
           return {
-            block: block.fullySerialize().toBuffer()
+            block: block.encodeWithTx()
           };
         }
         return;
@@ -253,12 +250,12 @@ export class Peer extends EventEmitter {
         check(max >= min, ApiErrorCode.INVALID_PARAMS, 'max_height must be >= min_height');
         check(max - min <= 100, ApiErrorCode.INVALID_PARAMS, 'range retrieval must be <= 100 blocks');
 
-        const blocks: ArrayBuffer[] = [];
+        const blocks: Buffer[] = [];
         let outsideRange = false;
         for (let i = min; i <= max; ++i) {
           const block = await this.opts.blockchain.getBlock(i);
           if (block) {
-            blocks.push(block.fullySerialize().toBuffer());
+            blocks.push(block.encodeWithTx());
           } else {
             outsideRange = true;
             break;

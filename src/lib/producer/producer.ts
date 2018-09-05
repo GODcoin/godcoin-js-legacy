@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import * as newDebug from 'debug';
-import { PublicKey } from 'godcoin-neon';
-import { Blockchain, SignedBlock } from '../blockchain';
+import { PublicKey, SignedBlock } from 'godcoin-neon';
+import { Blockchain } from '../blockchain';
 import { GODcoin } from '../constants';
 import { Lock } from '../lock';
 import { LocalMinter } from './local_minter';
@@ -64,7 +64,7 @@ export class Producer {
     try {
       const head = this.blockchain.head;
       const bond = this.scheduler.nextMinter(head, this.missed);
-      const signer = block.signature_pair[0];
+      const signer = block.sig_pair[0];
       if (!bond.minter.equals(signer)) {
         console.log(`[rejected block ${block.height.toString()}] \
 Unexpected minter, dropped block from ${signer.toWif()}`);
@@ -116,10 +116,10 @@ to produce blocks too quickly from ${signer.toWif()}`);
     }, schedule);
   }
 
-  private startMissedBlockTimer(minter: PublicKey, height: Long) {
+  private startMissedBlockTimer(minter: PublicKey, height: number) {
     this.timer = setTimeout(async () => {
       await this.lock.lock();
-      if (this.blockchain.head.height.neq(height)) {
+      if (this.blockchain.head.height !== height) {
         console.log(`Minter (${minter.toWif()}) missed block`);
         ++this.missed;
         debug('current missed counter is at %j', this.missed);
@@ -139,11 +139,11 @@ to produce blocks too quickly from ${signer.toWif()}`);
         await this.postProduction();
         this.startTimer();
       } else {
-        this.startMissedBlockTimer(bond.minter, head.height.add(1));
+        this.startMissedBlockTimer(bond.minter, head.height + 1);
       }
     } catch (e) {
       console.log('Failed to produce a block', e);
-      this.startMissedBlockTimer(bond.minter, head.height.add(1));
+      this.startMissedBlockTimer(bond.minter, head.height + 1);
     } finally {
       this.lock.unlock();
     }

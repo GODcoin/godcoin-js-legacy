@@ -1,8 +1,6 @@
-import { Asset, PublicKey } from 'godcoin-neon';
+import { Asset, PublicKey, SignedBlock } from 'godcoin-neon';
 import * as sodium from 'libsodium-wrappers';
-import { SignedBlock } from '../blockchain';
-import { Indexer, IndexProp } from '../indexer';
-import { Bond } from '../transactions';
+import { Bond, Indexer, IndexProp } from '../indexer';
 
 export class Scheduler {
 
@@ -24,7 +22,7 @@ export class Scheduler {
           const bond: Bond = {
             minter,
             staker,
-            stake_amt: amt
+            stake_amt: amt,
           };
           if (!this.bonds.includes(bond)) {
             this.addBond(bond);
@@ -57,7 +55,7 @@ export class Scheduler {
   }
 
   nextMinter(head: SignedBlock, skip = 0): Bond {
-    const index = head.height.add(skip).mod(this.bonds.length).toNumber();
+    const index = (head.height + skip) % this.bonds.length;
     return this.bonds[index];
   }
 }

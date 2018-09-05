@@ -8,17 +8,12 @@ import {
   KeyPair,
   PrivateKey
 } from 'godcoin-neon';
-import * as Long from 'long';
+import { Block, RewardTx, SignedBlock, TransferTx } from 'godcoin-neon';
 import * as os from 'os';
 import * as path from 'path';
-import {
-  Block,
-  Blockchain,
-  SignedBlock,
-} from '../src/lib/blockchain';
+import { Blockchain } from '../src/lib/blockchain';
 import { TxPool } from '../src/lib/producer';
 import { SkipFlags } from '../src/lib/skip_flags';
-import { RewardTx, TransferTx, TxType } from '../src/lib/transactions';
 
 let genesisKeys: KeyPair;
 let testDir: string;
@@ -40,12 +35,11 @@ afterEach(async () => {
 
 it('should read and write the genesis block', async () => {
   const genesisBlock = new Block({
-    height: Long.fromNumber(0, true),
-    previous_hash: undefined!,
+    height: 0,
+    previous_hash: Buffer.alloc(32),
     timestamp: new Date(),
     transactions: [
       new RewardTx({
-        type: TxType.REWARD,
         timestamp: new Date(0),
         fee: Asset.fromString('0 GOLD'),
         to: genesisKeys[0],
@@ -63,10 +57,10 @@ it('should read the latest block', async () => {
   let block!: SignedBlock;
   let prevBlock!: SignedBlock;
   for (let i = 0; i <= 10; ++i) {
-    const hash = prevBlock ? prevBlock.getHash() : undefined;
+    const hash = prevBlock ? prevBlock.calcHash() : Buffer.alloc(32);
     block = new Block({
-      height: Long.fromNumber(i, true),
-      previous_hash: hash as any,
+      height: i,
+      previous_hash: hash,
       timestamp: new Date(),
       transactions: []
     }).sign(genesisKeys);
@@ -79,9 +73,9 @@ it('should read the latest block', async () => {
 it('should read any previous block', async () => {
   let block!: SignedBlock;
   for (let i = 0; i <= 10; ++i) {
-    const hash = i === 0 ? undefined : chain.head.getHash();
+    const hash = i === 0 ? Buffer.alloc(32) : chain.head.calcHash();
     const b = new Block({
-      height: Long.fromNumber(i, true),
+      height: i,
       previous_hash: hash as any,
       timestamp: new Date(),
       transactions: []
@@ -96,8 +90,8 @@ it('should read any previous block', async () => {
 it('should fail previous hash validation', async () => {
   {
     const genesisBlock = new Block({
-      height: Long.fromNumber(0, true),
-      previous_hash: undefined as any,
+      height: 0,
+      previous_hash: Buffer.alloc(32),
       timestamp: new Date(),
       transactions: []
     }).sign(genesisKeys);
@@ -105,8 +99,8 @@ it('should fail previous hash validation', async () => {
   }
   {
     const block = new Block({
-      height: Long.fromNumber(1, true),
-      previous_hash: Buffer.alloc(0),
+      height: 1,
+      previous_hash: Buffer.alloc(32),
       timestamp: new Date(),
       transactions: []
     }).sign(genesisKeys);
@@ -118,8 +112,8 @@ it('should fail previous hash validation', async () => {
 it('should fail with incorrect height', async () => {
   {
     const genesisBlock = new Block({
-      height: Long.fromNumber(0, true),
-      previous_hash: undefined as any,
+      height: 0,
+      previous_hash: Buffer.alloc(32),
       timestamp: new Date(),
       transactions: []
     }).sign(genesisKeys);
@@ -127,8 +121,8 @@ it('should fail with incorrect height', async () => {
   }
   {
     const block = new Block({
-      height: Long.fromNumber(2, true),
-      previous_hash: Buffer.alloc(0),
+      height: 2,
+      previous_hash: Buffer.alloc(32),
       timestamp: new Date(),
       transactions: []
     }).sign(genesisKeys);
@@ -147,12 +141,11 @@ it('should have correct balances in the blockchain', async () => {
   {
     const ts = new Date();
     const b = new Block({
-      height: Long.fromNumber(0, true),
-      previous_hash: undefined!,
+      height: 0,
+      previous_hash: Buffer.alloc(32)!,
       timestamp: ts,
       transactions: [
         new RewardTx({
-          type: TxType.REWARD,
           to: genesisKeys[0],
           timestamp: new Date(0),
           fee: goldFee,
@@ -163,7 +156,6 @@ it('should have correct balances in the blockchain', async () => {
           signature_pairs: []
         }),
         new RewardTx({
-          type: TxType.REWARD,
           to: txFrom[0],
           timestamp: new Date(0),
           fee: goldFee,
@@ -181,12 +173,11 @@ it('should have correct balances in the blockchain', async () => {
   for (let i = 1; i <= 10; ++i) {
     const ts = new Date();
     const b = new Block({
-      height: Long.fromNumber(i, true),
-      previous_hash: chain.head.getHash(),
+      height: i,
+      previous_hash: chain.head.calcHash(),
       timestamp: ts,
       transactions: [
         new RewardTx({
-          type: TxType.REWARD,
           to: genesisKeys[0],
           timestamp: new Date(0),
           fee: goldFee,
@@ -197,7 +188,6 @@ it('should have correct balances in the blockchain', async () => {
           signature_pairs: []
         }),
         new RewardTx({
-          type: TxType.REWARD,
           to: txFrom[0],
           timestamp: new Date(0),
           fee: goldFee,
@@ -208,21 +198,21 @@ it('should have correct balances in the blockchain', async () => {
           signature_pairs: []
         }),
         new TransferTx({
-          type: TxType.TRANSFER,
           timestamp: ts,
           from: txFrom[0],
           to: txTo[0],
           amount: Asset.fromString('0.1 GOLD'),
           fee: goldFee,
+          memo: Buffer.alloc(0),
           signature_pairs: []
         }).appendSign(txFrom),
         new TransferTx({
-          type: TxType.TRANSFER,
           timestamp: ts,
           from: txFrom[0],
           to: txTo[0],
           amount: Asset.fromString('1.0 SILVER'),
           fee: silverFee,
+          memo: Buffer.alloc(0),
           signature_pairs: []
         }).appendSign(txFrom)
       ]
@@ -246,15 +236,14 @@ it('should have correct balances in the blockchain', async () => {
 
 it('should have correct balances in the tx pool', async () => {
   for (let i = 0; i < 10; ++i) {
-    const hash = i === 0 ? undefined : chain.head.getHash();
+    const hash = i === 0 ? Buffer.alloc(32) : chain.head.calcHash();
     const ts = new Date();
     const b = new Block({
-      height: Long.fromNumber(i, true),
+      height: i,
       previous_hash: hash as any,
       timestamp: ts,
       transactions: [
         new RewardTx({
-          type: TxType.REWARD,
           to: genesisKeys[0],
           timestamp: new Date(0),
           fee: Asset.fromString('0 GOLD'),
@@ -272,15 +261,15 @@ it('should have correct balances in the tx pool', async () => {
   const txTo = PrivateKey.genKeyPair();
   const pool = new TxPool(chain);
   {
-    const tx = Buffer.from(new TransferTx({
-      type: TxType.TRANSFER,
+    const tx = new TransferTx({
       timestamp: new Date(),
       from: genesisKeys[0],
       to: txTo[0],
       amount: Asset.fromString('5 GOLD'),
       fee: Asset.fromString('5 GOLD'),
+      memo: Buffer.alloc(0),
       signature_pairs: []
-    }).appendSign(genesisKeys).serialize(true).toBuffer());
+    }).appendSign(genesisKeys).encodeWithSigs();
     const hex = tx.toString('hex');
     await pool.push(tx, hex);
     await expect(pool.push(tx, hex)).to.be.rejectedWith(AssertionError, 'duplicate tx');
@@ -297,12 +286,11 @@ it('should have correct balances in the tx pool', async () => {
 
 it('should throw on invalid balance in the tx pool', async () => {
   await chain.addBlock(new Block({
-    height: Long.fromNumber(0, true),
-    previous_hash: undefined!,
+    height: 0,
+    previous_hash: Buffer.alloc(32),
     timestamp: new Date(),
     transactions: [
       new RewardTx({
-        type: TxType.REWARD,
         to: genesisKeys[0],
         timestamp: new Date(0),
         fee: Asset.fromString('0 GOLD'),
@@ -318,15 +306,15 @@ it('should throw on invalid balance in the tx pool', async () => {
   const pool = new TxPool(chain);
   const txTo = PrivateKey.genKeyPair();
 
-  const tx = Buffer.from(new TransferTx({
-    type: TxType.TRANSFER,
+  const tx = new TransferTx({
     timestamp: new Date(),
     from: genesisKeys[0],
     to: txTo[0],
     amount: Asset.fromString('10 GOLD'),
     fee: Asset.fromString('1 GOLD'),
+    memo: Buffer.alloc(0),
     signature_pairs: []
-  }).appendSign(genesisKeys).serialize(true).toBuffer());
+  }).appendSign(genesisKeys).encodeWithSigs();
   await expect(pool.push(tx, tx.toString('hex'))).to.be.rejectedWith(AssertionError, 'insufficient balance');
 
   let bal = await chain.getBalance(genesisKeys[0]);

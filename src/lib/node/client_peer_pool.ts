@@ -1,6 +1,6 @@
 import * as ByteBuffer from 'bytebuffer';
 import { EventEmitter } from 'events';
-import { SignedBlock } from '../blockchain';
+import { SignedBlock } from 'godcoin-neon';
 import {
   BlockRange,
   ClientNet,
@@ -65,8 +65,7 @@ export class ClientPeerPool extends EventEmitter {
       client.on('net_event_block', async (data: any) => {
         try {
           if (data.block) {
-            const byteBuf = ByteBuffer.wrap(data.block);
-            const block = SignedBlock.fullyDeserialize(byteBuf);
+            const block = SignedBlock.decodeWithTx(data.block);
             await cb(block);
           }
         } catch (e) {

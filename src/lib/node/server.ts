@@ -1,7 +1,8 @@
 import * as ByteBuffer from 'bytebuffer';
+import { SignedBlock } from 'godcoin-neon';
 import * as http from 'http';
 import * as WebSocket from 'uws';
-import { Blockchain, SignedBlock } from '../blockchain';
+import { Blockchain } from '../blockchain';
 import { GODcoinEnv } from '../env';
 import { ServerNet, ServerPeer, WsCloseCode } from '../net';
 import { TxPool } from '../producer';
@@ -65,7 +66,7 @@ export class Server {
           peer.on('net_event_block', async (data: any) => {
             try {
               if (data.block) {
-                const block = SignedBlock.fullyDeserialize(ByteBuffer.wrap(data.block));
+                const block = SignedBlock.decodeWithTx(data.block);
                 await sync.handleBlock(block);
               }
             } catch (e) {

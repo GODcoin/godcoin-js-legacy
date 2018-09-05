@@ -1,12 +1,11 @@
 import * as assert from 'assert';
 import { EventEmitter } from 'events';
-import { Asset, PublicKey } from 'godcoin-neon';
+import { Asset, BondTx, PublicKey, TransferTx, Tx } from 'godcoin-neon';
 import { Blockchain } from '../blockchain';
 import { GODcoin } from '../constants';
 import { Indexer } from '../indexer';
 import { Lock } from '../lock';
 import { SkipFlags } from '../skip_flags';
-import { BondTx, TransferTx, Tx } from '../transactions';
 
 /**
  * Transaction pool as received by peers
@@ -36,7 +35,7 @@ export class TxPool extends EventEmitter {
               || tx instanceof BondTx, 'invalid tx type');
 
       this.txSet[hex] = true;
-      const timeout = (tx.data.timestamp.getTime() + GODcoin.TX_EXPIRY_TIME) - Date.now();
+      const timeout = (tx.timestamp.getTime() + GODcoin.TX_EXPIRY_TIME) - Date.now();
       setTimeout(() => {
         delete this.txSet[hex];
       }, timeout).unref();

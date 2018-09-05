@@ -1,8 +1,14 @@
 import * as assert from 'assert';
-import { Asset, AssetSymbol, KeyPair, PrivateKey } from 'godcoin-neon';
-import * as Long from 'long';
-import { Block, Blockchain } from '../blockchain';
-import { BondTx, RewardTx, TxType } from '../transactions';
+import {
+  Asset,
+  AssetSymbol,
+  Block,
+  BondTx,
+  KeyPair,
+  PrivateKey,
+  RewardTx
+} from 'godcoin-neon';
+import { Blockchain } from '../blockchain';
 import { TxPool } from './tx_pool';
 
 const REWARD_GOLD = new Asset(1, 0, AssetSymbol.GOLD);
@@ -26,12 +32,11 @@ export class LocalMinter {
 
     const genesisTs = new Date();
     const genesisBlock = new Block({
-      height: Long.fromNumber(0, true),
-      previous_hash: undefined as any,
+      height: 0,
+      previous_hash: Buffer.alloc(32),
       timestamp: genesisTs,
       transactions: [
         new RewardTx({
-          type: TxType.REWARD,
           timestamp: genesisTs,
           to: stakerKeys[0],
           fee: Asset.EMPTY_GOLD,
@@ -39,7 +44,6 @@ export class LocalMinter {
           signature_pairs: []
         }),
         new BondTx({
-          type: TxType.BOND,
           timestamp: genesisTs,
           fee: Asset.EMPTY_GOLD,
           minter: this.keys[0],
@@ -59,13 +63,12 @@ export class LocalMinter {
     assert(bond, 'must be a minter to produce a block');
 
     const block = new Block({
-      height: head.height.add(1),
-      previous_hash: head.getHash(),
+      height: head.height + 1,
+      previous_hash: head.calcHash(),
       timestamp: new Date(),
       transactions: [
         ...(await this.pool.popAll()),
         new RewardTx({
-          type: TxType.REWARD,
           timestamp: new Date(0),
           to: bond.staker,
           fee: Asset.EMPTY_GOLD,

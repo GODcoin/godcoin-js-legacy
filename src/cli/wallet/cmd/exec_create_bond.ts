@@ -1,5 +1,5 @@
-import { Asset } from 'godcoin-neon';
-import { BondTx, GODcoin, TxType } from '../../../lib';
+import { Asset, BondTx } from 'godcoin-neon';
+import { GODcoin } from '../../../lib';
 import { Util } from '../util';
 import { Wallet } from '../wallet';
 import { write } from '../writer';
@@ -23,7 +23,6 @@ export async function execCreateBond(wallet: Wallet, args: any[]) {
 
   const props = await wallet.client.getProperties();
   const tx = new BondTx({
-    type: TxType.BOND,
     timestamp: new Date(),
     minter: minterAcc[0],
     staker: stakerAcc[0],
@@ -33,7 +32,7 @@ export async function execCreateBond(wallet: Wallet, args: any[]) {
     signature_pairs: []
   }).appendSign(minterAcc)
     .appendSign(stakerAcc);
-  await wallet.client.broadcast(Buffer.from(tx.serialize(true).toBuffer()));
+  await wallet.client.broadcast(tx.encodeWithSigs());
   write('Broadcasting tx\n', tx.toString(), '\n');
   const height = Number.parseInt(props.block_height);
   const data = await Util.findTx(wallet.client, height, tx);

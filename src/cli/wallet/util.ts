@@ -1,5 +1,5 @@
-import { Asset, PublicKey } from 'godcoin-neon';
-import { ClientPeer, GODcoin, Tx } from '../../lib';
+import { Asset, PublicKey, Tx } from 'godcoin-neon';
+import { ClientPeer, GODcoin } from '../../lib';
 
 export namespace Util {
   export interface TotalFee {
@@ -29,8 +29,8 @@ export namespace Util {
   export async function findTx(client: ClientPeer,
                                height: number,
                                tx: Tx): Promise<TxRef|undefined> {
-    const buf = Buffer.from(tx.serialize(true).toBuffer());
-    const exp = tx.data.timestamp.getTime() + GODcoin.TX_EXPIRY_TIME;
+    const buf = tx.encodeWithSigs();
+    const exp = tx.timestamp.getTime() + GODcoin.TX_EXPIRY_TIME;
     const hex = buf.toString('hex');
     let ref: TxRef|undefined;
     loop: while (Date.now() < exp) {
@@ -42,7 +42,7 @@ export namespace Util {
       }
       for (let i = 0; i < block.transactions.length; ++i) {
         const blockTx = block.transactions[i];
-        const txBuf = Buffer.from(blockTx.serialize(true).toBuffer());
+        const txBuf = blockTx.encodeWithSigs();
         if (hex === txBuf.toString('hex')) {
           ref = {
             ref_block: height,

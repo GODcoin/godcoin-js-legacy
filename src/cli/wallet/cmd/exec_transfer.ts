@@ -1,9 +1,5 @@
 import * as assert from 'assert';
-import { Asset, AssetSymbol, PublicKey } from 'godcoin-neon';
-import {
-  TransferTx,
-  TxType
-} from '../../../lib';
+import { Asset, AssetSymbol, PublicKey, TransferTx } from 'godcoin-neon';
 import { Util } from '../util';
 import { Wallet } from '../wallet';
 import { write } from '../writer';
@@ -31,7 +27,6 @@ export async function execTransfer(wallet: Wallet, args: any[]) {
 
   const props = await wallet.client.getProperties();
   const tx = new TransferTx({
-    type: TxType.TRANSFER,
     timestamp: new Date(),
     from: acc[0],
     to: toAddr,
@@ -41,7 +36,7 @@ export async function execTransfer(wallet: Wallet, args: any[]) {
     signature_pairs: []
   }).appendSign(acc);
   write('Broadcasting tx\n', tx.toString(), '\n');
-  const buf = Buffer.from(tx.serialize(true).toBuffer());
+  const buf = tx.encodeWithSigs();
   await wallet.client.broadcast(buf);
 
   const height = Number.parseInt(props.block_height);

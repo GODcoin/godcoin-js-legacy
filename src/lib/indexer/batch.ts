@@ -1,5 +1,6 @@
 import { Asset } from 'godcoin-neon';
 import * as Codec from 'level-codec';
+import * as Long from 'long';
 import { Indexer, IndexProp } from './index';
 
 const jsonCodec = new Codec({
@@ -19,14 +20,15 @@ export class BatchIndex {
   constructor(private readonly indexer: Indexer) {
   }
 
-  async setBlockPos(height: Long, bytePos: Long): Promise<void> {
+  async setBlockPos(height: number, bytePos: Long): Promise<void> {
     const posBuf = Buffer.allocUnsafe(8);
     posBuf.writeInt32BE(bytePos.high, 0, true);
     posBuf.writeInt32BE(bytePos.low, 4, true);
 
     const blkHeightBuf = Buffer.allocUnsafe(8);
-    blkHeightBuf.writeInt32BE(height.high, 0, true);
-    blkHeightBuf.writeInt32BE(height.low, 4, true);
+    const l = Long.fromNumber(height, true);
+    blkHeightBuf.writeInt32BE(l.high, 0, true);
+    blkHeightBuf.writeInt32BE(l.low, 4, true);
 
     this.ops.push({
       type: 'put',
