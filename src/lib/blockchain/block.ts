@@ -35,15 +35,6 @@ export class Block implements BlockOpts {
   static readonly SERIALIZER = TS.object(Block.SERIALIZER_FIELDS);
   static readonly DESERIALIZER = TD.object(Block.SERIALIZER_FIELDS);
 
-  static create(prevBlock: SignedBlock, tx: Tx[]): Block {
-    return new Block({
-      height: prevBlock.height.add(1),
-      previous_hash: prevBlock.getHash(),
-      timestamp: new Date(),
-      transactions: tx
-    });
-  }
-
   readonly height: Long;
   readonly previous_hash: Buffer;
   readonly timestamp: Date;
