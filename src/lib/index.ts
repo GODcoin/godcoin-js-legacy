@@ -4,7 +4,6 @@ export * from './serializer';
 export * from './constants';
 export * from './node-util';
 export * from './indexer';
-export * from './crypto';
 export * from './asset';
 export * from './node';
 export * from './net';

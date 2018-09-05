@@ -2,9 +2,8 @@
 
 import * as assert from 'assert';
 import * as ByteBuffer from 'bytebuffer';
-import { KeyPair, SigPair } from 'godcoin-neon';
+import { doubleSha256, KeyPair, SigPair } from 'godcoin-neon';
 import * as Long from 'long';
-import { doubleSha256 } from '../crypto';
 import {
   ObjectType,
   TypeDeserializer as TD,
