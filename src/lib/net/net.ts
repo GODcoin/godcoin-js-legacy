@@ -65,9 +65,10 @@ export abstract class Net extends EventEmitter {
   protected abstract onError(err: any): void;
 
   protected onOpen(): void {
-    if (!this.peerType && !this.isServerSide()) {
+    if (this.peerType === undefined && !this.isServerSide()) {
       console.log(`${this.formatLogPrefix()} Peer type not set`);
       this._socket!.end();
+      return;
     }
     console.log(`${this.formatLogPrefix()} Peer has connected`);
     this.emit('open');
