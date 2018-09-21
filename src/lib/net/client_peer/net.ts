@@ -100,6 +100,7 @@ export class ClientNet extends Net {
       });
     } catch (e) {
       if (this.socket) this.socket.end();
+      console.log(`${this.formatLogPrefix()} Open handler failed\n`, e);
       return;
     }
     super.onOpen();
