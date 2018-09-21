@@ -17,13 +17,9 @@ export async function execGetTotalFee(wallet: Wallet, args: any[]) {
   const addr = PublicKey.fromWif(address);
   const fee = await Util.getTotalFee(wallet.client, addr);
   write({
-    net_fee: [
-      fee.net_fee[0].toString(),
-      fee.net_fee[1].toString()
-    ],
     fee: [
-      fee.fee[0].toString(),
-      fee.fee[1].toString()
+      fee[0].toString(),
+      fee[1].toString()
     ]
   });
 }

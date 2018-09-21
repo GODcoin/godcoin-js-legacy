@@ -1,11 +1,9 @@
-import * as ByteBuffer from 'bytebuffer';
 import { EventEmitter } from 'events';
-import { SignedBlock } from 'godcoin-neon';
+import { PeerType, SignedBlock } from 'godcoin-neon';
 import {
   BlockRange,
   ClientNet,
   ClientPeer,
-  ClientType,
   DisconnectedError,
   EndOfClients,
   PeerOpts
@@ -22,7 +20,7 @@ export class ClientPeerPool extends EventEmitter {
 
   async addNode(opts: PeerOpts, nodeUrl: string) {
     const net = new ClientNet(nodeUrl);
-    net.clientType = ClientType.NODE;
+    net.peerType = PeerType.NODE;
     const peer = new ClientPeer(opts, net);
     this.clients.push(peer);
   }

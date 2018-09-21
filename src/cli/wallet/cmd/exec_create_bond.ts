@@ -19,7 +19,7 @@ export async function execCreateBond(wallet: Wallet, args: any[]) {
   const stakerAcc = await wallet.db.getAccount(staker);
   if (!stakerAcc) return write('Staker account does not exist');
 
-  const fee = (await Util.getTotalFee(wallet.client, stakerAcc[0])).fee;
+  const fee = await Util.getTotalFee(wallet.client, stakerAcc[0]);
 
   const props = await wallet.client.getProperties();
   const tx = new BondTx({
@@ -32,10 +32,9 @@ export async function execCreateBond(wallet: Wallet, args: any[]) {
     signature_pairs: []
   }).appendSign(minterAcc)
     .appendSign(stakerAcc);
-  await wallet.client.broadcast(tx.encodeWithSigs());
+  await wallet.client.broadcast(tx);
   write('Broadcasting tx\n', tx.toString(), '\n');
-  const height = Number.parseInt(props.block_height);
-  const data = await Util.findTx(wallet.client, height, tx);
+  const data = await Util.findTx(wallet.client, props.height, tx);
   if (data) {
     write(data);
   } else {

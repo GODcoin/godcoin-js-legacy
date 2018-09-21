@@ -1,20 +1,25 @@
-import * as borc from 'borc';
-import * as ByteBuffer from 'bytebuffer';
 import { EventEmitter } from 'events';
-import { PublicKey, SignedBlock, Tx } from 'godcoin-neon';
+import {
+  Asset,
+  PeerType,
+  PublicKey,
+  RpcEventType,
+  RpcMsgEvent,
+  RpcMsgResProperties,
+  RpcMsgType,
+  RpcPayload,
+  SignedBlock,
+  Tx
+} from 'godcoin-neon';
 import { Blockchain } from '../blockchain';
 import { PromiseLike } from '../node-util';
 import { LocalMinter, TxPool } from '../producer';
-import { ClientType } from './client_type';
 import {
   ApiError,
-  ApiErrorCode,
-  check,
-  DisconnectedError,
-  WsCloseCode
+  DisconnectedError
 } from './errors';
 import { Net } from './net';
-import * as rpc from './rpc_model';
+import * as rpcModel from './rpc_model';
 
 export interface PeerOpts {
   blockchain: Blockchain;
@@ -37,67 +42,69 @@ export class Peer extends EventEmitter {
     this.net.on('open', this.onOpen.bind(this));
   }
 
-  async broadcast(tx: Buffer): Promise<rpc.BroadcastResult> {
-    return await this.invokeRpc({
-      method: 'broadcast',
-      tx
+  async broadcast(tx: Tx): Promise<void> {
+    await this.invokeRpc({
+      id: ++this.id,
+      msg_type: RpcMsgType.BROADCAST,
+      req: tx
     });
   }
 
-  async getProperties(): Promise<rpc.NetworkProperties> {
-    return await this.invokeRpc({
-      method: 'get_properties'
-    });
+  async getProperties(): Promise<RpcMsgResProperties> {
+    return (await this.invokeRpc({
+      id: ++this.id,
+      msg_type: RpcMsgType.PROPERTIES
+    })).res;
   }
 
   async getBlock(height: number): Promise<SignedBlock|undefined> {
-    const data = await this.invokeRpc({
-      method: 'get_block',
-      height
-    });
-    if (!data.block) return;
-    return SignedBlock.decodeWithTx(data.block);
+    return (await this.invokeRpc({
+      id: ++this.id,
+      msg_type: RpcMsgType.BLOCK,
+      req: {
+        height
+      }
+    })).res;
   }
 
-  async getBlockRange(minHeight: number, maxHeight: number): Promise<rpc.BlockRange> {
-    const data = await this.invokeRpc({
-      method: 'get_block_range',
-      min_height: minHeight,
-      max_height: maxHeight
-    });
-
+  async getBlockRange(minHeight: number, maxHeight: number): Promise<rpcModel.BlockRange> {
+    let range_outside_height = false;
     const blocks: SignedBlock[] = [];
-    for (const block of data.blocks) {
-      blocks.push(SignedBlock.decodeWithTx(block));
+    for (let i = minHeight; i <= maxHeight; ++i) {
+      const blk = await this.getBlock(i);
+      if (!blk) {
+        range_outside_height = true;
+        break;
+      }
+      blocks.push(blk);
     }
+
     return {
-      range_outside_height: data.range_outside_height,
+      range_outside_height,
       blocks
     };
   }
 
-  async getBalance(address: string): Promise<[string, string]> {
+  async getBalance(address: PublicKey): Promise<[Asset, Asset]> {
     return (await this.invokeRpc({
-      method: 'get_balance',
-      address
-    })).balance;
+      id: ++this.id,
+      msg_type: RpcMsgType.BALANCE,
+      req: address
+    })).res;
   }
 
-  async getTotalFee(address: string): Promise<rpc.TotalFee> {
-    const data = await this.invokeRpc({
-      method: 'get_total_fee',
-      address
-    });
-    return {
-      net_fee: data.net_fee,
-      fee: data.fee
-    };
+  async getTotalFee(address: PublicKey): Promise<[Asset, Asset]> {
+    return (await this.invokeRpc({
+      id: ++this.id,
+      msg_type: RpcMsgType.TOTAL_FEE,
+      req: address
+    })).res;
   }
 
-  async invokeRpc(data: any): Promise<any> {
-    return new Promise((resolve, reject) => {
-      if (!this.net.isOpen) throw new DisconnectedError();
-      const id = ++this.id;
+  async invokeRpc(rpc: RpcPayload): Promise<RpcPayload> {
+    return new Promise<RpcPayload>(async (resolve, reject) => {
+      if (!this.net.isOpen) return reject(new DisconnectedError());
+      const id = rpc.id;
       const prom = this.requests[id] = {
         resolve: (val?: any) => {
           delete this.requests[id];
@@ -109,12 +116,7 @@ export class Peer extends EventEmitter {
         }
       };
       try {
-        this.net.ws!.send(borc.encode({
-          id,
-          ...data
-        }), err => {
-          if (err) prom.reject(err);
-        });
+        await this.net.send(rpc);
       } catch (err) {
         prom.reject(err);
       }
@@ -136,8 +138,13 @@ export class Peer extends EventEmitter {
     if (this.txHandler || this.blockHandler) return;
     this.txHandler = async tx => {
       try {
-        await this.net.sendEvent('tx', {
-          tx: tx.encodeWithSigs()
+        await this.net.send({
+          id: ++this.id,
+          msg_type: RpcMsgType.EVENT,
+          res: {
+            type: RpcEventType.TX,
+            data: tx
+          }
         });
       } catch (e) {
         if (!(e instanceof DisconnectedError)) {
@@ -148,8 +155,13 @@ export class Peer extends EventEmitter {
 
     this.blockHandler = async (block: SignedBlock) => {
       try {
-        await this.net.sendEvent('block', {
-          block: block.encodeWithTx()
+        await this.net.send({
+          id: ++this.id,
+          msg_type: RpcMsgType.EVENT,
+          res: {
+            type: RpcEventType.BLOCK,
+            data: block
+          }
         });
       } catch (e) {
         if (!(e instanceof DisconnectedError)) {
@@ -164,143 +176,105 @@ export class Peer extends EventEmitter {
     });
   }
 
-  private async onMessage(map: any): Promise<void> {
+  private async onMessage(rpc: RpcPayload): Promise<void> {
     try {
       // Check for an event
-      if (map.event) {
-        this.emit(`net_event_${map.event}`, map);
-        return;
-      }
-
-      // Prepare RPC call data
-      const id = map.id;
-      if (typeof(id) !== 'number') {
-        this.net.ws!.close(WsCloseCode.POLICY_VIOLATION, 'id must be a number');
+      if (rpc.msg_type === RpcMsgType.EVENT) {
+        const evt: RpcMsgEvent = rpc.req;
+        if (evt.type === RpcEventType.BLOCK) {
+          this.emit('net_event_block', evt.data);
+        } else if (evt.type === RpcEventType.TX) {
+          this.emit('net_event_tx', evt.data);
+        }
         return;
       }
 
       // Check for an RPC invocation
-      if (map.method) {
+      if (rpc.req) {
         try {
-          const resp = await this.processMessage(map);
-          await this.net.sendId(id, resp);
+          const resp = await this.processMessage(rpc);
+          await this.net.send(resp);
         } catch (e) {
-          await this.net.sendId(id, {
-            error: e instanceof ApiError ? e.code : ApiErrorCode.MISC,
-            message: e.message
+          await this.net.send({
+            id: rpc.id,
+            msg_type: RpcMsgType.ERROR,
+            res: {
+              error: e.message
+            }
           });
         }
         return;
       }
 
       // Resolve any pending RPC request
-      const req = this.requests[id];
+      const req = this.requests[rpc.id];
       if (req) {
-        if (map.error) req.reject(map);
-        else req.resolve(map);
+        if (rpc.msg_type === RpcMsgType.ERROR) req.reject(rpc.res.error);
+        else req.resolve(rpc);
       }
     } catch (e) {
       console.log(`[${this.net.nodeUrl}] Failed to process message`, e);
     }
   }
 
-  private async processMessage(map: any): Promise<any> {
-    const method = map.method;
+  private async processMessage(rpc: RpcPayload): Promise<RpcPayload> {
+    const method = rpc.msg_type;
     switch (method) {
-      case 'broadcast': {
-        const tx: Buffer = map.tx;
-        check(tx, ApiErrorCode.INVALID_PARAMS, 'missing tx');
-        check(tx instanceof Buffer, ApiErrorCode.INVALID_PARAMS, 'tx not a buffer');
-
-        await this.opts.pool.push(tx, tx.toString('hex'));
-        return {};
-      }
-      case 'get_properties': {
-        const supply = await this.opts.blockchain.indexer.getTokenSupply();
+      case RpcMsgType.BROADCAST: {
+        const tx: Tx = rpc.req;
+        const buf = tx.encodeWithSigs();
+        await this.opts.pool.push(buf, buf.toString('hex'));
         return {
-          block_height: this.opts.blockchain.head.height.toString(),
-          supply: [
-            supply[0].toString(),
-            supply[1].toString()
-          ],
-          network_fee: [
-            this.opts.blockchain.networkFee[0].toString(),
-            this.opts.blockchain.networkFee[1].toString()
-          ]
+          id: rpc.id,
+          msg_type: RpcMsgType.NONE
         };
       }
-      case 'get_block': {
-        const height: number = map.height;
-        check(typeof(height) === 'number', ApiErrorCode.INVALID_PARAMS, 'height must be a number');
-        check(height >= 0, ApiErrorCode.INVALID_PARAMS, 'height must be >= 0');
+      case RpcMsgType.PROPERTIES: {
+        const props: RpcMsgResProperties = {
+          height: this.opts.blockchain.head.height,
+          token_supply: await this.opts.blockchain.indexer.getTokenSupply()
+        };
+        return {
+          id: rpc.id,
+          msg_type: RpcMsgType.PROPERTIES,
+          res: props
+        };
+      }
+      case RpcMsgType.BLOCK: {
+        const height: number = rpc.req!.height;
         const block = await this.opts.blockchain.getBlock(height);
-        if (block) {
-          return {
-            block: block.encodeWithTx()
-          };
-        }
-        return;
+        const data: RpcPayload = {
+          id: rpc.id,
+          msg_type: RpcMsgType.BLOCK,
+          res: block
+        };
+        return data;
       }
-      case 'get_block_range': {
-        const min: number = map.min_height;
-        const max: number = map.max_height;
-        check(typeof(min) === 'number', ApiErrorCode.INVALID_PARAMS, 'min_height must be a number');
-        check(typeof(max) === 'number', ApiErrorCode.INVALID_PARAMS, 'max_height must be a number');
-        check(min >= 0, ApiErrorCode.INVALID_PARAMS, 'min_height must be >= 0');
-        check(max >= min, ApiErrorCode.INVALID_PARAMS, 'max_height must be >= min_height');
-        check(max - min <= 100, ApiErrorCode.INVALID_PARAMS, 'range retrieval must be <= 100 blocks');
-
-        const blocks: Buffer[] = [];
-        let outsideRange = false;
-        for (let i = min; i <= max; ++i) {
-          const block = await this.opts.blockchain.getBlock(i);
-          if (block) {
-            blocks.push(block.encodeWithTx());
-          } else {
-            outsideRange = true;
-            break;
-          }
-        }
+      case RpcMsgType.BALANCE: {
+        const address: PublicKey = rpc.req!;
+        const balance = await this.opts.pool.getBalance(address);
         return {
-          range_outside_height: outsideRange,
-          blocks
+          id: rpc.id,
+          msg_type: RpcMsgType.BALANCE,
+          res: balance
         };
       }
-      case 'get_total_fee': {
-        const address: string = map.address;
-        check(typeof(address) === 'string', ApiErrorCode.INVALID_PARAMS, 'address must be a string');
-        const wif = PublicKey.fromWif(address);
-        const netFee = this.opts.blockchain.networkFee;
-        const fee = await this.opts.pool.getTotalFee(wif);
+      case RpcMsgType.TOTAL_FEE: {
+        const address: PublicKey = rpc.req!;
+        const fee = await this.opts.pool.getTotalFee(address);
         return {
-          net_fee: [
-            netFee[0].toString(),
-            netFee[1].toString()
-          ],
-          fee: [
-            fee[0].toString(),
-            fee[1].toString()
-          ]
-        };
-      }
-      case 'get_balance': {
-        const address: string = map.address;
-        check(typeof(address) === 'string', ApiErrorCode.INVALID_PARAMS, 'address must be a string');
-        const balance = await this.opts.pool.getBalance(PublicKey.fromWif(address));
-        return {
-          balance: [
-            balance[0].toString(),
-            balance[1].toString()
-          ]
+          id: rpc.id,
+          msg_type: RpcMsgType.TOTAL_FEE,
+          res: fee
         };
       }
       default:
-        throw new ApiError(ApiErrorCode.UNKNOWN_METHOD, 'unknown method');
+        throw new ApiError('unknown method');
     }
   }
 
   private onOpen(): void {
-    if (this.net.clientType === ClientType.NODE) {
+    if (this.net.peerType === PeerType.NODE) {
       this.addSubscriptions();
     }
   }

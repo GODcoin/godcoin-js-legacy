@@ -3,7 +3,7 @@ import { Wallet } from '../wallet';
 import { write } from '../writer';
 
 export async function execGetBalance(wallet: Wallet, args: any[]) {
-  let address = (args[1] || '').trim();
+  let address: string = (args[1] || '').trim();
   if (!address) {
     write('get_balance <address|account> - missing address or account');
     return;
@@ -13,8 +13,7 @@ export async function execGetBalance(wallet: Wallet, args: any[]) {
   }
 
   // Make sure the user can't accidentally input a private key
-  PublicKey.fromWif(address);
-
-  const balance = await wallet.client.getBalance(address);
-  write(balance);
+  const key = PublicKey.fromWif(address);
+  const balance = await wallet.client.getBalance(key);
+  write([balance[0].toString(), balance[1].toString()]);
 }

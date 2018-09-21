@@ -1,13 +1,13 @@
 /* tslint:disable:max-line-length */
 
 import * as assert from 'assert';
+import { PeerType } from 'godcoin-neon';
 import * as mkdirp from 'mkdirp';
 import * as path from 'path';
 import * as readline from 'readline';
 import {
   ClientNet,
   ClientPeer,
-  ClientType,
   GODcoinEnv,
   hookSigInt
 } from '../../lib';
@@ -91,7 +91,7 @@ export class Wallet {
 
   constructor(nodeUrl: string) {
     const net = new ClientNet(nodeUrl);
-    net.clientType = ClientType.WALLET;
+    net.peerType = PeerType.WALLET;
     this.client = new ClientPeer({
       blockchain: undefined!,
       pool: undefined!
@@ -128,7 +128,7 @@ export class Wallet {
       try {
         await this.processLine(input);
       } catch (e) {
-        write(e);
+        write('Error processing command:', e);
       } finally {
         this.rl.prompt();
       }

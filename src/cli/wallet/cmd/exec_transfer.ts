@@ -21,8 +21,8 @@ export async function execTransfer(wallet: Wallet, args: any[]) {
   const totalFee = await Util.getTotalFee(wallet.client, acc[0]);
 
   let fee: Asset;
-  if (amt.symbol === AssetSymbol.GOLD) fee = totalFee.fee[0];
-  else if (amt.symbol === AssetSymbol.SILVER) fee = totalFee.fee[1];
+  if (amt.symbol === AssetSymbol.GOLD) fee = totalFee[0];
+  else if (amt.symbol === AssetSymbol.SILVER) fee = totalFee[1];
   assert(fee!, 'unhandled asset type: ' + amt.symbol);
 
   const props = await wallet.client.getProperties();
@@ -36,11 +36,9 @@ export async function execTransfer(wallet: Wallet, args: any[]) {
     signature_pairs: []
   }).appendSign(acc);
   write('Broadcasting tx\n', tx.toString(), '\n');
-  const buf = tx.encodeWithSigs();
-  await wallet.client.broadcast(buf);
+  await wallet.client.broadcast(tx);
 
-  const height = Number.parseInt(props.block_height);
-  const data = await Util.findTx(wallet.client, height, tx);
+  const data = await Util.findTx(wallet.client, props.height, tx);
   if (data) {
     write(data);
   } else {

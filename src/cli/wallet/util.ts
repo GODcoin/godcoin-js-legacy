@@ -2,28 +2,13 @@ import { Asset, PublicKey, Tx } from 'godcoin-neon';
 import { ClientPeer, GODcoin } from '../../lib';
 
 export namespace Util {
-  export interface TotalFee {
-    net_fee: [Asset, Asset];
-    fee: [Asset, Asset];
-  }
-
   export interface TxRef {
     ref_block: number;
     ref_tx_pos: number;
   }
 
-  export async function getTotalFee(client: ClientPeer, addr: PublicKey): Promise<TotalFee> {
-    const fee = await client.getTotalFee(addr.toWif());
-    return {
-      net_fee: [
-        Asset.fromString(fee.net_fee[0]),
-        Asset.fromString(fee.net_fee[1])
-      ],
-      fee: [
-        Asset.fromString(fee.fee[0]),
-        Asset.fromString(fee.fee[1])
-      ]
-    };
+  export function getTotalFee(client: ClientPeer, addr: PublicKey): Promise<[Asset, Asset]> {
+    return client.getTotalFee(addr);
   }
 
   export async function findTx(client: ClientPeer,

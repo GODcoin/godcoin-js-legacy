@@ -1,7 +1,6 @@
 import * as path from 'path';
 
 export namespace GODcoinEnv {
-  export const GODCOIN_TRUST_PROXY = process.env.GODCOIN_TRUST_PROXY === 'true';
   export const GODCOIN_HOME = (() => {
     /* istanbul ignore next */
     if (process.env.GODCOIN_HOME) {

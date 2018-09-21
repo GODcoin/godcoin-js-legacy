@@ -99,7 +99,7 @@ function keygen(): void {
   }, startNode).command(cmd === 'wallet' ? ['wallet', '$0'] : ['wallet'], '', () => {
     return yargs.option('server', {
       string: true,
-      default: 'ws://127.0.0.1:7777',
+      default: '127.0.0.1:7777',
       requiresArg: true,
       desc: 'Node to connect to for interacting with the blockchain'
     });

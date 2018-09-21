@@ -1,10 +1,7 @@
-import * as ByteBuffer from 'bytebuffer';
 import { SignedBlock } from 'godcoin-neon';
-import * as http from 'http';
-import * as WebSocket from 'uws';
+import * as net from 'net';
 import { Blockchain } from '../blockchain';
-import { GODcoinEnv } from '../env';
-import { ServerNet, ServerPeer, WsCloseCode } from '../net';
+import { ServerNet, ServerPeer } from '../net';
 import { TxPool } from '../producer';
 import { Synchronizer } from './synchronizer';
 
@@ -22,13 +19,11 @@ export class Server {
   private readonly bindAddr: string;
   private readonly port: number;
 
-  private ws = new WebSocket.Server({
-    noServer: true
-  });
-  private server?: http.Server;
+  private _clientCount = 0;
+  private server?: net.Server;
 
   get clientCount(): number {
-    return this.ws.clients.length;
+    return this._clientCount;
   }
 
   constructor(opts: ServerOptions) {
@@ -41,62 +36,48 @@ export class Server {
   start(sync: Synchronizer): void {
     if (this.server) return;
 
-    this.server = http.createServer((req, res) => {
-      res.statusCode = 404;
-      res.end();
+    this.server = new net.Server(async socket => {
+      socket.unref();
+      const ip = socket.remoteAddress!;
+      const port = socket.remotePort!;
+      const serverNet = new ServerNet(ip + ':' + port, socket);
+      const peer = new ServerPeer({
+        blockchain: this.blockchain,
+        pool: this.pool
+      }, serverNet);
+      try {
+        await peer.init();
+        peer.on('net_event_block', async (data: any) => {
+          try {
+            if (data.block) {
+              const block = SignedBlock.decodeWithTx(data.block);
+              await sync.handleBlock(block);
+            }
+          } catch (e) {
+            console.log(`[${serverNet.nodeUrl}] Failed to deserialize block`, e);
+          }
+        });
+        peer.on('net_event_tx', (data: any) => {
+          try {
+            if (data.tx) sync.handleTx(Buffer.from(data.tx));
+          } catch (e) {
+            console.log(`[${serverNet.nodeUrl}] Failed to handle transaction`, e);
+          }
+        });
+      } catch (e) {
+        console.log(`[${serverNet.nodeUrl}] Failed to initialize peer`, e);
+        if (serverNet.socket && serverNet.isOpen) {
+          serverNet.socket.end();
+        }
+      }
     }).listen(this.port, this.bindAddr, () => {
       console.log(`Server bound to ${this.bindAddr}:${this.port}`);
-    });
-    this.server.on('upgrade', (req: http.IncomingMessage, socket, head) => {
-      let ip = req.connection.remoteAddress!;
-      const port = req.connection.remotePort!;
-      this.ws.handleUpgrade(req, socket, head, async ws => {
-        if (GODcoinEnv.GODCOIN_TRUST_PROXY) {
-          const tmp = req.headers['x-forwarded-for'];
-          if (typeof(tmp) === 'string') ip = tmp.split(',')[0];
-          else if (tmp) ip = tmp[0].split(',')[0];
-        }
-        const net = new ServerNet(ip + ':' + port, ws);
-        const peer = new ServerPeer({
-          blockchain: this.blockchain,
-          pool: this.pool
-        }, net);
-        try {
-          await peer.init();
-          peer.on('net_event_block', async (data: any) => {
-            try {
-              if (data.block) {
-                const block = SignedBlock.decodeWithTx(data.block);
-                await sync.handleBlock(block);
-              }
-            } catch (e) {
-              console.log(`[${net.nodeUrl}] Failed to deserialize block`, e);
-            }
-          });
-          peer.on('net_event_tx', (data: any) => {
-            try {
-              if (data.tx) sync.handleTx(Buffer.from(data.tx));
-            } catch (e) {
-              console.log(`[${net.nodeUrl}] Failed to handle transaction`, e);
-            }
-          });
-        } catch (e) {
-          console.log(`[${net.nodeUrl}] Failed to initialize peer`, e);
-          if (net.ws && net.isOpen) {
-            net.ws.close(WsCloseCode.POLICY_VIOLATION, e.message);
-          }
-        }
-      });
     });
   }
 
   stop(): void {
     if (this.server) {
       this.server.close();
-      this.server = undefined;
-    }
-    if (this.ws) {
-      this.ws.close();
       this.server = undefined;
     }
   }

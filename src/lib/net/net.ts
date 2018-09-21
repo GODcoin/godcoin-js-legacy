@@ -1,101 +1,90 @@
 import * as assert from 'assert';
-import * as borc from 'borc';
 import { EventEmitter } from 'events';
-import * as WebSocket from 'uws';
-import { ClientType } from './client_type';
-import { DisconnectedError, WsCloseCode } from './errors';
+import { PeerType, RpcCodec, RpcPayload } from 'godcoin-neon';
+import * as net from 'net';
+import { DisconnectedError } from './errors';
 
 export abstract class Net extends EventEmitter {
 
-  private _clientType?: ClientType;
-  private _ws?: WebSocket;
-
-  get ws(): WebSocket|undefined {
-    return this._ws;
+  get socket(): net.Socket|undefined {
+    return this._socket;
   }
 
-  set ws(socket: WebSocket|undefined) {
+  set socket(socket: net.Socket|undefined) {
     if (socket) {
-      // Server side socket is already open
-      if (socket.readyState !== WebSocket.OPEN) socket.on('open', this.onOpen.bind(this));
+      this.codec = new RpcCodec();
+
+      socket.on('open', this.onOpen.bind(this));
       socket.on('close', this.onClose.bind(this));
-      socket.on('message', this.onMessage.bind(this));
-      socket.on('ping', this.onPing.bind(this));
+      socket.on('data', this.onData.bind(this));
       socket.on('error', this.onError.bind(this));
-    } else if (this._ws) {
-      this._ws.close();
-      this._ws.removeAllListeners();
+    } else if (this._socket) {
+      this._socket.end();
+      this._socket.removeAllListeners();
     }
-    this._ws = socket;
+    this._socket = socket;
   }
 
   get isOpen(): boolean {
-    return this._ws !== undefined && this._ws.readyState === WebSocket.OPEN;
+    return this._socket !== undefined;
   }
 
-  get clientType(): ClientType {
-    return this._clientType!;
+  get peerType(): PeerType {
+    return this._peerType!;
   }
 
-  set clientType(t: ClientType) {
-    assert(this.clientType === undefined, 'client type already set');
-    this._clientType = t;
+  set peerType(t: PeerType) {
+    assert(this.peerType === undefined, 'client type already set');
+    this._peerType = t;
   }
+
+  private _peerType?: PeerType;
+  private _socket?: net.Socket;
+  private codec?: RpcCodec;
 
   constructor(readonly nodeUrl: string) {
     super();
   }
 
-  sendEvent(event: string, data: any): Promise<void> {
-    const buf = borc.encode({
-      event,
-      ...data
-    });
-    return this.send(buf);
-  }
-
-  sendId(id: number, data: any): Promise<void> {
-    const buf = borc.encode({
-      id,
-      ...data
-    });
-    return this.send(buf);
-  }
-
-  protected abstract onPing(data: any): void;
-  protected abstract onError(err: any): void;
-
-  protected onOpen(): void {
-    if (!this.clientType) {
-      console.log(`[${this.nodeUrl}] Client type not set`);
-      return this.ws!.close(WsCloseCode.POLICY_VIOLATION, 'client type not set');
-    }
-    console.log(`[${this.nodeUrl}] Peer has connected`);
-    this.emit('open');
-  }
-
-  protected onClose(code: number, msg: string): void {
-    console.log(`[${this.nodeUrl}] Peer has disconnected (${code}; ${msg ? msg : 'no reason provided'})`);
-    this.ws = undefined;
-    this.emit('close');
-  }
-
-  protected async onMessage(data: any): Promise<void> {
-    if (data instanceof ArrayBuffer) {
-      const map = borc.decode(Buffer.from(data));
-      this.emit('message', map);
-    } else {
-      this._ws!.close(WsCloseCode.UNSUPPORTED_DATA, 'text not supported');
-    }
-  }
-
-  private async send(data: Buffer): Promise<void> {
+  async send(rpc: RpcPayload): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       if (!this.isOpen) return reject(new DisconnectedError());
-      this._ws!.send(data, err => {
+      const buf = this.codec!.encode(rpc);
+      this._socket!.write(buf, err => {
         if (err) return reject(err);
         resolve();
       });
     });
+  }
+
+  formatLogPrefix() {
+    return `[${this.nodeUrl} (${this.isServerSide() ? 'incoming' : 'outgoing'})]`;
+  }
+
+  protected abstract isServerSide(): boolean;
+  protected abstract onError(err: any): void;
+
+  protected onOpen(): void {
+    if (!this.peerType && !this.isServerSide()) {
+      console.log(`${this.formatLogPrefix()} Peer type not set`);
+      this._socket!.end();
+    }
+    console.log(`${this.formatLogPrefix()} Peer has connected`);
+    this.emit('open');
+  }
+
+  protected onClose(): void {
+    console.log(`${this.formatLogPrefix()} Peer has disconnected`);
+    this.socket = undefined;
+    this.emit('close');
+  }
+
+  protected async onData(data: Buffer): Promise<void> {
+    this.codec!.update(data);
+    let payload;
+    // tslint:disable-next-line no-conditional-assignment
+    while (payload = this.codec!.decode()) {
+      this.emit('message', payload);
+    }
   }
 }

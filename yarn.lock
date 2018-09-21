@@ -99,19 +99,9 @@
     normalize-path "^2.0.1"
     through2 "^2.0.3"
 
-"@types/base-x@*":
-  version "1.0.29"
-  resolved "https://registry.yarnpkg.com/@types/base-x/-/base-x-1.0.29.tgz#8a2d73e4a5c3121757a5f8870cfa4509655186b6"
-
 "@types/benchmark@^1.0.31":
   version "1.0.31"
   resolved "https://registry.yarnpkg.com/@types/benchmark/-/benchmark-1.0.31.tgz#2dd3514e93396f362ba5551a7c9ff0da405c1d38"
-
-"@types/bs58@^3.0.30":
-  version "3.0.30"
-  resolved "https://registry.yarnpkg.com/@types/bs58/-/bs58-3.0.30.tgz#916ba10992465e56f81afc735e7935fd749893e1"
-  dependencies:
-    "@types/base-x" "*"
 
 "@types/bytebuffer@^5.0.37":
   version "5.0.37"
@@ -181,13 +171,6 @@
 "@types/node@^10.5.4":
   version "10.5.4"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-10.5.4.tgz#6eccc158504357d1da91434d75e86acde94bb10b"
-
-"@types/uws@^0.13.2":
-  version "0.13.2"
-  resolved "https://registry.yarnpkg.com/@types/uws/-/uws-0.13.2.tgz#e3563c636132c171a4c9079620c71aba402ceb00"
-  dependencies:
-    "@types/events" "*"
-    "@types/node" "*"
 
 "@types/yargs@^11.1.1":
   version "11.1.1"
@@ -382,12 +365,6 @@ balanced-match@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/balanced-match/-/balanced-match-1.0.0.tgz#89b4d199ab2bee49de164ea02b89ce462d71b767"
 
-base-x@^3.0.2:
-  version "3.0.4"
-  resolved "https://registry.yarnpkg.com/base-x/-/base-x-3.0.4.tgz#94c1788736da065edb1d68808869e357c977fa77"
-  dependencies:
-    safe-buffer "^5.0.1"
-
 base@^0.11.1:
   version "0.11.2"
   resolved "https://registry.yarnpkg.com/base/-/base-0.11.2.tgz#7bde5ced145b6d551a90db87f83c558b4eb48a8f"
@@ -411,10 +388,6 @@ benchmark@^2.1.4:
     lodash "^4.17.4"
     platform "^1.3.3"
 
-bignumber.js@^6.0.0:
-  version "6.0.0"
-  resolved "https://registry.yarnpkg.com/bignumber.js/-/bignumber.js-6.0.0.tgz#bbfa047644609a5af093e9cbd83b0461fa3f6002"
-
 bindings@~1.2.1:
   version "1.2.1"
   resolved "https://registry.yarnpkg.com/bindings/-/bindings-1.2.1.tgz#14ad6113812d2d37d72e67b4cacb4bb726505f11"
@@ -429,15 +402,6 @@ bl@^1.0.0:
   dependencies:
     readable-stream "^2.3.5"
     safe-buffer "^5.1.1"
-
-borc@^2.0.3:
-  version "2.0.3"
-  resolved "https://registry.yarnpkg.com/borc/-/borc-2.0.3.tgz#08845ea73a6d3211120928ee3929f8dc2de9f52e"
-  dependencies:
-    bignumber.js "^6.0.0"
-    commander "^2.15.0"
-    ieee754 "^1.1.8"
-    json-text-sequence "^0.1"
 
 brace-expansion@^1.0.0, brace-expansion@^1.1.7:
   version "1.1.11"
@@ -464,12 +428,6 @@ braces@^2.3.1:
 browser-stdout@1.3.1:
   version "1.3.1"
   resolved "https://registry.yarnpkg.com/browser-stdout/-/browser-stdout-1.3.1.tgz#baa559ee14ced73452229bad7326467c61fabd60"
-
-bs58@^4.0.1:
-  version "4.0.1"
-  resolved "https://registry.yarnpkg.com/bs58/-/bs58-4.0.1.tgz#be161e76c354f6f788ae4071f63f34e8c4f0a42a"
-  dependencies:
-    base-x "^3.0.2"
 
 buffer-equal@^1.0.0:
   version "1.0.0"
@@ -700,7 +658,7 @@ command-line-usage@^4.0.0:
     table-layout "^0.4.2"
     typical "^2.6.1"
 
-commander@2.15.1, commander@^2.15.0:
+commander@2.15.1:
   version "2.15.1"
   resolved "https://registry.yarnpkg.com/commander/-/commander-2.15.1.tgz#df46e867d0fc2aec66a34662b406a9ccafff5b0f"
 
@@ -903,10 +861,6 @@ del@^3.0.0:
 delegates@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/delegates/-/delegates-1.0.0.tgz#84c6e159b81904fdca59a0ef44cd870d31250f9a"
-
-delimit-stream@0.1.0:
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/delimit-stream/-/delimit-stream-0.1.0.tgz#9b8319477c0e5f8aeb3ce357ae305fc25ea1cd2b"
 
 deprecated@^0.0.1:
   version "0.0.1"
@@ -1404,9 +1358,9 @@ glogg@^1.0.0:
   dependencies:
     sparkles "^1.0.0"
 
-"godcoin-neon@https://github.com/GODcoin/godcoin-neon.git#f0ec1e0":
+"godcoin-neon@https://github.com/GODcoin/godcoin-neon.git#14649f3":
   version "0.0.1"
-  resolved "https://github.com/GODcoin/godcoin-neon.git#f0ec1e0c9ad19f2e0a8d2103784768fff4b286ef"
+  resolved "https://github.com/GODcoin/godcoin-neon.git#14649f395ace6a7f8d5981dbf1cb1c61cbba92eb"
   dependencies:
     neon-cli "^0.2.0"
 
@@ -1590,10 +1544,6 @@ iconv-lite@^0.4.17:
   resolved "https://registry.yarnpkg.com/iconv-lite/-/iconv-lite-0.4.23.tgz#297871f63be507adcfbfca715d0cd0eed84e9a63"
   dependencies:
     safer-buffer ">= 2.1.2 < 3"
-
-ieee754@^1.1.8:
-  version "1.1.11"
-  resolved "https://registry.yarnpkg.com/ieee754/-/ieee754-1.1.11.tgz#c16384ffe00f5b7835824e67b6f2bd44a5229455"
 
 imurmurhash@^0.1.4:
   version "0.1.4"
@@ -1909,12 +1859,6 @@ json-stable-stringify@^1.0.0:
   resolved "https://registry.yarnpkg.com/json-stable-stringify/-/json-stable-stringify-1.0.1.tgz#9a759d39c5f2ff503fd5300646ed445f88c4f9af"
   dependencies:
     jsonify "~0.0.0"
-
-json-text-sequence@^0.1:
-  version "0.1.1"
-  resolved "https://registry.yarnpkg.com/json-text-sequence/-/json-text-sequence-0.1.1.tgz#a72f217dc4afc4629fff5feb304dc1bd51a2f3d2"
-  dependencies:
-    delimit-stream "0.1.0"
 
 jsonify@~0.0.0:
   version "0.0.0"
@@ -3608,10 +3552,6 @@ user-home@^1.1.1:
 util-deprecate@~1.0.1:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/util-deprecate/-/util-deprecate-1.0.2.tgz#450d4dc9fa70de732762fbd2d4a28981419a0ccf"
-
-uws@^10.148.1:
-  version "10.148.1"
-  resolved "https://registry.yarnpkg.com/uws/-/uws-10.148.1.tgz#fd1a79cf6118a388e0a1bed8a1397030d2c4fd2c"
 
 v8flags@^2.0.2:
   version "2.1.1"
