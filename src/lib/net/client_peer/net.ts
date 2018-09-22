@@ -101,8 +101,10 @@ export class ClientNet extends Net {
     } catch (e) {
       if (this.socket) this.socket.end();
       console.log(`${this.formatLogPrefix()} Open handler failed\n`, e);
+      this.openLock.unlock();
       return;
     }
+    this.openLock.unlock();
     super.onOpen();
   }
 
@@ -140,7 +142,6 @@ export class ClientNet extends Net {
         socket.removeListener('error', errHandler);
         this.connectState = ConnectState.OPEN;
 
-        this.openLock.unlock();
         this.socket = socket;
         this.socket.emit('open');
         resolve();
