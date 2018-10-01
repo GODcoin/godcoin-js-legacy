@@ -168,7 +168,7 @@ export class ClientNet extends Net {
           await this.open();
           resolve(true);
         } catch (e) {
-          console.log(`[${this.nodeUrl}] Failed to connect to peer`, e);
+          console.log(`${this.formatLogPrefix()} Failed to connect to peer`, e);
           resolve(false);
           if (this.running) this.startOpenTimer(++tries);
         }

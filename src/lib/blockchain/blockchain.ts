@@ -1,5 +1,4 @@
 import * as assert from 'assert';
-import * as ByteBuffer from 'bytebuffer';
 import * as del from 'del';
 import { EventEmitter } from 'events';
 import * as fs from 'fs';

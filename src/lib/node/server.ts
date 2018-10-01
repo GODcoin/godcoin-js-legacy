@@ -1,4 +1,4 @@
-import { SignedBlock } from 'godcoin-neon';
+import { SignedBlock, Tx } from 'godcoin-neon';
 import * as net from 'net';
 import { Blockchain } from '../blockchain';
 import { ServerNet, ServerPeer } from '../net';
@@ -47,25 +47,22 @@ export class Server {
       }, serverNet);
       try {
         await peer.init();
-        peer.on('net_event_block', async (data: any) => {
+        peer.on('net_event_block', async (block: SignedBlock) => {
           try {
-            if (data.block) {
-              const block = SignedBlock.decodeWithTx(data.block);
-              await sync.handleBlock(block);
-            }
+            await sync.handleBlock(block);
           } catch (e) {
-            console.log(`[${serverNet.nodeUrl}] Failed to deserialize block`, e);
+            console.log(`${serverNet.formatLogPrefix()} Failed to deserialize block`, e);
           }
         });
-        peer.on('net_event_tx', (data: any) => {
+        peer.on('net_event_tx', async (tx: Tx) => {
           try {
-            if (data.tx) sync.handleTx(Buffer.from(data.tx));
+            await sync.handleTx(tx);
           } catch (e) {
-            console.log(`[${serverNet.nodeUrl}] Failed to handle transaction`, e);
+            console.log(`${serverNet.formatLogPrefix()} Failed to handle transaction`, e);
           }
         });
       } catch (e) {
-        console.log(`[${serverNet.nodeUrl}] Failed to initialize peer`, e);
+        console.log(`${serverNet.formatLogPrefix()} Failed to initialize peer`, e);
         if (serverNet.socket && serverNet.isOpen) {
           serverNet.socket.end();
         }
@@ -81,5 +78,4 @@ export class Server {
       this.server = undefined;
     }
   }
-
 }

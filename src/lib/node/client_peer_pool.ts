@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { PeerType, SignedBlock } from 'godcoin-neon';
+import { PeerType, SignedBlock, Tx } from 'godcoin-neon';
 import {
   BlockRange,
   ClientNet,
@@ -46,13 +46,13 @@ export class ClientPeerPool extends EventEmitter {
     for (const client of this.clients) await client.stop();
   }
 
-  subscribeTx(cb: (tx: Buffer) => Promise<void>) {
+  subscribeTx(cb: (tx: Tx) => Promise<void>) {
     for (const client of this.clients) {
-      client.on('net_event_tx', async (data: any) => {
+      client.on('net_event_tx', async (tx: Tx) => {
         try {
-          if (data.tx) cb(Buffer.from(data.tx));
+          cb(tx);
         } catch (e) {
-          console.log(`[${client.net.nodeUrl}] Failed to handle transaction`, e);
+          console.log(`${client.net.formatLogPrefix()} Failed to handle transaction`, e);
         }
       });
     }
@@ -60,14 +60,11 @@ export class ClientPeerPool extends EventEmitter {
 
   subscribeBlock(cb: (b: SignedBlock) => Promise<void>) {
     for (const client of this.clients) {
-      client.on('net_event_block', async (data: any) => {
+      client.on('net_event_block', async (block: SignedBlock) => {
         try {
-          if (data.block) {
-            const block = SignedBlock.decodeWithTx(data.block);
-            await cb(block);
-          }
+          await cb(block);
         } catch (e) {
-          console.log(`[${client.net.nodeUrl}] Failed to deserialize block`, e);
+          console.log(`${client.net.formatLogPrefix()} Failed to deserialize block`, e);
         }
       });
     }

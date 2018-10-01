@@ -71,6 +71,6 @@ export class ServerNet extends Net {
   }
 
   protected onError(err: any): void {
-    console.log(`[${this.nodeUrl}] Unexpected error`, err);
+    console.log(`${this.formatLogPrefix()} Unexpected error`, err);
   }
 }

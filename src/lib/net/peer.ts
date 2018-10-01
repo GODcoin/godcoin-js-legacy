@@ -141,14 +141,14 @@ export class Peer extends EventEmitter {
         await this.net.send({
           id: ++this.id,
           msg_type: RpcMsgType.EVENT,
-          res: {
+          req: {
             type: RpcEventType.TX,
             data: tx
           }
         });
       } catch (e) {
         if (!(e instanceof DisconnectedError)) {
-          console.log(`[${this.net.nodeUrl}] Failed to push tx to client`, e);
+          console.log(`${this.net.formatLogPrefix()} Failed to push tx to client`, e);
         }
       }
     };
@@ -158,14 +158,14 @@ export class Peer extends EventEmitter {
         await this.net.send({
           id: ++this.id,
           msg_type: RpcMsgType.EVENT,
-          res: {
+          req: {
             type: RpcEventType.BLOCK,
             data: block
           }
         });
       } catch (e) {
         if (!(e instanceof DisconnectedError)) {
-          console.log(`[${this.net.nodeUrl}] Failed to push block to client`, e);
+          console.log(`${this.net.formatLogPrefix()} Failed to push block to client`, e);
         }
       }
     };
@@ -213,7 +213,7 @@ export class Peer extends EventEmitter {
         else req.resolve(rpc);
       }
     } catch (e) {
-      console.log(`[${this.net.nodeUrl}] Failed to process message`, e);
+      console.log(`${this.net.formatLogPrefix()} Failed to process message`, e);
     }
   }
 

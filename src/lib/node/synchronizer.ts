@@ -1,5 +1,4 @@
-import { SignedBlock } from 'godcoin-neon';
-import * as Long from 'long';
+import { SignedBlock, Tx } from 'godcoin-neon';
 import { Blockchain } from '../blockchain';
 import { Lock } from '../lock';
 import { EndOfClients } from '../net';
@@ -74,13 +73,14 @@ export class Synchronizer {
     }
   }
 
-  async handleTx(tx: Buffer) {
+  async handleTx(tx: Tx) {
     if (!this.running) return;
     await this.lock.lock();
     try {
-      const hex = tx.toString('hex');
-      if (await this.txPool.hasTx(tx, hex)) return;
-      await this.txPool.push(tx, hex);
+      const buf = tx.encodeWithSigs();
+      const hex = buf.toString('hex');
+      if (await this.txPool.hasTx(buf, hex)) return;
+      await this.txPool.push(buf, hex);
     } catch (e) {
       console.log('Failed to process incoming tx', e);
     } finally {
