@@ -1,3 +1,4 @@
+import * as assert from 'assert';
 import { RpcMsgType, RpcPayload } from 'godcoin-neon';
 import * as net from 'net';
 import { PromiseLike } from '../../node-util';
@@ -39,7 +40,8 @@ export class ServerNet extends Net {
         } else if (rpc.msg_type !== RpcMsgType.HANDSHAKE) {
           return reject(new Error('message must be handshake type'));
         }
-        this.peerType = rpc.req!.peerType;
+        this.peerType = rpc.req!.peer_type;
+        assert(this.peerType !== undefined, 'expected peerType to be defined');
         try {
           this.send({
             id: 0,
