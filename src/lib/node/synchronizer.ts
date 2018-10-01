@@ -64,7 +64,9 @@ export class Synchronizer {
       if (block.height > this.blockchain.head.height && this.producer.running) {
         const accepted = await this.producer.onBlock(block);
         if (!accepted) return;
-        console.log(`Received block at height ${height} with ${len} transaction${len === 1 ? '' : 's'}`);
+        const signer = block.sig_pair[0].toWif();
+        const txs = `transaction${len === 1 ? '' : 's'}`;
+        console.log(`Received block (${signer}) at height ${height} with ${len} ${txs}`);
       }
     } catch (e) {
       console.log('Failed to process incoming block', e);
