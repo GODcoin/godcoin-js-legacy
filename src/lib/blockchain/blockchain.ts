@@ -163,8 +163,7 @@ export class Blockchain extends EventEmitter {
     }
   }
 
-  getBlock(height: number|Long): Promise<SignedBlock|undefined> {
-    if (typeof(height) === 'number') height = Long.fromNumber(height, true);
+  getBlock(height: number): Promise<SignedBlock|undefined> {
     return this.store.read(height);
   }
 

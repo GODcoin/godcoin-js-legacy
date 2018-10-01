@@ -21,14 +21,12 @@ export class BatchIndex {
   }
 
   async setBlockPos(height: number, bytePos: Long): Promise<void> {
+    const blkHeightBuf = Buffer.allocUnsafe(4);
+    blkHeightBuf.writeInt32BE(height, 0, true);
+
     const posBuf = Buffer.allocUnsafe(8);
     posBuf.writeInt32BE(bytePos.high, 0, true);
     posBuf.writeInt32BE(bytePos.low, 4, true);
-
-    const blkHeightBuf = Buffer.allocUnsafe(8);
-    const l = Long.fromNumber(height, true);
-    blkHeightBuf.writeInt32BE(l.high, 0, true);
-    blkHeightBuf.writeInt32BE(l.low, 4, true);
 
     this.ops.push({
       type: 'put',

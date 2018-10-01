@@ -100,10 +100,9 @@ export class Indexer {
     return [Asset.fromString(bal[0]), Asset.fromString(bal[1])];
   }
 
-  async getBlockPos(height: Long): Promise<Long|undefined> {
-    const buf = Buffer.allocUnsafe(8);
-    buf.writeInt32BE(height.high, 0, true);
-    buf.writeInt32BE(height.low, 4, true);
+  async getBlockPos(height: number): Promise<Long|undefined> {
+    const buf = Buffer.allocUnsafe(4);
+    buf.writeInt32BE(height, 0, true);
     const pos: Buffer = await this.getProp(IndexProp.NAMESPACE_BLOCK, buf);
     if (!pos) return;
     const high = pos.readInt32BE(0, true);
@@ -112,31 +111,24 @@ export class Indexer {
   }
 
   async setBlockPos(height: number, bytePos: Long): Promise<void> {
-    const buf = Buffer.allocUnsafe(8);
-    const l = Long.fromNumber(height, true);
-    buf.writeInt32BE(l.high, 0, true);
-    buf.writeInt32BE(l.low, 4, true);
+    const key = Buffer.allocUnsafe(4);
+    key.writeInt32BE(height, 0, true);
 
-    const pos = Buffer.allocUnsafe(8);
-    pos.writeInt32BE(bytePos.high, 0, true);
-    pos.writeInt32BE(bytePos.low, 4, true);
-    await this.setProp(IndexProp.NAMESPACE_BLOCK, buf, pos);
+    const val = Buffer.allocUnsafe(8);
+    val.writeInt32BE(bytePos.high, 0, true);
+    val.writeInt32BE(bytePos.low, 4, true);
+    await this.setProp(IndexProp.NAMESPACE_BLOCK, key, val);
   }
 
-  async getChainHeight(): Promise<Long|undefined> {
+  async getChainHeight(): Promise<number|undefined> {
     const buf = await this.getProp(IndexProp.NAMESPACE_MAIN, IndexProp.KEY_CURRENT_BLOCK_HEIGHT);
     if (!buf) return;
-    const high = buf.readInt32BE(0, true);
-    const low = buf.readInt32BE(4, true);
-    return new Long(low, high, true);
-
+    return buf.readInt32BE(0, true);
   }
 
   async setChainHeight(height: number): Promise<void> {
-    const buf = Buffer.allocUnsafe(8);
-    const l = Long.fromNumber(height, true);
-    buf.writeInt32BE(l.high, 0, true);
-    buf.writeInt32BE(l.low, 4, true);
+    const buf = Buffer.allocUnsafe(4);
+    buf.writeInt32BE(height, 0, true);
     await this.setProp(IndexProp.NAMESPACE_MAIN, IndexProp.KEY_CURRENT_BLOCK_HEIGHT, buf);
   }
 

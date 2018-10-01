@@ -1,5 +1,4 @@
 import * as assert from 'assert';
-import * as ByteBuffer from 'bytebuffer';
 import * as fs from 'fs';
 import { SignedBlock } from 'godcoin-neon';
 import * as Long from 'long';
@@ -46,14 +45,13 @@ export class ChainStore {
   async postInit(): Promise<void> {
     assert(this.initialized, 'must be initialized');
     const height = await this.index.getChainHeight();
-    if (height) {
+    if (height !== undefined) {
       this._blockHead = (await this.read(height))!;
       assert(this._blockHead, 'index points to an invalid block head');
 
       // Fill the block cache
-      let min = height.sub(BlockCache.MAX_CACHE_SIZE);
-      if (min.lt(0)) min = Long.fromNumber(0, true);
-      for (; min.lte(height); min = min.add(1)) {
+      let min = Math.max(0, height - BlockCache.MAX_CACHE_SIZE);
+      for (; min <= height; ++min) {
         this.blockCache.push((await this.read(min))!);
       }
     }
@@ -113,7 +111,7 @@ export class ChainStore {
     return bytePos;
   }
 
-  async read(blockHeight: Long): Promise<SignedBlock|undefined> {
+  async read(blockHeight: number): Promise<SignedBlock|undefined> {
     const block = this.blockCache.get(blockHeight);
     if (block) return block;
 
@@ -172,23 +170,21 @@ class BlockCache {
 
   static MAX_CACHE_SIZE = 1000;
 
-  private readonly cache: {[key: string]: SignedBlock} = {};
-  private min?: number;
+  private readonly cache: {[key: number]: SignedBlock} = {};
+  private min = 0;
   private count = 0;
 
-  get(height: Long): SignedBlock|undefined {
-    if (!this.min) return;
-    else if (!(height.lt(this.min) || height.gt(this.min + this.count))) return;
-    return this.cache[height.toString()];
+  get(height: number): SignedBlock|undefined {
+    return this.cache[height];
   }
 
   push(block: SignedBlock): void {
-    this.cache[block.height.toString()] = block;
+    this.cache[block.height] = block;
     if (this.count + 1 > BlockCache.MAX_CACHE_SIZE) {
-      delete this.cache[this.min!.toString()];
-      ++this.min!;
+      delete this.cache[this.min];
+      ++this.min;
     } else {
-      if (!this.min) this.min = block.height;
+      if (this.count === 0) this.min = block.height;
       ++this.count;
     }
   }
