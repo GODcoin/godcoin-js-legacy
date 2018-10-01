@@ -9,11 +9,11 @@ export function hookSigInt(callback: () => void, rli?: readline.ReadLine) {
     });
 
     rl.on('SIGINT', () => {
-      process.emit('SIGINT');
+      process.emit('SIGINT', 'SIGINT');
     });
   } else if (rli) {
     rli.on('SIGINT', () => {
-      process.emit('SIGINT');
+      process.emit('SIGINT', 'SIGINT');
     });
   }
 
