@@ -6,7 +6,7 @@ export namespace GODcoinEnv {
     if (process.env.GODCOIN_HOME) {
       return process.env.GODCOIN_HOME;
     } else if (process.platform === 'win32') {
-      return path.join(process.env.APPDIR!, '.godcoin');
+      return path.join(process.env.APPDATA!, '.godcoin');
     }
     return path.join(process.env.HOME!, '.godcoin');
   })();
