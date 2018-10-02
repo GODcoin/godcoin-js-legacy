@@ -1,34 +1,22 @@
 import * as readline from 'readline';
 
 export function hookSigInt(callback: () => void, rli?: readline.ReadLine) {
-  let force = false;
-
-  if (process.platform === 'win32') {
-    const rl = rli ? rli : readline.createInterface({
+  if (!rli) {
+    rli = readline.createInterface({
       input: process.stdin
     });
-
-    rl.on('SIGINT', () => {
-      process.emit('SIGINT', 'SIGINT');
-    });
-  } else if (rli) {
-    rli.on('SIGINT', () => {
-      process.emit('SIGINT', 'SIGINT');
-    });
   }
+  rli.on('SIGINT', () => {
+    process.emit('SIGINT', 'SIGINT');
+  });
 
   process.on('SIGINT', () => {
-    if (force) {
-      console.log('Force quit');
-      process.exit(1);
-    }
     try {
-      console.log('\nDouble press ctrl-c to force quit');
+      rli!.close();
       callback();
     } finally {
-      force = true;
       setTimeout(() => {
-        force = false;
+        process.exit(0);
       }, 1000).unref();
     }
   });
