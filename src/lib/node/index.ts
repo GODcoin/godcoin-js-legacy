@@ -107,13 +107,15 @@ export class Node {
     this.peerPool.subscribeTx(this.sync.handleTx.bind(this.sync));
 
     this.peerPool.on('open', () => {
-      this.producer.start(true).catch(e => {
-        console.log('Failed to start the producer after resuming the peer pool', e);
-      });
+      if (this.sync.isComplete) {
+        this.producer.start(true).catch(e => {
+          console.log('Failed to start the producer after resuming the peer pool', e);
+        });
 
-      this.sync.resume().catch(e => {
-        console.log('Failed to resume the synchronizer', e);
-      });
+        this.sync.resume().catch(e => {
+          console.log('Failed to resume the synchronizer', e);
+        });
+      }
     });
 
     this.peerPool.on('close', () => {

@@ -8,8 +8,11 @@ import { ClientPeerPool } from './client_peer_pool';
 
 export class Synchronizer {
 
+  private _isComplete = false;
   private running: boolean;
   private lock = new Lock();
+
+  get isComplete() { return this._isComplete; }
 
   constructor(readonly blockchain: Blockchain,
               readonly peerPool: ClientPeerPool,
@@ -28,6 +31,7 @@ export class Synchronizer {
     }
     const height = this.blockchain.head.height;
     console.log('Synchronization completed at height', height.toString());
+    this._isComplete = true;
   }
 
   async resume() {
