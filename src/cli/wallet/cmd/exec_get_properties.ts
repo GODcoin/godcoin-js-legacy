@@ -8,6 +8,10 @@ export async function execGetProperties(wallet: Wallet, args: any[]) {
     token_supply: [
       data.token_supply[0].toString(),
       data.token_supply[1].toString()
+    ],
+    network_fee: [
+      data.network_fee[0].toString(),
+      data.network_fee[1].toString()
     ]
   });
 }

@@ -232,7 +232,8 @@ export class Peer extends EventEmitter {
       case RpcMsgType.PROPERTIES: {
         const props: RpcMsgResProperties = {
           height: this.opts.blockchain.head.height,
-          token_supply: await this.opts.blockchain.indexer.getTokenSupply()
+          token_supply: await this.opts.blockchain.indexer.getTokenSupply(),
+          network_fee: this.opts.blockchain.networkFee
         };
         return {
           id: rpc.id,
