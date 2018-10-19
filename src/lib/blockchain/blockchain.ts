@@ -12,7 +12,6 @@ import {
   TransferTx,
   Tx
 } from 'godcoin-neon';
-import * as Long from 'long';
 import * as path from 'path';
 import {
   addBalAgnostic,
@@ -258,7 +257,6 @@ export class Blockchain extends EventEmitter {
     }
     if ((skipFlags & SkipFlags.SKIP_BLOCK_MERKLE) === 0) {
       // Verify merkle root recalculation
-      const thisRoot = block.tx_merkle_root;
       assert(block.verifyMerkleRoot(), 'unexpected merkle root');
     }
 
