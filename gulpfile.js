@@ -21,12 +21,14 @@ gulp.task('build', () => {
   return merge(js, dts);
 });
 
-gulp.task('watch', ['build'], () => {
-  return gulp.watch('src/**/*.ts', ['build']);
+gulp.task('watch:start', () => {
+  return gulp.watch('./src/**/*.ts', gulp.series(['build']));
 });
+
+gulp.task('watch', gulp.series(['build', 'watch:start']));
 
 gulp.task('clean', () => {
   return del(`${outDir}/**`);
 });
 
-gulp.task('default', ['build']);
+gulp.task('default', gulp.series(['build']));
