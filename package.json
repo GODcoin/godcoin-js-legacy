@@ -35,7 +35,7 @@
     "bytebuffer": "^5.0.1",
     "debug": "^4.1.0",
     "del": "^3.0.0",
-    "godcoin-neon": "https://github.com/GODcoin/godcoin-neon.git#5445192",
+    "godcoin-neon": "https://github.com/GODcoin/godcoin-neon.git#b85d519",
     "level": "^4.0.0",
     "libsodium-wrappers": "^0.7.3",
     "long": "^4.0.0",
